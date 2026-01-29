@@ -36,7 +36,7 @@ Supports `Strict` and `Partial` matching at a granular level. You can configure 
 ## Installation
 
 ```bash
-pnpm add @offline-ai/ai-test-runner
+pnpm add @isdk/ai-test-runner
 ```
 
 ## Detailed Usage Guide
@@ -112,7 +112,7 @@ If the AI output is a JSON object, you can validate it against a schema.
 ### Implementation Example
 
 ```typescript
-import { AITestRunner, AIScriptExecutor } from '@offline-ai/ai-test-runner';
+import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
 
 // 1. Implement your executor
 const executor: AIScriptExecutor = {

@@ -36,7 +36,7 @@
 ## 安装
 
 ```bash
-pnpm add @offline-ai/ai-test-runner
+pnpm add @isdk/ai-test-runner
 ```
 
 ## 详细使用指南
@@ -114,7 +114,7 @@ variables:
 ### 实现执行器
 
 ```typescript
-import { AITestRunner, AIScriptExecutor } from '@offline-ai/ai-test-runner';
+import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
 
 // 1. 实现执行器，对接你的 AI 引擎
 const executor: AIScriptExecutor = {
