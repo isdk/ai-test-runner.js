@@ -1,10 +1,10 @@
-# @offline-ai/ai-test-runner
+# @isdk/ai-test-runner
 
 > 【[English](./README.md)|中文】
 ---
 
 一个轻量级、解耦的 AI 脚本、智能体及提示词测试核心引擎。
-该项目是 [Offline AI](https://github.com/offline-ai/cli) 生态系统的一部分，专门用于测试 [可编程提示引擎 (PPE)](https://github.com/offline-ai/ppe) 脚本。
+该项目是 [ISDK AI](https://github.com/isdk) 生态系统的一部分，专门用于测试 [ISDK Language](https://github.com/isdk/isdk-lang-spec) 脚本。
 
 `ai-test-runner` 提供了一套强大的框架，用于执行 AI 测试样例（Fixtures）并利用多种策略验证输出结果。
 

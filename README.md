@@ -1,10 +1,10 @@
-# @offline-ai/ai-test-runner
+# @isdk/ai-test-runner
 
 > 【English|[中文](./README.cn.md)】
 ---
 
 A lightweight, decoupled core engine for testing AI scripts, agents, and prompts.
-Part of the [Offline AI](https://github.com/offline-ai/cli) ecosystem and used for testing [Programmable Prompt Engine (PPE)](https://github.com/offline-ai/ppe) scripts.
+Part of the [ISDK AI](https://github.com/isdk) ecosystem and used for testing [ISDK Language](https://github.com/isdk/isdk-lang-spec) scripts.
 
 `ai-test-runner` provides a robust framework for executing AI test fixtures and validating outputs using multiple strategies.
 
