@@ -1,0 +1,285 @@
+import { EventEmitter } from '@isdk/ai-tool'
+import { cloneDeep, defaultsDeep, omitBy } from 'lodash-es'
+// @ts-ignore
+import { getTemplateData } from '@isdk/ai-tool-agent'
+
+import {
+  AITestFixtureResult,
+  AITestLogItem,
+  AIExecutionContext,
+  AIScriptExecutor,
+  AITestRunnerOptions,
+} from './types.js'
+import { formatObject, validateMatch } from './validate-match.js'
+import { YamlTypeJsonSchema } from './yaml-types/index.js'
+
+const ReasonNames = [
+  'thinking',
+  'reasonings',
+  'reasoning',
+  'reasons',
+  'reason',
+  'explanations',
+  'explanation',
+]
+
+function getReasonValue(obj: any) {
+  if (!obj || typeof obj !== 'object') return undefined
+  const name = ReasonNames.find((name) => name in obj)
+  return name && obj[name]
+}
+
+async function defaultValue(value: any, defaultValue?: any, data?: any) {
+  const isYamlJsonSchema =
+    value instanceof YamlTypeJsonSchema ||
+    defaultValue instanceof YamlTypeJsonSchema
+
+  if (value == null) {
+    value = defaultValue
+  } else if (
+    typeof value === 'object' &&
+    defaultValue &&
+    typeof defaultValue === 'object'
+  ) {
+    value = defaultsDeep({}, value, defaultValue)
+  }
+
+  if (typeof value !== 'function') {
+    if (data) {
+      value = await formatObject(value, { data })
+    }
+    if (
+      value &&
+      !Array.isArray(value) &&
+      typeof value === 'object' &&
+      !(value instanceof RegExp)
+    ) {
+      value = omitBy(
+        value,
+        (v) => v == null || (typeof v === 'string' && v === '')
+      )
+    }
+
+    if (isYamlJsonSchema) {
+      value = YamlTypeJsonSchema.create(value)
+    }
+  }
+
+  return value
+}
+
+export class AITestRunner extends EventEmitter {
+  constructor(private executor: AIScriptExecutor) {
+    super()
+  }
+
+  async run(
+    script: string,
+    fixtures: any[],
+    options: AITestRunnerOptions = {}
+  ): Promise<AITestFixtureResult> {
+    const {
+      fixtureConfig: _initialFixtureConfig,
+      userConfig = {},
+      skips = {},
+      scriptConfig = {},
+    } = options
+    let failedCount = 0
+    let passedCount = 0
+    const logs: AITestLogItem[] = []
+
+    // Copy to avoid mutating original
+    const initialFixtureConfig = cloneDeep(_initialFixtureConfig || {})
+
+    // Merge script output schema into fixture config if present
+    if (scriptConfig.output) {
+      initialFixtureConfig.outputSchema = defaultsDeep(
+        {},
+        initialFixtureConfig.outputSchema,
+        scriptConfig.output
+      )
+    }
+
+    const startTotalTime = Date.now()
+
+    for (let i = 0; i < fixtures.length; i++) {
+      let fixtureConfig = cloneDeep(initialFixtureConfig)
+      const fixture = cloneDeep(fixtures[i])
+
+      if (skips[i] || fixture.skip) {
+        continue
+      }
+
+      const input = await defaultValue(fixture.input, fixtureConfig?.input)
+      const output = await defaultValue(fixture.output, fixtureConfig?.output)
+
+      // Prepare data for templating
+
+      fixtureConfig = await formatObject(fixtureConfig, {
+        data: { ...input, ...fixtureConfig },
+        input: fixture,
+      })
+
+      let templateData = {
+        ...getTemplateData(scriptConfig),
+
+        ...input,
+
+        ...fixtureConfig,
+
+        ...(userConfig.data || {}),
+      }
+
+      // Multi-pass resolution for deep dependencies (e.g., a -> b -> c)
+
+      let lastDataStr = ''
+
+      for (let pass = 0; pass < 5; pass++) {
+        templateData = await formatObject(templateData, {
+          data: templateData,
+          input: fixture,
+        })
+
+        const currentDataStr = JSON.stringify(templateData)
+
+        if (currentDataStr === lastDataStr) break
+
+        lastDataStr = currentDataStr
+      }
+
+      const execContext: AIExecutionContext = {
+        script,
+        args: templateData,
+        options: {
+          ...userConfig,
+        },
+      }
+
+      const ts = Date.now()
+      let resultOutput: any
+      let error: any
+      let passed = false
+      let failures
+
+      try {
+        this.emit('test:start', { i, script, input })
+
+        const execResult = await this.executor.execute(execContext)
+        resultOutput = execResult.output
+
+        const duration = Date.now() - ts
+
+        // Validation
+        const checkSchema =
+          userConfig.checkSchema ??
+          fixture.checkSchema ??
+          fixtureConfig.checkSchema
+        const strict =
+          fixture.strict ??
+          fixtureConfig.strict ??
+          userConfig.strict ??
+          options.strict
+        let expectedSchema: any
+
+        failures = []
+
+        if (checkSchema !== false) {
+          expectedSchema = defaultsDeep(
+            {},
+            fixture.outputSchema,
+            fixtureConfig.outputSchema
+          )
+          if (expectedSchema && expectedSchema.type) {
+            // Ensure schema object itself can contain templates
+            expectedSchema = await formatObject(expectedSchema, {
+              data: templateData,
+              input: fixture,
+            })
+            const schemaFailures = await validateMatch(
+              resultOutput,
+              YamlTypeJsonSchema.create(expectedSchema),
+              { data: templateData, input: fixture, strict }
+            )
+            if (schemaFailures) failures.push(...schemaFailures)
+          }
+        }
+
+        if (output !== undefined) {
+          const matchFailures = await validateMatch(resultOutput, output, {
+            data: templateData,
+            input: fixture,
+            strict,
+          })
+
+          if (matchFailures && matchFailures.length > 0) {
+            console.log('DEBUG: Validation Failed!', {
+              actual: resultOutput,
+              actualType: typeof resultOutput,
+              expected: output,
+              expectedType: typeof output,
+              failures: JSON.stringify(matchFailures),
+            })
+
+            failures.push(...matchFailures)
+          }
+        }
+
+        passed = failures.length === 0
+
+        if (fixture.not) {
+          passed = !passed
+        }
+
+        const reason =
+          typeof resultOutput === 'object'
+            ? getReasonValue(resultOutput)
+            : undefined
+
+        const logItem: AITestLogItem = {
+          passed,
+          input,
+          actual: resultOutput,
+          expected: output,
+          reason,
+          expectedSchema,
+          failures: failures.length ? failures : undefined,
+          i,
+          duration,
+          not: fixture.not,
+        }
+
+        logs.push(logItem)
+
+        if (passed) {
+          passedCount++
+          this.emit('test:pass', logItem)
+        } else {
+          failedCount++
+          this.emit('test:fail', logItem)
+        }
+      } catch (e: any) {
+        error = e
+        const duration = Date.now() - ts
+        const logItem: AITestLogItem = {
+          passed: false,
+          input,
+          actual: resultOutput,
+          expected: output,
+          error,
+          i,
+          duration,
+        }
+        logs.push(logItem)
+        failedCount++
+        this.emit('test:error', logItem)
+      }
+    }
+
+    return {
+      passedCount,
+      failedCount,
+      logs,
+      duration: Date.now() - startTotalTime,
+    }
+  }
+}
