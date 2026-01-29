@@ -11,14 +11,29 @@ import { diffChars, Change } from 'diff'
 import { YamlTypeJsonSchema } from './yaml-types/index.js'
 import { AIDiffItem, AIValidationFailure, AIStrictOption } from './types.js'
 
+/**
+ * Options for matching and validating values.
+ */
 export interface MatchValueOptions {
+  /** Accumulator for validation failures. */
   failures?: AIValidationFailure[]
+  /** The current key or path being validated. */
   key?: string
+  /** Data context for template formatting. */
   data?: Record<string, any>
+  /** The test fixture input/configuration. */
   input?: any
+  /** Strict validation mode configuration. */
   strict?: AIStrictOption
 }
 
+/**
+ * Checks if strict mode is enabled for a specific type.
+ *
+ * @param type - The type to check ('object', 'diff', or 'array').
+ * @param strict - The strict option configuration.
+ * @returns True if strict mode is enabled for the given type.
+ */
 export function isStrict(
   type: 'object' | 'diff' | 'array',
   strict?: AIStrictOption
@@ -29,6 +44,13 @@ export function isStrict(
   return false
 }
 
+/**
+ * Formats a single value (string or RegExp) using prompt templates.
+ *
+ * @param value - The value to format.
+ * @param options - Template formatting options.
+ * @returns The formatted value.
+ */
 export async function formatTemplate(
   value: any,
   options: PromptTemplateOptions
@@ -62,6 +84,13 @@ export async function formatTemplate(
   return value
 }
 
+/**
+ * Recursively formats an object or array by applying prompt templates to string values.
+ *
+ * @param input - The object or array to format.
+ * @param options - Template formatting options.
+ * @returns The formatted object or array.
+ */
 export async function formatObject(input: any, options: PromptTemplateOptions) {
   if (input && options.data) {
     const vType = typeof input
@@ -94,6 +123,16 @@ export async function formatObject(input: any, options: PromptTemplateOptions) {
   return input
 }
 
+/**
+ * Validates that an actual value matches an expected value.
+ * Supports various matching logic: equality, RegExp, Array comparison,
+ * custom functions, and JSON Schema.
+ *
+ * @param actual - The actual value produced.
+ * @param expected - The expected value or matcher.
+ * @param options - Validation options.
+ * @returns A promise that resolves to an array of validation failures.
+ */
 export async function validateMatch(
   actual: any,
   expected: any,
@@ -326,6 +365,13 @@ export async function validateMatch(
   return failures
 }
 
+/**
+ * Formats a list of AIDiffItems by applying templates to their values.
+ *
+ * @param diff - The list of diff items to format.
+ * @param options - Formatting options.
+ * @returns The formatted list of diff items.
+ */
 async function formatDiffList(diff: AIDiffItem[], options: MatchValueOptions) {
   for (const d of diff) {
     const value = d.value
@@ -339,6 +385,14 @@ async function formatDiffList(diff: AIDiffItem[], options: MatchValueOptions) {
   return diff
 }
 
+/**
+ * Finds a matching diff item in a list of expected diffs.
+ *
+ * @param diff - The list of expected diff items.
+ * @param item - The actual diff item to find.
+ * @param options - Match options.
+ * @returns The matched item if found, otherwise undefined.
+ */
 function findDiffItem(
   diff: AIDiffItem[],
   item: AIDiffItem,

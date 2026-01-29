@@ -23,12 +23,27 @@ const ReasonNames = [
   'explanation',
 ]
 
+/**
+ * Extracts a reasoning/explanation value from an object if it exists.
+ *
+ * @param obj - The object to extract reasoning from.
+ * @returns The reasoning string or undefined.
+ */
 function getReasonValue(obj: any) {
   if (!obj || typeof obj !== 'object') return undefined
   const name = ReasonNames.find((name) => name in obj)
   return name && obj[name]
 }
 
+/**
+ * Resolves a value with its default, handles deep merging for objects,
+ * applies templating, and manages YamlTypeJsonSchema instances.
+ *
+ * @param value - The primary value.
+ * @param defaultValue - The default value to fall back to or merge with.
+ * @param data - Optional data context for templating.
+ * @returns The resolved value.
+ */
 async function defaultValue(value: any, defaultValue?: any, data?: any) {
   const isYamlJsonSchema =
     value instanceof YamlTypeJsonSchema ||
@@ -68,11 +83,27 @@ async function defaultValue(value: any, defaultValue?: any, data?: any) {
   return value
 }
 
+/**
+ * Runner for executing AI script test fixtures and validating results.
+ */
 export class AITestRunner extends EventEmitter {
+  /**
+   * Creates a new AITestRunner instance.
+   *
+   * @param executor - The executor to use for running AI scripts.
+   */
   constructor(private executor: AIScriptExecutor) {
     super()
   }
 
+  /**
+   * Runs a set of test fixtures against a specified script.
+   *
+   * @param script - The script (e.g., prompt template) to run.
+   * @param fixtures - An array of test fixtures.
+   * @param options - Runner options for this execution.
+   * @returns A promise that resolves to the overall test results.
+   */
   async run(
     script: string,
     fixtures: any[],
@@ -212,14 +243,6 @@ export class AITestRunner extends EventEmitter {
           })
 
           if (matchFailures && matchFailures.length > 0) {
-            console.log('DEBUG: Validation Failed!', {
-              actual: resultOutput,
-              actualType: typeof resultOutput,
-              expected: output,
-              expectedType: typeof output,
-              failures: JSON.stringify(matchFailures),
-            })
-
             failures.push(...matchFailures)
           }
         }
