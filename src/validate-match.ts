@@ -308,11 +308,12 @@ export async function validateMatch(
     }
   } else if (vType === 'function') {
     const result = await expected(actual, input)
+    const expectedName = expected.name ? expected.name + '()'  : expected.toString()
     if (result !== true) {
       failures.push({
         key,
         message: `Custom function validation failed: ${result}`,
-        expected: expected.toString(),
+        expected: expectedName,
         actual,
       })
     }
