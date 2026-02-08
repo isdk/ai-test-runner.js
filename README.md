@@ -4,7 +4,7 @@
 ---
 
 A lightweight, decoupled core engine for testing AI scripts, agents, and prompts.
-Part of the [ISDK AI](https://github.com/isdk) ecosystem and used for testing [ISDK Language](https://github.com/isdk/isdk-lang-spec) scripts.
+While it originates from the [ISDK AI](https://github.com/isdk) ecosystem, it is designed as a **general-purpose engine** for any AI testing. You can easily adapt it to your own AI workflow by simply implementing the `AIScriptExecutor` interface.
 
 `ai-test-runner` provides a robust framework for executing AI test fixtures and validating outputs using multiple strategies.
 

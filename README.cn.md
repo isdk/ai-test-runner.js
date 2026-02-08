@@ -4,7 +4,7 @@
 ---
 
 一个轻量级、解耦的 AI 脚本、智能体及提示词测试核心引擎。
-该项目是 [ISDK AI](https://github.com/isdk) 生态系统的一部分，专门用于测试 [ISDK Language](https://github.com/isdk/isdk-lang-spec) 脚本。
+虽然它源自 [ISDK AI](https://github.com/isdk) 生态，但它被设计为**通用的 AI 测试引擎**。你只需简单地实现 `AIScriptExecutor` 接口，即可将其应用于任何 AI 测试场景。
 
 `ai-test-runner` 提供了一套强大的框架，用于执行 AI 测试样例（Fixtures）并利用多种策略验证输出结果。
 
