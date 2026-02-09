@@ -118,6 +118,65 @@ describe('AITestRunner', () => {
     expect(passSpy).toHaveBeenCalled()
   })
 
+  it('should support skip flag and skippedCount', async () => {
+    const fixtures = [
+      {
+        input: { echo: 'hello' },
+        output: 'hello'
+      },
+      {
+        input: { echo: 'skip me' },
+        output: 'skip me',
+        skip: true
+      }
+    ]
+    const skipSpy = vi.fn()
+    runner.on('test:skip', skipSpy)
+
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+    expect(result.skippedCount).toBe(1)
+    expect(result.failedCount).toBe(0)
+    expect(result.logs.length).toBe(2)
+    expect(result.logs[1].skipped).toBe(true)
+    expect(skipSpy).toHaveBeenCalled()
+  })
+
+  it('should support skips option', async () => {
+    const fixtures = [
+      {
+        input: { echo: 'hello' },
+        output: 'hello'
+      },
+      {
+        input: { echo: 'skip me' },
+        output: 'skip me'
+      }
+    ]
+    const result = await runner.run('test-script', fixtures, { skips: { 1: true } })
+    expect(result.passedCount).toBe(1)
+    expect(result.skippedCount).toBe(1)
+    expect(result.logs[1].skipped).toBe(true)
+  })
+
+  it('should support "only" flag', async () => {
+    const fixtures = [
+      {
+        input: { echo: 'hello' },
+        output: 'hello',
+        only: true
+      },
+      {
+        input: { echo: 'skip me' },
+        output: 'skip me'
+      }
+    ]
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+    expect(result.skippedCount).toBe(1)
+    expect(result.logs[1].skipped).toBe(true)
+  })
+
   it('should handle template data in output', async () => {
     const fixtures = [
       {

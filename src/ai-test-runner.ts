@@ -90,6 +90,7 @@ async function resolveDefaultValue(value: any, defaultValue?: any, data?: any) {
  * @fires AITestRunner#test:pass - Fired when a fixture passes all validations.
  * @fires AITestRunner#test:fail - Fired when a fixture fails validation.
  * @fires AITestRunner#test:error - Fired when an exception occurs during execution.
+ * @fires AITestRunner#test:skip - Fired when a fixture is skipped.
  */
 export class AITestRunner extends EventEmitter {
   /**
@@ -122,6 +123,7 @@ export class AITestRunner extends EventEmitter {
     } = options
     let failedCount = 0
     let passedCount = 0
+    let skippedCount = 0
     const logs: AITestLogItem[] = []
 
     const initialFixtureConfig = cloneDeep(_initialFixtureConfig || {})
@@ -141,6 +143,18 @@ export class AITestRunner extends EventEmitter {
       const fixture = cloneDeep(fixtures[i])
 
       if ((hasOnly && !fixture.only) || skips[i] || fixture.skip) {
+        skippedCount++
+        const logItem: AITestLogItem = {
+          i,
+          skipped: true,
+          passed: false,
+          input: fixture.input,
+          actual: undefined,
+          expected: fixture.output,
+          duration: 0,
+        }
+        logs.push(logItem)
+        this.emit('test:skip', logItem)
         continue
       }
 
@@ -162,6 +176,7 @@ export class AITestRunner extends EventEmitter {
     return {
       passedCount,
       failedCount,
+      skippedCount,
       logs,
       duration: Date.now() - startTotalTime,
     }

@@ -102,6 +102,8 @@ export interface AITestLogItem {
   failures?: AIValidationFailure[]
   /** Any technical error that occurred during the execution process. */
   error?: any
+  /** Whether the test was skipped. */
+  skipped?: boolean
   /** The 0-based index of the fixture in the input array. */
   i: number
   /** The duration of this specific test execution in milliseconds. */
@@ -118,6 +120,8 @@ export interface AITestFixtureResult {
   failedCount: number
   /** Total number of fixtures that passed validation. */
   passedCount: number
+  /** Total number of fixtures that were skipped. */
+  skippedCount: number
   /** Array of detailed logs for each executed fixture. */
   logs: AITestLogItem[]
   /** Total wall-clock time for the entire run in milliseconds. */
