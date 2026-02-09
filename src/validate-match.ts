@@ -104,18 +104,15 @@ export async function formatObject(input: any, options: PromptTemplateOptions) {
       }
     } else if (vType === 'string' || input instanceof RegExp) {
       input = await formatTemplate(input, options)
-    } else if (vType === 'function') {
-      input = (
-        (r) => () =>
-          r
-      )(input)
     } else if (vType === 'object') {
-      const keys = getKeysPath(input)
+      const keys = Object.keys(input)
       for (const k of keys) {
-        const v = getByPath(input, k)
+        const newK = await formatTemplate(k, options)
+        const v = input[k]
         const actualValue = await formatObject(v, options)
-        if (actualValue !== v) {
-          setByPath(input, k, actualValue)
+        if (actualValue !== v || newK !== k) {
+          delete input[k]
+          input[newK] = actualValue
         }
       }
     }
@@ -329,26 +326,135 @@ export async function validateMatch(
       })
     }
   } else if (vType === 'object') {
-    const keys = getKeysPath(expected)
-    for (const k of keys) {
-      const v = getByPath(expected, k)
-      const actualValue = getByPath(actual, k)
+    if (expected === null) {
+      if (actual !== null) {
+        failures.push({
+          key,
+          message: 'Value equality check failed',
+          expected: null,
+          actual,
+        })
+      }
+      return failures
+    }
+    const keys = Object.keys(expected)
+    if (expected.type && keys.every(k => !['$contains', '$all', '$sequence'].includes(k))) {
+      // It looks like a JSON Schema
+      const schema = YamlTypeJsonSchema.create(expected)
+      const valid = YamlTypeJsonSchema.validate(schema, actual)
+      if (!valid) {
+        const errors = YamlTypeJsonSchema.getErrors(schema)!
+        failures.push({
+          key,
+          message: 'JSON Schema validation failed',
+          expected: errors,
+          actual,
+        })
+      }
+      return failures
+    }
+
+    const operator = keys.find((k) =>
+      ['$contains', '$all', '$sequence', '$not'].includes(k)
+    )
+    if (operator && keys.length === 1) {
+      const val = expected[operator]
+      if (operator === '$not') {
+        const subFailures = await validateMatch(actual, val, {
+          ...options,
+          failures: [],
+        })
+        if (subFailures.length === 0) {
+          failures.push({
+            key,
+            message: '$not mismatch: value matches expectation but should not',
+            expected: val,
+            actual,
+          })
+        }
+        return failures
+      }
+
+      if (!Array.isArray(actual)) {
+        failures.push({
+          key,
+          message: `Operator ${operator} requires an array, but got ${typeof actual}`,
+          expected: val,
+          actual,
+        })
+      } else {
+        if (operator === '$contains') {
+          const subFailures = await validateContains(actual, val, options)
+          failures.push(...subFailures)
+        } else if (operator === '$all') {
+          if (!Array.isArray(val)) {
+            failures.push({
+              key,
+              message: '$all requires an array of expected items',
+              expected: val,
+              actual,
+            })
+          } else {
+            const subFailures = await validateAll(actual, val, options)
+            failures.push(...subFailures)
+          }
+        } else if (operator === '$sequence') {
+          if (!Array.isArray(val)) {
+            failures.push({
+              key,
+              message: '$sequence requires an array of expected items',
+              expected: val,
+              actual,
+            })
+          } else {
+            const subFailures = await validateSequence(actual, val, options)
+            failures.push(...subFailures)
+          }
+        }
+      }
+      return failures
+    }
+
+    const allKeys = Object.keys(expected)
+    const matchedActualKeys = new Set<string>()
+
+    for (const k of allKeys) {
+      const v = expected[k]
+      let actualValue: any
+      let matchedKey: string | undefined
+
+      if (k.startsWith('/') && k.endsWith('/')) {
+        const reg = new RegExp(k.slice(1, -1))
+        matchedKey = actual
+          ? Object.keys(actual).find((ak) => reg.test(ak))
+          : undefined
+        if (matchedKey) {
+          actualValue = actual[matchedKey]
+          matchedActualKeys.add(matchedKey)
+        }
+      } else {
+        actualValue = actual ? actual[k] : undefined
+        if (actual && k in actual) {
+          matchedActualKeys.add(k)
+        }
+      }
+
       await validateMatch(actualValue, v, {
         failures,
-        key: key ? key + '.' + k : k,
+        key: key ? key + '.' + (matchedKey || k) : matchedKey || k,
         data,
         strict: options.strict,
       })
     }
 
     if (isStrict('object', options.strict)) {
-      const actualKeys = getKeysPath(actual)
+      const actualKeys = actual ? Object.keys(actual) : []
       for (const ak of actualKeys) {
-        if (getByPath(expected, ak) === undefined) {
+        if (!matchedActualKeys.has(ak)) {
           failures.push({
             key: key ? key + '.' + ak : ak,
             message: 'Extra key in actual object (strict mode)',
-            actual: getByPath(actual, ak),
+            actual: actual[ak],
           })
         }
       }
@@ -431,4 +537,79 @@ function findDiffItem(
     }
   }
   return result
+}
+
+async function validateContains(
+  actual: any[],
+  expected: any,
+  options: MatchValueOptions
+) {
+  for (const item of actual) {
+    const subFailures: AIValidationFailure[] = []
+    await validateMatch(item, expected, {
+      ...options,
+      failures: subFailures,
+      key: '', // Reset key for sub-matching
+    })
+    if (subFailures.length === 0) return [] // found a match
+  }
+  return [
+    {
+      key: options.key,
+      message: '$contains mismatch: item not found in array',
+      expected,
+      actual,
+    },
+  ]
+}
+
+async function validateAll(
+  actual: any[],
+  expectedList: any[],
+  options: MatchValueOptions
+) {
+  const failures: AIValidationFailure[] = []
+  for (const expected of expectedList) {
+    const containsFailures = await validateContains(actual, expected, options)
+    if (containsFailures.length > 0) {
+      failures.push(...containsFailures)
+    }
+  }
+  return failures
+}
+
+async function validateSequence(
+  actual: any[],
+  expectedList: any[],
+  options: MatchValueOptions
+) {
+  let actualIdx = 0
+  for (let i = 0; i < expectedList.length; i++) {
+    const expected = expectedList[i]
+    let found = false
+    while (actualIdx < actual.length) {
+      const subFailures: AIValidationFailure[] = []
+      await validateMatch(actual[actualIdx], expected, {
+        ...options,
+        failures: subFailures,
+        key: '',
+      })
+      actualIdx++
+      if (subFailures.length === 0) {
+        found = true
+        break
+      }
+    }
+    if (!found) {
+      return [
+        {
+          key: options.key,
+          message: `$sequence mismatch: item at index ${i} not found in sequence after previous matches`,
+          expected,
+          actual,
+        },
+      ]
+    }
+  }
+  return []
 }

@@ -11,25 +11,57 @@ While it originates from the [ISDK AI](https://github.com/isdk) ecosystem, it is
 ## Features
 
 ### 🧩 Fully Decoupled Architecture
-
 The core logic is independent of any CLI framework or File System. You can integrate it into Node.js servers, Web environments, or CI/CD pipelines by simply implementing the `AIScriptExecutor` interface.
 
-### 📐 Comprehensive Validation Strategies
+### 🛠️ AI Tool Testing (New)
+Supports integration testing of AI function scripts as "tools". The engine automatically redirects to a driver script (`toolTester`) and allows validation of complex tool call sequences.
 
+### 📐 Comprehensive Validation Strategies
 - **String & RegExp**: Supports partial string matching and complex Regular Expressions.
-- **Deep Object/Array**: Recursively validates nested data structures.
+- **Deep Object/Array**: Recursively validates nested data structures, including regex matching for object keys.
+- **Advanced Operators (New)**: Provides `$contains`, `$all`, `$sequence`, and `$not` for powerful collection validation.
 - **Semantic Diffing**: Allows for minor variations in output (e.g., ignoring extra newlines or specific character changes) via structured `diff` rules.
 - **JSON Schema (Ajv)**: Built-in support for JSON Schema with extensive custom keywords and formats.
+- **Custom Functions**: Supports any complex matching logic via JavaScript/TypeScript functions.
+  - When `output` is a function, it receives `(actualOutput, input)`.
+  - When `expect` is a function, it receives `(fullResult, input)`, where `fullResult` contains `output` and `messages`.
+  - Returns `true` for success or a string for the failure reason.
 
 ### 📝 Advanced Template System
-
 - **Dynamic Variables**: Inject variables into inputs, outputs, and even validation rules.
 - **Recursive Resolution**: Automatically resolves deep dependency chains (e.g., `a` depends on `b`, `b` depends on `c`).
 - **Context Awareness**: Supports directory variables like `__fixture_dir__` and `__script_dir__`.
+- **Dynamic Regex Keys (New)**: Supports regex keys with template variables in object matching: `"/^{{id}}_/"`.
 
 ### 🌓 Flexible Matching Modes
+Supports `Strict` and `Partial` matching at a granular level. You can configure whether to allow extra properties in objects, whether array lengths must match, or unverified changes in diffs.
 
-Supports `Strict` and `Partial` matching at a granular level. You can configure whether to allow extra properties in objects, extra items in arrays, or unverified changes in diffs.
+---
+
+## Specification
+
+### 1. AIScriptExecutor Contract
+The executor must return a Promise resolving to the following structure:
+```typescript
+interface AIExecutionResult {
+  output: any;      // Final generated output (for 'output' matching)
+  messages?: any[]; // (Optional) Full message list of the execution (for 'expect' matching)
+}
+```
+
+#### Standard Message Format (Message)
+- `role`: `'user' | 'assistant' | 'tool' | 'system'`
+- `content`: `string` (Optional)
+- `tools`: `ToolCall[]` (Optional)
+  - `name`: Tool name
+  - `args`: Call arguments (Object)
+  - `result`: Tool execution result (Optional)
+
+### 2. Operator Behavior
+- **`$contains`**: For arrays, passes if at least one element matches the pattern.
+- **`$all`**: For arrays, must contain all specified items (order independent).
+- **`$sequence`**: For arrays, must contain specified items in the exact order (allows noise in between).
+- **`$not`**: Negative assertion, fails if the content matches the pattern.
 
 ---
 
@@ -43,73 +75,88 @@ pnpm add @isdk/ai-test-runner
 
 ### 1. Data Format (Fixture)
 
-A fixture typically consists of an `input`, an expected `output`, and optional validation metadata.
+A fixture typically consists of an `input`, an expected `output`, or an `expect` block for full trace validation.
 
 ```yaml
-- input:
-    content: "What is 1+1?"
+---
+tools: [calculator.ai.yaml]
+toolTester: agent.ai.yaml # Defaults to 'toolTester'
+---
+- input: "What is 1+1?"
   output: "2"
+  expect:
+    tools: # Syntactic sugar: lookup tool calls in message trace
+      - name: calculator
+        args: { a: 1, b: 1 }
   not: false   # If true, test passes only if output does NOT match
   skip: false
   strict: object # Enable strict mode for this specific case
 ```
 
-### 2. Template Variables
+### 2. Syntactic Sugar: expect.tools
 
-You can define variables in the `fixtureConfig` (front-matter) and use them in your tests.
+`expect.tools` is a simplified assertion designed for tool testing. It automatically scans all tool calls initiated by the AI (`assistant` role) in the `messages` trace.
+
+**Specification:**
+- **Auto Aggregation**: The engine iterates through all messages to extract all `tools` lists.
+- **Matching Mode**: 
+  - If `expect.tools` is an **Array**, it uses **`$all`** logic by default.
+  - If `expect.tools` contains **`$sequence`**, it requires tools to be called in the specified order.
+- **Deep Matching**: `name`, `args`, and `result` of each tool item support regex, partial object matching, and template variables.
 
 ```yaml
-# fixtureConfig (Front-matter)
-variables:
-  name: "Alice"
----
-- input:
-    echo: "Hello {{name}}"
-  output: "Hello Alice"
+expect:
+  tools: [ { name: 'weather', args: { city: 'Shanghai' } } ]
 ```
 
-### 3. Diff Validation
+### 3. Template Variables & Dynamic Keys
 
-Use `diff` to allow supplemental validation for strings, permitting minor differences like extra newlines or specific word substitutions.
+You can use `{{name}}` to inject variables. Now even **Object Keys** can be dynamic regex:
 
 ```yaml
-- input:
-    text: "This is a test."
-  output: "This is a test"
+# fixtureConfig
+variables:
+  id: "123"
+---
+- input: { query: "user" }
+  output:
+    "/^user_{{id}}_/": "ok" # Matches keys like user_123_data
+```
+
+### 4. Diff Validation
+
+Use `diff` to allow supplemental validation for strings.
+
+```yaml
+- input: "test"
+  output: "test"
   diff:
     - add: true
-      value: "." # Allow trailing dot even if expected doesn't have it
+      value: "." # Allow trailing dot
     - value: "\n"
       added: true # Allow extra newlines
 ```
 
-### 4. JSON Schema Validation
+### 5. JSON Schema Validation
 
-If the AI output is a JSON object, you can validate it against a schema.
+`ai-test-runner` automatically recognizes objects with a `type` property as JSON Schema.
 
 ```yaml
-- input:
-    get_user: 1
-  outputSchema:
-    type: object
-    properties:
-      name: { type: string, pattern: "^[A-Z]" }
-      age: { type: number, range: [18, 100] }
-    required: ["name"]
+- input: { get_user: 1 }
+  output:
+    name: { type: string, pattern: "^[A-Z]" }
+    age: { type: number, minimum: 18 }
 ```
 
 #### Extended Keywords
-
 - **String**: `regexp`, `transform` (trim, toLowerCase, etc.).
 - **Number**: `range`, `exclusiveRange`.
-- **Object**: `allRequired`, `anyRequired`, `deepProperties`, `deepRequired`.
+- **Object**: `allRequired`, `anyRequired`, `deepProperties`.
 - **Dynamic Defaults**: `timestamp`, `datetime`, `randomint`, etc.
 
 ---
 
 ## Integration API
-
-### Implementation Example
 
 ```typescript
 import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
@@ -118,15 +165,19 @@ import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
 const executor: AIScriptExecutor = {
   async execute({ script, args }) {
     // Your AI logic here
-    return { output: "result" };
+    return { 
+      output: "result",
+      messages: [ /* Interaction history */ ]
+    };
   }
 };
 
 // 2. Initialize Runner
 const runner = new AITestRunner(executor);
 
-// 3. Listen to events for real-time reporting
+// 3. Listen to events
 runner.on('test:pass', (log) => console.log(`Fixture ${log.i} passed`));
+runner.on('test:fail', (log) => console.error(`Fixture ${log.i} failed`, log.failures));
 
 // 4. Run!
 const result = await runner.run('script-id', fixtures, {

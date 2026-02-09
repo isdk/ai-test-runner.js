@@ -27,6 +27,8 @@ export interface AIExecutionContext {
 export interface AIExecutionResult {
   /** The output produced by the script execution. */
   output: any
+  /** The full conversation messages or execution trace. */
+  messages?: any[]
   // details?: any
 }
 

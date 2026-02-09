@@ -121,6 +121,7 @@ export class AITestRunner extends EventEmitter {
 
     // Copy to avoid mutating original
     const initialFixtureConfig = cloneDeep(_initialFixtureConfig || {})
+    const hasOnly = fixtures.some((f) => f.only)
 
     // Merge script output schema into fixture config if present
     if (scriptConfig.output) {
@@ -137,6 +138,10 @@ export class AITestRunner extends EventEmitter {
       let fixtureConfig = cloneDeep(initialFixtureConfig)
       const fixture = cloneDeep(fixtures[i])
 
+      if (hasOnly && !fixture.only) {
+        continue
+      }
+
       if (skips[i] || fixture.skip) {
         continue
       }
@@ -147,18 +152,25 @@ export class AITestRunner extends EventEmitter {
       // Prepare data for templating
 
       fixtureConfig = await formatObject(fixtureConfig, {
-        data: { ...input, ...fixtureConfig },
+        data: { ...(input && typeof input === 'object' ? input : { input }), ...fixtureConfig },
         input: fixture,
       })
+
+      const tools = fixture.tools || fixtureConfig.tools
+      const toolTester = fixture.toolTester || fixtureConfig.toolTester
 
       let templateData = {
         ...getTemplateData(scriptConfig),
 
-        ...input,
+        ...(input && typeof input === 'object' ? input : { input }),
 
         ...fixtureConfig,
 
         ...(userConfig.data || {}),
+      }
+
+      if (tools) {
+        templateData.tools = tools
       }
 
       // Multi-pass resolution for deep dependencies (e.g., a -> b -> c)
@@ -178,8 +190,13 @@ export class AITestRunner extends EventEmitter {
         lastDataStr = currentDataStr
       }
 
+      let currentScript = fixture.script || fixtureConfig.script || script
+      if (tools && tools.length > 0) {
+        currentScript = toolTester || 'toolTester'
+      }
+
       const execContext: AIExecutionContext = {
-        script,
+        script: currentScript,
         args: templateData,
         options: {
           ...userConfig,
@@ -193,7 +210,7 @@ export class AITestRunner extends EventEmitter {
       let failures
 
       try {
-        this.emit('test:start', { i, script, input })
+        this.emit('test:start', { i, script: currentScript, input })
 
         const execResult = await this.executor.execute(execContext)
         resultOutput = execResult.output
@@ -236,15 +253,90 @@ export class AITestRunner extends EventEmitter {
         }
 
         if (output !== undefined) {
-          const matchFailures = await validateMatch(resultOutput, output, {
-            data: templateData,
-            input: fixture,
-            strict,
-          })
+          const formattedOutput =
+            typeof output === 'function'
+              ? output
+              : await formatObject(cloneDeep(output), {
+                  data: templateData,
+                  input: fixture,
+                })
+          const matchFailures = await validateMatch(
+            resultOutput,
+            formattedOutput,
+            {
+              data: templateData,
+              input: fixture,
+              strict,
+            }
+          )
 
           if (matchFailures && matchFailures.length > 0) {
             failures.push(...matchFailures)
           }
+        }
+
+        const expect = fixture.expect || fixtureConfig.expect
+        if (expect) {
+          let expectedResult: any
+          if (typeof expect === 'function') {
+            expectedResult = expect
+          } else {
+            expectedResult = cloneDeep(expect)
+            if (expectedResult.tools) {
+              const toolsExpect = expectedResult.tools
+              let toolsMatcher
+              const tAll = Array.isArray(toolsExpect)
+                ? toolsExpect
+                : toolsExpect.$all
+              if (tAll) {
+                toolsMatcher = {
+                  $all: tAll.map((t: any) => ({
+                    tools: { $contains: t },
+                  })),
+                }
+              } else if (toolsExpect.$sequence) {
+                toolsMatcher = {
+                  $sequence: toolsExpect.$sequence.map((t: any) => ({
+                    tools: { $contains: t },
+                  })),
+                }
+              }
+
+              if (toolsMatcher) {
+                if (expectedResult.messages) {
+                  if (
+                    typeof expectedResult.messages === 'object' &&
+                    expectedResult.messages.$all
+                  ) {
+                    expectedResult.messages.$all.push(toolsMatcher)
+                  } else {
+                    expectedResult.messages = {
+                      $all: [expectedResult.messages, toolsMatcher],
+                    }
+                  }
+                } else {
+                  expectedResult.messages = toolsMatcher
+                }
+              }
+              delete expectedResult.tools
+            }
+
+            expectedResult = await formatObject(expectedResult, {
+              data: templateData,
+              input: fixture,
+            })
+          }
+
+          const expectFailures = await validateMatch(
+            execResult,
+            expectedResult,
+            {
+              data: templateData,
+              input: fixture,
+              strict,
+            }
+          )
+          if (expectFailures) failures.push(...expectFailures)
         }
 
         passed = failures.length === 0
