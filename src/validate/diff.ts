@@ -1,24 +1,25 @@
 import { diffChars, Change } from 'diff'
 import { isRegExp, toRegExp } from '@isdk/ai-tool'
 import { AIDiffItem, AIValidationFailure } from '../types.js'
-import type { MatchValueOptions } from './types.js'
+import { ValidationContext } from './types.js'
 import { isStrict } from './utils.js'
 import { formatTemplate } from './template.js'
 
 /**
- * Formats a list of AIDiffItems by applying templates to their values.
+ * Formats a list of AIDiffItems by applying prompt templates to their string or RegExp values.
  *
  * @param diff - The list of diff items to format.
- * @param options - Formatting options.
- * @returns The formatted list of diff items.
+ * @param ctx - Validation context providing data for template resolution.
+ * @returns The list of formatted diff items.
  */
-export async function formatDiffList(diff: AIDiffItem[], options: MatchValueOptions) {
+export async function formatDiffList(diff: AIDiffItem[], ctx: ValidationContext) {
   for (const d of diff) {
     const value = d.value
     if (typeof value === 'string' || isRegExp(value)) {
       d.value = await formatTemplate(value, {
-        ...options,
-        templateFormat: options.data?.templateFormat,
+        data: ctx.data,
+        input: ctx.input,
+        templateFormat: ctx.data?.templateFormat,
       })
     }
   }
@@ -26,17 +27,17 @@ export async function formatDiffList(diff: AIDiffItem[], options: MatchValueOpti
 }
 
 /**
- * Finds a matching diff item in a list of expected diffs.
+ * Checks if a specific actual diff change matches any of the expected diff definitions.
  *
- * @param diff - The list of expected diff items.
- * @param item - The actual diff item to find.
- * @param options - Match options.
- * @returns The matched item if found, otherwise undefined.
+ * @param diff - The list of expected diff items (whitelist).
+ * @param item - The actual change item from the diff library.
+ * @param _ctx - Validation context.
+ * @returns The matched item if a match is found, otherwise undefined.
  */
 export function findDiffItem(
   diff: AIDiffItem[],
   item: AIDiffItem,
-  _options: MatchValueOptions
+  _ctx: ValidationContext
 ) {
   let result: Change | undefined
   for (const d of diff) {
@@ -72,16 +73,24 @@ export function findDiffItem(
   return result
 }
 
+/**
+ * Validates a string mismatch using structured diff analysis.
+ * Supports whitelist matching, strict mode, and mandatory (required) changes.
+ *
+ * @param actual - The actual string produced.
+ * @param expected - The expected baseline string.
+ * @param ctx - Validation context.
+ * @returns A promise resolving to the failure list from the context.
+ */
 export async function validateStringDiff(
   actual: string,
   expected: string,
-  options: MatchValueOptions
+  ctx: ValidationContext
 ): Promise<AIValidationFailure[]> {
-  const failures: AIValidationFailure[] = []
-  const { input, key } = options
+  const { input } = ctx
   let diff: AIDiffItem[] | undefined = diffChars(expected, actual)
   let expectedDiff = input?.diff
-  let diffPermissive = options.diffPermissive ?? input?.diffPermissive ?? input?.input?.diffPermissive
+  let diffPermissive = ctx.diffPermissive ?? input?.diffPermissive ?? input?.input?.diffPermissive
 
   if (expectedDiff && !Array.isArray(expectedDiff) && typeof expectedDiff === 'object' && 'items' in expectedDiff) {
     diffPermissive = diffPermissive ?? expectedDiff.permissive
@@ -89,7 +98,7 @@ export async function validateStringDiff(
   }
 
   if (Array.isArray(expectedDiff)) {
-    await formatDiffList(expectedDiff, options)
+    await formatDiffList(expectedDiff, ctx)
 
     // Track which expected items were matched
     const matchedExpectedIndices = new Set<number>()
@@ -97,7 +106,7 @@ export async function validateStringDiff(
     const successfulItems = diff.filter((d) => {
       let matchedIdx = -1
       const matched = (expectedDiff as AIDiffItem[]).some((ed, idx) => {
-        const m = findDiffItem([ed], d, options)
+        const m = findDiffItem([ed], d, ctx)
         if (m) {
           matchedIdx = idx
           return true
@@ -110,7 +119,7 @@ export async function validateStringDiff(
       return matched
     })
 
-    const strictDiff = isStrict('diff', options.strict)
+    const strictDiff = isStrict('diff', ctx)
     const allExpectedMatched =
       matchedExpectedIndices.size === expectedDiff.length
     const missingRequiredItems = (expectedDiff as AIDiffItem[]).filter((ed, idx) => {
@@ -144,8 +153,7 @@ export async function validateStringDiff(
     }
 
     if (failed) {
-      failures.push({
-        key,
+      ctx.addFailure({
         message: `String mismatch with diff: ${reasons.join('; ')}`,
         expected,
         actual,
@@ -173,8 +181,7 @@ export async function validateStringDiff(
   }
 
   if (diff && diff.some((d) => d.added || d.removed)) {
-    failures.push({
-      key,
+    ctx.addFailure({
       message: 'String mismatch with diff',
       expected,
       actual,
@@ -182,5 +189,5 @@ export async function validateStringDiff(
     })
   }
 
-  return failures
+  return ctx.failures
 }

@@ -1,32 +1,47 @@
 import { isRegExp, toRegExp } from '@isdk/ai-tool'
-import { get as getByPath } from 'lodash-es'
+import { get as getByPath, cloneDeep } from 'lodash-es'
 import { AIValidationFailure } from '../types.js'
-import { MatchValueOptions } from './types.js'
+import { MatchValueOptions, ValidationContext } from './types.js'
 import { isStrict } from './utils.js'
-import { formatTemplate } from './template.js'
+import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'
 import { OPERATORS } from './operators.js'
 import { validateStringDiff } from './diff.js'
+import { YamlTypeJsonSchema } from '../yaml-types/index.js'
 
 /**
  * Validates that an actual value matches an expected value.
  * Supports various matching logic: equality, RegExp, Array comparison,
- * custom functions, and JSON Schema.
+ * custom functions, collection operators ($all, $contains, etc.), and JSON Schema.
  *
- * @param actual - The actual value produced.
- * @param expected - The expected value or matcher.
- * @param options - Validation options.
- * @returns A promise that resolves to an array of validation failures.
+ * @param actual - The actual value produced by the AI or system under test.
+ * @param expected - The expected value, RegExp, schema, or matcher function.
+ * @param options - Validation options or an existing ValidationContext.
+ * @returns A promise that resolves to an array of validation failures (empty if passed).
  */
 export async function validateMatch(
   actual: any,
   expected: any,
-  options: MatchValueOptions = {}
+  options: MatchValueOptions | ValidationContext = {}
 ): Promise<AIValidationFailure[]> {
-  const data = options.data
-  const failures = options.failures || []
-  const key = options.key || ''
-  const input = options.input
+  const ctx = options instanceof ValidationContext ? options : new ValidationContext(options)
+  return _validateMatch(actual, expected, ctx)
+}
+
+/**
+ * Internal recursive validation implementation.
+ *
+ * @param actual - Actual value.
+ * @param expected - Expected value or pattern.
+ * @param ctx - Current validation context.
+ * @returns Failures discovered in this branch.
+ */
+async function _validateMatch(
+  actual: any,
+  expected: any,
+  ctx: ValidationContext
+): Promise<AIValidationFailure[]> {
+  const { input, data } = ctx
   const vType = typeof expected
 
   if (typeof actual === 'string') {
@@ -34,19 +49,20 @@ export async function validateMatch(
   }
   if (vType === 'string') {
     expected = await formatTemplate(expected, {
-      ...options,
+      data,
+      input,
       templateFormat: data?.templateFormat,
     })
   }
 
   if (isRegExp(expected)) {
     const regEx = await formatTemplate(toRegExp(expected), {
-      ...options,
+      data,
+      input,
       templateFormat: data?.templateFormat,
     })
     if (!regEx.test(actual)) {
-      failures.push({
-        key,
+      ctx.addFailure({
         message: 'RegExp mismatch',
         expected: regEx.source,
         actual,
@@ -60,11 +76,9 @@ export async function validateMatch(
       hasDiffReq
     ) {
       if (typeof actual === 'string') {
-        const diffFailures = await validateStringDiff(actual, expected, options)
-        failures.push(...diffFailures)
+        await validateStringDiff(actual, expected, ctx)
       } else {
-        failures.push({
-          key,
+        ctx.addFailure({
           message: 'Value mismatch',
           expected,
           actual,
@@ -73,19 +87,17 @@ export async function validateMatch(
     }
   } else if (Array.isArray(expected)) {
     if (!Array.isArray(actual)) {
-      failures.push({
-        key,
+      ctx.addFailure({
         message: 'Type mismatch: expected Array',
         expected,
         actual,
       })
     } else {
       if (
-        isStrict('array', options.strict) &&
+        isStrict('array', ctx) &&
         actual.length !== expected.length
       ) {
-        failures.push({
-          key,
+        ctx.addFailure({
           message: `Array length mismatch (strict mode): expected ${expected.length}, actual ${actual.length}`,
           expected: expected.length,
           actual: actual.length,
@@ -94,57 +106,61 @@ export async function validateMatch(
       for (let i = 0; i < expected.length; i++) {
         const vItem = expected[i]
         const actualItem = actual[i]
-        await validateMatch(actualItem, vItem, {
-          failures,
-          key: key + '[' + i + ']',
-          data,
-          strict: options.strict,
-        })
+        const subCtx = ctx.createSubContext(`[${i}]`)
+        await _validateMatch(actualItem, vItem, subCtx)
       }
     }
   } else if (vType === 'function') {
     const result = await expected(actual, input)
     const expectedName = expected.name ? expected.name + '()'  : expected.toString()
     if (result !== true) {
-      failures.push({
-        key,
+      ctx.addFailure({
         message: `Custom function validation failed: ${result}`,
         expected: expectedName,
         actual,
       })
     }
-  } else if (isJsonSchema(expected)) {
-    const schemaFailures = await validateJsonSchema(actual, expected, options)
-    failures.push(...schemaFailures)
+  } else if (expected instanceof YamlTypeJsonSchema || (!ctx.disableHeuristicSchema && isJsonSchema(expected))) {
+    if (!(expected instanceof YamlTypeJsonSchema)) {
+      expected = await formatObject(cloneDeep(expected), { data, input })
+    }
+    await validateJsonSchema(actual, expected, ctx)
   } else if (vType === 'object') {
     if (expected === null) {
       if (actual !== null) {
-        failures.push({
-          key,
+        ctx.addFailure({
           message: 'Value equality check failed',
           expected: null,
           actual,
         })
       }
-      return failures
+      return ctx.failures
     }
 
     const keys = Object.keys(expected)
     const operator = keys.find((k) => OPERATORS[k])
     if (operator && keys.length === 1) {
       const val = expected[operator]
-      if (operator !== '$not' && !Array.isArray(actual)) {
-        failures.push({
-          key,
+      const needsArray = !['$not', '$schema'].includes(operator)
+      if (needsArray && !Array.isArray(actual)) {
+        ctx.addFailure({
           message: `Operator ${operator} requires an array, but got ${typeof actual}`,
           expected: val,
           actual,
         })
       } else {
-        const operatorFailures = await OPERATORS[operator](actual, val, options, validateMatch)
-        failures.push(...operatorFailures)
+        await OPERATORS[operator](actual, val, ctx, _validateMatch)
       }
-      return failures
+      return ctx.failures
+    }
+
+    if (actual === null || typeof actual !== 'object') {
+      ctx.addFailure({
+        message: 'Value equality check failed',
+        expected,
+        actual,
+      })
+      return ctx.failures
     }
 
     const allKeys = Object.keys(expected)
@@ -166,26 +182,22 @@ export async function validateMatch(
         }
       } else {
         actualValue = getByPath(actual, k)
-        if (actual && (k in actual || actualValue !== undefined)) {
+        if (actual && typeof actual === 'object' && (k in actual || actualValue !== undefined)) {
           matchedKey = k
           matchedActualKeys.add(k.split('.')[0].split('[')[0])
         }
       }
 
-      await validateMatch(actualValue, v, {
-        failures,
-        key: key ? key + '.' + (matchedKey || k) : matchedKey || k,
-        data,
-        strict: options.strict,
-      })
+      const subCtx = ctx.createSubContext(matchedKey || k)
+      await _validateMatch(actualValue, v, subCtx)
     }
 
-    if (isStrict('object', options.strict)) {
+    if (isStrict('object', ctx)) {
       const actualKeys = actual && typeof actual === 'object' ? Object.keys(actual) : []
       for (const ak of actualKeys) {
         if (!matchedActualKeys.has(ak)) {
-          failures.push({
-            key: key ? key + '.' + ak : ak,
+          const subCtx = ctx.createSubContext(ak)
+          subCtx.addFailure({
             message: 'Extra key in actual object (strict mode)',
             actual: actual[ak],
           })
@@ -194,13 +206,12 @@ export async function validateMatch(
     }
   } else {
     if (actual !== expected) {
-      failures.push({
-        key,
+      ctx.addFailure({
         message: 'Value equality check failed',
         expected,
         actual,
       })
     }
   }
-  return failures
+  return ctx.failures
 }

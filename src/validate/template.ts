@@ -6,10 +6,11 @@ import { omit } from 'lodash-es'
 
 /**
  * Formats a single value (string or RegExp) using prompt templates.
+ * It merges context data and input parameters to resolve template placeholders.
  *
- * @param value - The value to format.
- * @param options - Template formatting options.
- * @returns The formatted value.
+ * @param value - The value containing templates (e.g., "Hello {{name}}").
+ * @param options - Template formatting options including data and input.
+ * @returns The formatted string or RegExp with placeholders replaced.
  */
 export async function formatTemplate(
   value: any,
@@ -45,11 +46,12 @@ export async function formatTemplate(
 }
 
 /**
- * Recursively formats an object or array by applying prompt templates to string values.
+ * Recursively formats an object or array by applying prompt templates to string and RegExp values.
+ * Also handles template resolution for object keys.
  *
  * @param input - The object or array to format.
  * @param options - Template formatting options.
- * @returns The formatted object or array.
+ * @returns A new structure with all templates resolved.
  */
 export async function formatObject(input: any, options: PromptTemplateOptions) {
   if (input && options.data) {

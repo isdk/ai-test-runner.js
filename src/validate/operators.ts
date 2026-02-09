@@ -1,57 +1,90 @@
+import { cloneDeep } from 'lodash-es'
 import { AIValidationFailure } from '../types.js'
-import { MatchValueOptions } from './types.js'
+import { ValidationContext } from './types.js'
+import { validateJsonSchema } from './schema.js'
+import { formatObject } from './template.js'
+import { YamlTypeJsonSchema } from '../yaml-types/index.js'
 
+/**
+ * Signature for the core match validation function used recursively by operators.
+ */
 export type ValidateMatchFn = (
   actual: any,
   expected: any,
-  options?: MatchValueOptions
+  ctx: ValidationContext
 ) => Promise<AIValidationFailure[]>
 
+/**
+ * Validates that an array contains at least one item matching the expectation.
+ * Implements the `$contains` operator.
+ *
+ * @param actual - The actual array to check.
+ * @param expected - The pattern or value that at least one item must match.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
 export async function validateContains(
   actual: any[],
   expected: any,
-  options: MatchValueOptions,
+  ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
   for (const item of actual) {
-    const subFailures: AIValidationFailure[] = []
-    await validateMatch(item, expected, {
-      ...options,
-      failures: subFailures,
-      key: '', // Reset key for sub-matching
-    })
-    if (subFailures.length === 0) return [] // found a match
+    const subCtx = ctx.createSubContext('') // Reset key for sub-matching
+    subCtx.failures = []
+    await validateMatch(item, expected, subCtx)
+    if (subCtx.failures.length === 0) return [] // found a match
   }
-  return [
-    {
-      key: options.key,
-      message: '$contains mismatch: item not found in array',
-      expected,
-      actual,
-    },
-  ]
+  ctx.addFailure({
+    message: '$contains mismatch: item not found in array',
+    expected,
+    actual,
+  })
+  return ctx.failures
 }
 
+/**
+ * Validates that an array contains ALL items specified in the expectation list.
+ * Order of items in the array does not matter. Implements the `$all` operator.
+ *
+ * @param actual - The actual array to check.
+ * @param expectedList - Array of patterns/values that must all be present.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
 export async function validateAll(
   actual: any[],
   expectedList: any[],
-  options: MatchValueOptions,
+  ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
-  const failures: AIValidationFailure[] = []
   for (const expected of expectedList) {
-    const containsFailures = await validateContains(actual, expected, options, validateMatch)
-    if (containsFailures.length > 0) {
-      failures.push(...containsFailures)
+    const subCtx = ctx.createSubContext('')
+    subCtx.failures = []
+    await validateContains(actual, expected, subCtx, validateMatch)
+    if (subCtx.failures.length > 0) {
+      ctx.failures.push(...subCtx.failures)
     }
   }
-  return failures
+  return ctx.failures
 }
 
+/**
+ * Validates that an array contains a sequence of matching items in the specified order.
+ * Other items are allowed between matches. Implements the `$sequence` operator.
+ *
+ * @param actual - The actual array to check.
+ * @param expectedList - Array of patterns/values that must appear in sequence.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
 export async function validateSequence(
   actual: any[],
   expectedList: any[],
-  options: MatchValueOptions,
+  ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
   let actualIdx = 0
@@ -59,58 +92,84 @@ export async function validateSequence(
     const expected = expectedList[i]
     let found = false
     while (actualIdx < actual.length) {
-      const subFailures: AIValidationFailure[] = []
-      await validateMatch(actual[actualIdx], expected, {
-        ...options,
-        failures: subFailures,
-        key: '',
-      })
+      const subCtx = ctx.createSubContext('')
+      subCtx.failures = []
+      await validateMatch(actual[actualIdx], expected, subCtx)
       actualIdx++
-      if (subFailures.length === 0) {
+      if (subCtx.failures.length === 0) {
         found = true
         break
       }
     }
     if (!found) {
-      return [
-        {
-          key: options.key,
-          message: `$sequence mismatch: item at index ${i} not found in sequence after previous matches`,
-          expected,
-          actual,
-        },
-      ]
+      ctx.addFailure({
+        message: `$sequence mismatch: item at index ${i} not found in sequence after previous matches`,
+        expected,
+        actual,
+      })
+      return ctx.failures
     }
   }
-  return []
+  return ctx.failures
 }
 
+/**
+ * Validates that a value does NOT match the specified expectation.
+ * Implements the `$not` operator.
+ *
+ * @param actual - The actual value to check.
+ * @param expected - The pattern or value that should NOT be matched.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
 export async function validateNot(
   actual: any,
   expected: any,
-  options: MatchValueOptions,
+  ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
-  const subFailures = await validateMatch(actual, expected, {
-    ...options,
-    failures: [],
-  })
-  if (subFailures.length === 0) {
-    return [
-      {
-        key: options.key,
-        message: '$not mismatch: value matches expectation but should not',
-        expected,
-        actual,
-      },
-    ]
+  const subCtx = ctx.createSubContext('')
+  subCtx.failures = []
+  await validateMatch(actual, expected, subCtx)
+  if (subCtx.failures.length === 0) {
+    ctx.addFailure({
+      message: '$not mismatch: value matches expectation but should not',
+      expected,
+      actual,
+    })
   }
-  return []
+  return ctx.failures
 }
 
-export const OPERATORS: Record<string, (actual: any, expected: any, options: MatchValueOptions, validateMatch: ValidateMatchFn) => Promise<AIValidationFailure[]>> = {
+/**
+ * Explicitly validates a value against a JSON Schema.
+ * Implements the `$schema` operator.
+ *
+ * @param actual - The actual value to validate.
+ * @param expected - The JSON Schema definition.
+ * @param ctx - Validation context.
+ * @param _validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
+export async function validateSchemaOperator(
+  actual: any,
+  expected: any,
+  ctx: ValidationContext,
+  _validateMatch: ValidateMatchFn
+): Promise<AIValidationFailure[]> {
+  const { data, input } = ctx
+  if (!(expected instanceof YamlTypeJsonSchema)) {
+    expected = await formatObject(cloneDeep(expected), { data, input })
+  }
+  return validateJsonSchema(actual, expected, ctx)
+}
+
+/** Map of supported collection validation operators. */
+export const OPERATORS: Record<string, (actual: any, expected: any, ctx: ValidationContext, validateMatch: ValidateMatchFn) => Promise<AIValidationFailure[]>> = {
   '$contains': validateContains,
   '$all': validateAll,
   '$sequence': validateSequence,
   '$not': validateNot,
+  '$schema': validateSchemaOperator,
 }

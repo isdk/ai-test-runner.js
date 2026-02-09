@@ -71,6 +71,7 @@ interface AIExecutionResult {
 - **`$all`**: For arrays, must contain all specified items (order independent).
 - **`$sequence`**: For arrays, must contain specified items in the exact order (allows noise in between).
 - **`$not`**: Negative assertion, fails if the content matches the pattern.
+- **`$schema`**: Explicitly validates the value against a JSON Schema (Recommended).
 
 ---
 
@@ -186,13 +187,41 @@ diff:
 
 ### 5. JSON Schema Validation
 
-`ai-test-runner` automatically recognizes objects with a `type` property as JSON Schema.
+`ai-test-runner` provides a powerful way to validate complex data structures using JSON Schema.
+
+#### Explicit Validation (Recommended)
+
+Use the `$schema` operator to explicitly indicate that a block should be validated as JSON Schema:
+
+```yaml
+- input: { get_user: 1 }
+  output:
+    profile:
+      $schema:
+        type: object
+        properties:
+          name: { type: string, pattern: "^[A-Z]" }
+          age: { type: number, minimum: 18 }
+```
+
+#### Heuristic Recognition (Legacy)
+
+The engine also automatically recognizes objects with a `type` property as JSON Schema if the `type` is a standard JSON primitive. However, using `$schema` is recommended to avoid ambiguity.
+
+**Disabling Heuristic Recognition:**
+
+If your data naturally contains properties named `type` that are not meant to be schemas, you can disable this behavior globally or per fixture:
+
+```yaml
+disableHeuristicSchema: true
+```
+
+When disabled, only `$schema` operators or `!json-schema` tags will trigger JSON Schema validation.
 
 ```yaml
 - input: { get_user: 1 }
   output:
     name: { type: string, pattern: "^[A-Z]" }
-    age: { type: number, minimum: 18 }
 ```
 
 #### Extended Keywords

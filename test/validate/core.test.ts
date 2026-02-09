@@ -113,6 +113,27 @@ describe('validate/core', () => {
       expect(failures2).toHaveLength(1)
       expect(failures2[0].key).toBe('user.profile.name')
     })
+
+    it('should support $schema with nested path keys', async () => {
+      const actual = {
+        user: {
+          settings: { theme: 'dark', fontSize: 14 }
+        }
+      }
+      const expected = {
+        'user.settings': {
+          $schema: {
+            type: 'object',
+            required: ['theme'],
+            properties: {
+              fontSize: { type: 'number', minimum: 12 }
+            }
+          }
+        }
+      }
+      const failures = await validateMatch(actual, expected)
+      expect(failures).toHaveLength(0)
+    })
   })
 
   describe('custom function', () => {

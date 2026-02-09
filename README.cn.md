@@ -71,6 +71,7 @@ interface AIExecutionResult {
 - **`$all`**: 针对数组，必须包含所有指定的匹配项（顺序无关）。
 - **`$sequence`**: 针对数组，必须按顺序出现指定的匹配项（中间允许干扰）。
 - **`$not`**: 反向断言，如果内容匹配模式则测试失败。
+- **`$schema`**: 显式使用 JSON Schema 验证值（推荐）。
 
 ---
 
@@ -188,13 +189,42 @@ diff:
 
 ### 5. 用 JSON Schema 验证
 
-`ai-test-runner` 会自动识别包含 `type` 属性的对象为 JSON Schema。
+`ai-test-runner` 提供了强大的 JSON Schema 支持来验证复杂的数据结构。
+
+#### 显式验证 (推荐)
+
+使用 `$schema` 操作符显式指示一个数据块应作为 JSON Schema 进行验证：
+
+```yaml
+- input: { get_user: 1 }
+  output:
+    profile:
+      $schema:
+        type: object
+        properties:
+          name: { type: string, pattern: "^[A-Z]" }
+          age: { type: number, minimum: 18 }
+```
+
+#### 启发式识别 (旧版)
+
+引擎也会自动将包含标准 `type` 属性（如 string, number 等）的对象识别为 JSON Schema。但为了避免歧义，建议优先使用 `$schema`。
+
+**禁用启发式识别：**
+
+如果你的数据中本身就包含名为 `type` 且不是 Schema 的属性，你可以全局或在单个用例中禁用此行为：
+
+```yaml
+# 在配置或单个用例中
+disableHeuristicSchema: true
+```
+
+禁用后，只有 `$schema` 操作符或 `!json-schema` 标签会触发 JSON Schema 验证。
 
 ```yaml
 - input: { get_user: 1 }
   output:
     name: { type: string, pattern: "^[A-Z]" }
-    age: { type: number, minimum: 18 }
 ```
 
 #### 扩展关键字说明

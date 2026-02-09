@@ -84,4 +84,59 @@ describe('validate/operators', () => {
     expect(failures).toHaveLength(1)
     expect(failures[0].message).toContain('requires an array')
   })
+
+  describe('$schema', () => {
+    it('should validate using $schema operator', async () => {
+      const failures = await validateMatch(123, { $schema: { type: 'number' } })
+      expect(failures).toHaveLength(0)
+
+      const failures2 = await validateMatch('abc', { $schema: { type: 'number' } })
+      expect(failures2).toHaveLength(1)
+      expect(failures2[0].message).toBe('JSON Schema validation failed')
+    })
+
+    it('should support templates in $schema operator', async () => {
+      const failures = await validateMatch('AI', { 
+        $schema: { type: 'string', pattern: '^{{prefix}}' } 
+      }, { data: { prefix: 'AI' } })
+      expect(failures).toHaveLength(0)
+    })
+
+    it('should validate complex objects with $schema', async () => {
+      const actual = { id: 1, name: 'Alice' }
+      const schema = {
+        type: 'object',
+        required: ['id', 'name'],
+        properties: {
+          id: { type: 'integer' },
+          name: { type: 'string' }
+        }
+      }
+      const failures = await validateMatch(actual, { $schema: schema })
+      expect(failures).toHaveLength(0)
+    })
+
+    it('should work with $not and $schema combined', async () => {
+      const failures = await validateMatch(123, { $not: { $schema: { type: 'string' } } })
+      expect(failures).toHaveLength(0)
+
+      const failures2 = await validateMatch('abc', { $not: { $schema: { type: 'string' } } })
+      expect(failures2).toHaveLength(1)
+      expect(failures2[0].message).toContain('$not mismatch')
+    })
+
+    it('should support $schema nested inside an object', async () => {
+      const actual = {
+        user: { id: 123, tags: ['a', 'b'] }
+      }
+      const expected = {
+        user: {
+          id: 123,
+          tags: { $schema: { type: 'array', minItems: 2 } }
+        }
+      }
+      const failures = await validateMatch(actual, expected)
+      expect(failures).toHaveLength(0)
+    })
+  })
 })
