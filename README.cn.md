@@ -121,7 +121,9 @@ expect:
 
 ### 3. 模板变量与动态键
 
-你可以在 `fixtureConfig` 中定义变量，并在测试中通过 `{{name}}` 使用。现在连 **对象键名** 也可以是动态正则：
+你可以在 `fixtureConfig` 中定义变量，并在测试中通过 `{{name}}` 使用。现在连 **对象键名** 也可以是动态正则或嵌套路径：
+
+**动态正则键：**
 
 ```yaml
 # fixtureConfig
@@ -131,6 +133,17 @@ variables:
 - input: { query: "user" }
   output:
     "/^user_{{id}}_/": "ok" # 动态匹配 user_123_... 格式的键
+```
+
+**嵌套路径键：**
+
+你可以使用点号分隔的路径（如 `a.b.c`）直接验证深层属性：
+
+```yaml
+- input: "获取个人信息"
+  output:
+    "user.profile.name": "Alice"
+    "user.profile.age": 30
 ```
 
 ### 4. Diff 验证字符串

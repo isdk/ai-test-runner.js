@@ -121,7 +121,9 @@ expect:
 
 ### 3. Template Variables & Dynamic Keys
 
-You can use `{{name}}` to inject variables. Now even **Object Keys** can be dynamic regex:
+You can use `{{name}}` to inject variables. Now even **Object Keys** can be dynamic regex or nested paths:
+
+**Dynamic Regex Keys:**
 
 ```yaml
 # fixtureConfig
@@ -131,6 +133,17 @@ variables:
 - input: { query: "user" }
   output:
     "/^user_{{id}}_/": "ok" # Matches keys like user_123_data
+```
+
+**Nested Path Keys:**
+
+You can use dot notation (e.g., `a.b.c`) to validate nested properties directly:
+
+```yaml
+- input: "get profile"
+  output:
+    "user.profile.name": "Alice"
+    "user.profile.age": 30
 ```
 
 ### 4. Diff Validation
