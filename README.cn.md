@@ -11,12 +11,15 @@
 ## 核心特性
 
 ### 🧩 完全解耦的架构
+
 核心逻辑独立于任何 CLI 框架或文件系统。通过实现简单的 `AIScriptExecutor` 接口，你可以将其集成到 Node.js 服务器、Web 环境或 CI/CD 流水线中。
 
 ### 🛠️ AI 工具测试 (New)
+
 支持将 AI 函数脚本作为“工具”进行集成测试。引擎会自动重定向到驱动脚本（`toolTester`），并允许验证复杂的工具调用序列。
 
 ### 📐 全面的验证策略
+
 - **字符串与正则**: 支持部分字符串匹配和复杂的正则表达式。
 - **深度对象/数组**: 递归验证嵌套的数据结构，支持对象键的正则匹配。
 - **高级操作符 (New)**: 提供 `$contains`, `$all`, `$sequence`, `$not` 等强大的集合验证能力。
@@ -28,12 +31,14 @@
   - 函数返回 `true` 表示通过，返回字符串表示失败原因。
 
 ### 📝 高级模板系统
+
 - **动态变量**: 在输入、输出甚至验证规则中注入变量。
 - **递归解析**: 自动处理深层依赖链（例如：`a` 依赖 `b`，`b` 依赖 `c`）。
 - **环境感知**: 支持 `__fixture_dir__` 和 `__script_dir__` 等目录变量。
 - **动态正则键 (New)**: 支持在对象匹配中使用包含模板变量的正则键：`"/^{{id}}_/"`。
 
 ### 🌓 灵活的匹配模式
+
 支持细粒度的 `严格 (Strict)` 和 `部分 (Partial)` 匹配。你可以配置是否允许对象中存在多余属性、数组长度是否必须一致、或 Diff 中存在未声明的变化。
 
 ---
@@ -41,7 +46,9 @@
 ## 技术规范 (Specification)
 
 ### 1. AIScriptExecutor 契约
+
 执行器必须返回一个符合以下结构的 Promise：
+
 ```typescript
 interface AIExecutionResult {
   output: any;      // 最终生成的输出（用于 output 匹配）
@@ -50,6 +57,7 @@ interface AIExecutionResult {
 ```
 
 #### 标准消息格式 (Message)
+
 - `role`: `'user' | 'assistant' | 'tool' | 'system'`
 - `content`: `string` (可选)
 - `tools`: `ToolCall[]` (可选)
@@ -58,6 +66,7 @@ interface AIExecutionResult {
   - `result`: 工具执行结果 (可选)
 
 ### 2. 操作符行为
+
 - **`$contains`**: 针对数组，只要有一个元素匹配模式即通过。
 - **`$all`**: 针对数组，必须包含所有指定的匹配项（顺序无关）。
 - **`$sequence`**: 针对数组，必须按顺序出现指定的匹配项（中间允许干扰）。
@@ -98,8 +107,9 @@ toolTester: agent.ai.yaml # 默认为 'toolTester'
 `expect.tools` 是专门为工具测试设计的简化断言。它会自动扫描 `messages` 链路中所有由 AI（`assistant` 角色）发起的工具调用，并将其聚合后与预期进行匹配。
 
 **规范说明：**
+
 - **自动聚合**: 引擎会遍历所有消息，提取所有 `tools` 列表。
-- **匹配模式**: 
+- **匹配模式**:
   - 如果 `expect.tools` 是一个 **数组**，默认采用 **`$all`** 逻辑（所有项必须出现，顺序无关）。
   - 如果 `expect.tools` 包含 **`$sequence`**，则要求工具按指定的顺序被调用。
 - **深度匹配**: 每个工具项的 `name`、`args` 和 `result` 均支持正则、部分对象匹配及模板变量。
@@ -125,18 +135,43 @@ variables:
 
 ### 4. Diff 验证字符串
 
-使用 `diff` 可以对字符串进行补充验证。
+使用 `diff` 可以对字符串进行补充验证。在 `ai-test-runner` 中，`diff` 列表被视为一个 **“允许的偏差白名单”**。
+
+#### 白名单逻辑说明
+
+1. **区分“允许”与“错误”**：如果没有这份清单，任何字符差异（哪怕是一个空格或换行）都会导致验证失败。通过在 `diff` 中列出 `\n`，你是在告诉引擎：“如果输出末尾多了个换行，那是可以接受的；但如果多了一个感叹号 `!`，那就是错误的。”
+2. **子集匹配 (Subset Matching) - 默认模式**：
+    * 实际发生的变更必须是白名单的 **子集**。
+    * 你可以不发生白名单里的变更（除非该项设为 `required: true`），但绝对不能发生白名单之外的变更。
+3. **严格模式 (`strict: diff`)**：实际发生的变更必须与白名单 **完全一致**（全集匹配）。
+4. **宽容模式 (`diffPermissive: true`)**：忽略所有未声明的变更，仅验证是否存在标记为 `required` 的必须变更项。
+
+#### 示例
 
 ```yaml
-- input:
-    text: "这是测试。"
-  output: "这是测试"
+- input: "测试内容"
+  output: "测试内容"
+  # 默认行为：白名单模式
   diff:
-    - add: true
-      value: "." # 允许额外多一个点
+    - value: "。"
+      added: true   # 允许：结尾多一个点是可以接受的
     - value: "\n"
-      added: true # 允许额外的空行
+      added: true   # 允许：额外的空行是可以接受的
+    - value: "必须包含"
+      added: true
+      required: true # 强制：实际输出中必须存在此变更
 ```
+
+**高级 Diff 配置：**
+
+```yaml
+diff:
+  permissive: true # 开启宽容模式（忽略未在 items 中声明的变更）
+  items:
+    - { value: "\n", added: true }
+```
+
+可以匹配: `测试内容\n` 或 `测试内容必须包含\n`
 
 ### 5. 用 JSON Schema 验证
 
@@ -150,6 +185,7 @@ variables:
 ```
 
 #### 扩展关键字说明
+
 - **字符串**: `regexp` (正则), `transform` (trim, toLowerCase 等)。
 - **数值**: `range` (范围), `exclusiveRange`。
 - **对象**: `allRequired` (全部必填), `anyRequired` (任意必填), `deepProperties` (深层属性)。
@@ -168,7 +204,7 @@ import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
 const executor: AIScriptExecutor = {
   async execute({ script, args }) {
     // 你的 AI 执行逻辑
-    return { 
+    return {
       output: "执行结果",
       messages: [ /* 交互历史 */ ]
     };

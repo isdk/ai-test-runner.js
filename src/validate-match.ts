@@ -25,6 +25,8 @@ export interface MatchValueOptions {
   input?: any
   /** Strict validation mode configuration. */
   strict?: AIStrictOption
+  /** Whether to allow unverified diff changes in non-strict mode. */
+  diffPermissive?: boolean
 }
 
 /**
@@ -173,7 +175,14 @@ export async function validateMatch(
     ) {
       if (typeof actual === 'string') {
         let diff: AIDiffItem[] | undefined = diffChars(expected, actual)
-        const expectedDiff = input?.diff
+        let expectedDiff = input?.diff
+        let diffPermissive = options.diffPermissive || input?.diffPermissive || input?.input?.diffPermissive
+
+        if (expectedDiff && !Array.isArray(expectedDiff) && typeof expectedDiff === 'object' && 'items' in expectedDiff) {
+          diffPermissive = diffPermissive ?? expectedDiff.permissive
+          expectedDiff = expectedDiff.items
+        }
+
         if (Array.isArray(expectedDiff)) {
           await formatDiffList(expectedDiff, options)
 
@@ -199,31 +208,41 @@ export async function validateMatch(
           const strictDiff = isStrict('diff', options.strict)
           const allExpectedMatched =
             matchedExpectedIndices.size === expectedDiff.length
-          const allActualVerified =
-            successfulItems.length === diff.length ||
-            diff.every(
-              (d) =>
-                d.verified ||
-                !(d.added || d.removed) ||
-                successfulItems.includes(d)
-            )
+          const missingRequiredItems = expectedDiff.filter((ed, idx) => {
+            return ed.required === true && !matchedExpectedIndices.has(idx)
+          })
+          const hasUnverified = diff.some(
+            (d) => (d.added || d.removed) && !successfulItems.includes(d)
+          )
 
-          let failed = !allExpectedMatched
-          if (!failed && strictDiff) {
-            // In strict mode, any unverified change leads to failure
-            const hasUnverified = diff.some(
-              (d) => (d.added || d.removed) && !successfulItems.includes(d)
-            )
-            if (hasUnverified) failed = true
+          let failed = false
+          const reasons: string[] = []
+
+          if (strictDiff) {
+            if (hasUnverified) {
+              failed = true
+              reasons.push('unverified changes')
+            }
+            if (!allExpectedMatched) {
+              failed = true
+              reasons.push('not all expected diff items were found (strict mode)')
+            }
+          } else {
+            if (!diffPermissive && hasUnverified) {
+              failed = true
+              reasons.push('unverified changes')
+            }
+            if (missingRequiredItems.length > 0) {
+              failed = true
+              reasons.push(`missing required diff items: ${missingRequiredItems.map(item => `${item.added ? '+' : '-'}"${item.value}"`).join(', ')}`)
+            }
           }
 
           if (failed) {
             const failure: AIValidationFailure = {
               key,
 
-              message: !allExpectedMatched
-                ? 'Not all expected diff items were found'
-                : 'Unverified changes in strict diff mode',
+              message: `String mismatch with diff: ${reasons.join('; ')}`,
 
               expected,
 
@@ -254,7 +273,7 @@ export async function validateMatch(
             diff = undefined
           }
         }
-        if (diff && diff.length) {
+        if (diff && diff.some((d) => d.added || d.removed)) {
           failures.push({
             key,
             message: 'String mismatch with diff',
@@ -340,18 +359,25 @@ export async function validateMatch(
     const keys = Object.keys(expected)
     if (expected.type && keys.every(k => !['$contains', '$all', '$sequence'].includes(k))) {
       // It looks like a JSON Schema
-      const schema = YamlTypeJsonSchema.create(expected)
-      const valid = YamlTypeJsonSchema.validate(schema, actual)
-      if (!valid) {
-        const errors = YamlTypeJsonSchema.getErrors(schema)!
-        failures.push({
-          key,
-          message: 'JSON Schema validation failed',
-          expected: errors,
-          actual,
-        })
+      let schema: YamlTypeJsonSchema|undefined
+      try {
+        schema = YamlTypeJsonSchema.create(expected)
+      } catch (e) {
+        // it's not a JSON Schema
       }
-      return failures
+      if (schema) {
+        const valid = YamlTypeJsonSchema.validate(schema, actual)
+        if (!valid) {
+          const errors = YamlTypeJsonSchema.getErrors(schema)!
+          failures.push({
+            key,
+            message: 'JSON Schema validation failed',
+            expected: errors,
+            actual,
+          })
+        }
+        return failures
+      }
     }
 
     const operator = keys.find((k) =>

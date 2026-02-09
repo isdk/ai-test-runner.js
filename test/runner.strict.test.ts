@@ -37,25 +37,25 @@ describe('AITestRunner Strict/Partial Matching', () => {
     describe('Diff Matching', () => {
       const original = "Hello World"
       const actual = "Hello\nBeautiful World!"
-      // Diffs: 
+      // Diffs:
       // - "Hello" (common)
       // - "\nBeautiful" (added)
       // - " World" (common)
       // - "!" (added)
-  
+
       it('should pass partial diff match if specified items are found', async () => {
         const fixtures = [{
-          input: { output: actual },
+          input: { output: actual, diffPermissive: true },
           output: original,
           diff: [
               { value: "\nBeautiful", added: true }
           ]
         }]
         const result = await runner.run('test', fixtures)
-        // Partial mode: "!" is ignored, only "\nBeautiful" is checked
+        // Permissive mode: "!" is ignored, only "\nBeautiful" is checked
         expect(result.passedCount).toBe(1)
       })
-  
+
       it('should fail strict diff match if unverified changes exist', async () => {
         const fixtures = [{
           input: { output: actual },
@@ -68,20 +68,20 @@ describe('AITestRunner Strict/Partial Matching', () => {
         const result = await runner.run('test', fixtures)
         // Strict mode: "!" is unverified, so it fails
         expect(result.passedCount).toBe(0)
-        expect(result.logs[0].failures![0].message).toContain('Unverified changes')
+        expect(result.logs[0].failures![0].message).toContain('unverified changes')
       })
       it('should fail if expected diff item is NOT found (even in partial mode)', async () => {
       const fixtures = [{
         input: { output: "Hello World" },
         output: "Hello World", // Identical strings
         diff: [
-            { value: "Extra", added: true } // This item won't be found in identical strings
+            { value: "Extra", added: true, required: true } // This item won't be found in identical strings
         ]
       }]
       const result = await runner.run('test', fixtures)
       // Result should be FAILED because "Extra" was not added
       expect(result.passedCount).toBe(0)
-      expect(result.logs[0].failures![0].message).toContain('Not all expected diff items')
+      expect(result.logs[0].failures![0].message).toContain('missing required diff items')
     })
   })
 })

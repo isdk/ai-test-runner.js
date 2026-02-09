@@ -7,6 +7,8 @@ import { Change } from 'diff'
 export interface AIDiffItem extends Change {
   /** Indicates whether this specific change has been verified. */
   verified?: boolean
+  /** Indicates whether this change MUST exist in the actual output. */
+  required?: boolean
 }
 
 /**

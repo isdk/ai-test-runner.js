@@ -11,12 +11,15 @@ While it originates from the [ISDK AI](https://github.com/isdk) ecosystem, it is
 ## Features
 
 ### 🧩 Fully Decoupled Architecture
+
 The core logic is independent of any CLI framework or File System. You can integrate it into Node.js servers, Web environments, or CI/CD pipelines by simply implementing the `AIScriptExecutor` interface.
 
 ### 🛠️ AI Tool Testing (New)
+
 Supports integration testing of AI function scripts as "tools". The engine automatically redirects to a driver script (`toolTester`) and allows validation of complex tool call sequences.
 
 ### 📐 Comprehensive Validation Strategies
+
 - **String & RegExp**: Supports partial string matching and complex Regular Expressions.
 - **Deep Object/Array**: Recursively validates nested data structures, including regex matching for object keys.
 - **Advanced Operators (New)**: Provides `$contains`, `$all`, `$sequence`, and `$not` for powerful collection validation.
@@ -28,12 +31,14 @@ Supports integration testing of AI function scripts as "tools". The engine autom
   - Returns `true` for success or a string for the failure reason.
 
 ### 📝 Advanced Template System
+
 - **Dynamic Variables**: Inject variables into inputs, outputs, and even validation rules.
 - **Recursive Resolution**: Automatically resolves deep dependency chains (e.g., `a` depends on `b`, `b` depends on `c`).
 - **Context Awareness**: Supports directory variables like `__fixture_dir__` and `__script_dir__`.
 - **Dynamic Regex Keys (New)**: Supports regex keys with template variables in object matching: `"/^{{id}}_/"`.
 
 ### 🌓 Flexible Matching Modes
+
 Supports `Strict` and `Partial` matching at a granular level. You can configure whether to allow extra properties in objects, whether array lengths must match, or unverified changes in diffs.
 
 ---
@@ -41,7 +46,9 @@ Supports `Strict` and `Partial` matching at a granular level. You can configure 
 ## Specification
 
 ### 1. AIScriptExecutor Contract
+
 The executor must return a Promise resolving to the following structure:
+
 ```typescript
 interface AIExecutionResult {
   output: any;      // Final generated output (for 'output' matching)
@@ -50,6 +57,7 @@ interface AIExecutionResult {
 ```
 
 #### Standard Message Format (Message)
+
 - `role`: `'user' | 'assistant' | 'tool' | 'system'`
 - `content`: `string` (Optional)
 - `tools`: `ToolCall[]` (Optional)
@@ -58,6 +66,7 @@ interface AIExecutionResult {
   - `result`: Tool execution result (Optional)
 
 ### 2. Operator Behavior
+
 - **`$contains`**: For arrays, passes if at least one element matches the pattern.
 - **`$all`**: For arrays, must contain all specified items (order independent).
 - **`$sequence`**: For arrays, must contain specified items in the exact order (allows noise in between).
@@ -98,8 +107,9 @@ toolTester: agent.ai.yaml # Defaults to 'toolTester'
 `expect.tools` is a simplified assertion designed for tool testing. It automatically scans all tool calls initiated by the AI (`assistant` role) in the `messages` trace.
 
 **Specification:**
+
 - **Auto Aggregation**: The engine iterates through all messages to extract all `tools` lists.
-- **Matching Mode**: 
+- **Matching Mode**:
   - If `expect.tools` is an **Array**, it uses **`$all`** logic by default.
   - If `expect.tools` contains **`$sequence`**, it requires tools to be called in the specified order.
 - **Deep Matching**: `name`, `args`, and `result` of each tool item support regex, partial object matching, and template variables.
@@ -125,16 +135,40 @@ variables:
 
 ### 4. Diff Validation
 
-Use `diff` to allow supplemental validation for strings.
+Use `diff` to provide supplemental validation for strings. In `ai-test-runner`, the `diff` list acts as an **"Allowed Variations Whitelist"**.
+
+#### Whitelist Philosophy
+
+1. **Distinguish "Allowed" from "Error"**: Without this list, any character difference (even a single space or newline) causes validation to fail. By listing items in `diff`, you are telling the engine: "If the output ends with an extra newline, it's acceptable; but if it adds an unexpected exclamation mark `!`, it's an error."
+2. **Subset Matching (Default Mode)**:
+    * The actual changes in the output must be a **subset** of the whitelist.
+    * You don't *have* to produce all changes in the whitelist (unless they are marked as `required`), but you absolutely cannot produce any change that is *not* in the whitelist.
+3. **Strict Mode (`strict: diff`)**: The actual changes must **exactly match** the whitelist.
+4. **Permissive Mode (`diffPermissive: true`)**: The whitelist is only used to check for `required` items. Any other unverified changes in the output are ignored.
+
+#### Example
 
 ```yaml
 - input: "test"
   output: "test"
+  # Default: Whitelist Mode
   diff:
-    - add: true
-      value: "." # Allow trailing dot
+    - value: "."
+      added: true   # Allowed: trailing dot is now acceptable
     - value: "\n"
-      added: true # Allow extra newlines
+      added: true   # Allowed: extra newline is now acceptable
+    - value: "Required Title"
+      added: true
+      required: true # Mandatory: this change MUST exist in the output
+```
+
+**Advanced Configuration:**
+
+```yaml
+diff:
+  permissive: true # Enable Permissive Mode (ignore unverified changes)
+  items:
+    - { value: "\n", added: true }
 ```
 
 ### 5. JSON Schema Validation
@@ -149,6 +183,7 @@ Use `diff` to allow supplemental validation for strings.
 ```
 
 #### Extended Keywords
+
 - **String**: `regexp`, `transform` (trim, toLowerCase, etc.).
 - **Number**: `range`, `exclusiveRange`.
 - **Object**: `allRequired`, `anyRequired`, `deepProperties`.
@@ -165,7 +200,7 @@ import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
 const executor: AIScriptExecutor = {
   async execute({ script, args }) {
     // Your AI logic here
-    return { 
+    return {
       output: "result",
       messages: [ /* Interaction history */ ]
     };
