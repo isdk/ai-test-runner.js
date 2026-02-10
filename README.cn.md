@@ -3,77 +3,15 @@
 > 【[English](./README.md)|中文】
 ---
 
-一个轻量级、解耦的 AI 脚本、智能体及提示词测试核心引擎。
-虽然它源自 [ISDK AI](https://github.com/isdk) 生态，但它被设计为**通用的 AI 测试引擎**。你只需简单地实现 `AIScriptExecutor` 接口，即可将其应用于任何 AI 测试场景。
-
-`ai-test-runner` 提供了一套强大的框架，用于执行 AI 测试样例（Fixtures）并利用多种策略验证输出结果。
+一个轻量级、完全解耦的 AI 脚本、智能体及提示词测试核心引擎。它通过一套强大的验证框架，帮助开发者高效、可靠地测试 LLM 输出。
 
 ## 核心特性
 
-### 🧩 完全解耦的架构
-
-核心逻辑独立于任何 CLI 框架或文件系统。通过实现简单的 `AIScriptExecutor` 接口，你可以将其集成到 Node.js 服务器、Web 环境或 CI/CD 流水线中。
-
-### 🛠️ AI 工具测试 (New)
-
-支持将 AI 函数脚本作为“工具”进行集成测试。引擎会自动重定向到驱动脚本（`toolTester`），并允许验证复杂的工具调用序列。
-
-### 📐 全面的验证策略
-
-- **字符串与正则**: 支持部分字符串匹配和复杂的正则表达式。
-- **深度对象/数组**: 递归验证嵌套的数据结构，支持对象键的正则匹配。
-- **高级操作符 (New)**: 提供 `$contains`, `$all`, `$sequence`, `$not` 等强大的集合验证能力。
-- **语义化 Diff**: 通过结构化的 `diff` 规则允许输出中的微小差异（例如：忽略额外的空行或特定的字符替换）。
-- **JSON Schema (Ajv)**: 内置支持 JSON Schema，并包含丰富的自定义关键字和格式扩展。
-- **自定义函数**: 支持通过 JavaScript/TypeScript 函数实现任意复杂的匹配逻辑。
-  - 当 `output` 为函数时，它接收 `(actualOutput, input)`。
-  - 当 `expect` 为函数时，它接收 `(fullResult, input)`，其中 `fullResult` 包含 `output` 和 `messages`。
-  - 函数返回 `true` 表示通过，返回字符串表示失败原因。
-
-### 📝 高级模板系统
-
-- **动态变量**: 在输入、输出甚至验证规则中注入变量。
-- **递归解析**: 自动处理深层依赖链（例如：`a` 依赖 `b`，`b` 依赖 `c`）。
-- **环境感知**: 支持 `__fixture_dir__` 和 `__script_dir__` 等目录变量。
-- **动态正则键 (New)**: 支持在对象匹配中使用包含模板变量的正则键：`"/^{{id}}_/"`。
-
-### 🌓 灵活的匹配模式
-
-支持细粒度的 `严格 (Strict)` 和 `部分 (Partial)` 匹配。你可以配置是否允许对象中存在多余属性、数组长度是否必须一致、或 Diff 中存在未声明的变化。
-
----
-
-## 技术规范 (Specification)
-
-### 1. AIScriptExecutor 契约
-
-执行器必须返回一个符合以下结构的 Promise：
-
-```typescript
-interface AIExecutionResult {
-  output: any;      // 最终生成的输出（用于 output 匹配）
-  messages?: any[]; // (可选) 执行过程的全量消息列表（用于 expect 匹配）
-}
-```
-
-#### 标准消息格式 (Message)
-
-- `role`: `'user' | 'assistant' | 'tool' | 'system'`
-- `content`: `string` (可选)
-- `tools`: `ToolCall[]` (可选)
-  - `name`: 工具名称
-  - `args`: 调用参数 (Object)
-  - `result`: 工具执行结果 (可选)
-
-### 2. 操作符行为
-
-- **`$contains`**: 针对数组，只要有一个元素匹配模式即通过。
-- **`$all`**: 针对数组，必须包含所有指定的匹配项（顺序无关）。
-- **`$sequence`**: 针对数组，必须按顺序出现指定的匹配项（中间允许干扰）。
-- **`$not`**: 反向断言，如果内容匹配模式则测试失败。
-- **`$schema`**: 显式使用 JSON Schema 验证值（推荐）。
-
----
+- **🧩 完全解耦**：核心逻辑独立于环境，可集成到任意 Node.js, 浏览器或 CI/CD 流水线。
+- **📐 多样化验证**：支持字符串、正则、深度对象匹配，以及 $contains, $all, $sequence 等高级操作符。
+- **🛠️ 专为工具优化**：内置 AI 函数（Tools）测试简化方案，支持验证复杂的工具调用序列。
+- **📝 强大模板系统**：支持变量注入、深度递归解析和动态正则键名。
+- **🌓 语义化差异匹配**：支持白名单模式定义“允许的输出偏差”，告别因换行或标点导致的测试失败。
 
 ## 安装
 
@@ -81,193 +19,245 @@ interface AIExecutionResult {
 pnpm add @isdk/ai-test-runner
 ```
 
-## 详细使用指南
+## 快速上手
 
-### 1. 数据格式 (Fixture)
+只需三步，即可在项目中运行 AI 测试。我们推荐使用 `expect.output` 进行结果验证：
 
-一个测试用例通常由 `input`（输入）、预期 `output`（输出）或 `expect`（执行全量验证）组成。
+### 1. 实现执行器 (AIScriptExecutor)
 
-```yaml
----
-tools: [calculator.ai.yaml]
-toolTester: agent.ai.yaml # 默认为 'toolTester'
----
-- input: "1+1 等于几？"
-  output: "2"
-  expect:
-    tools: # 语法糖：在消息链路中查找工具调用
-      - name: calculator
-        args: { a: 1, b: 1 }
-  not: false   # 如果为真，则当输出不匹配时测试才通过
-  skip: false
-  strict: object # 为此用例启用对象的严格匹配模式
+```typescript
+import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
+
+const myExecutor: AIScriptExecutor = {
+  async execute({ script, args }) {
+    // 对接你的 AI 调用逻辑
+    return { output: "Hello World", messages: [] };
+  }
+};
 ```
 
-### 2. 语法糖：expect.tools
+### 2. 定义测试用例 (Fixtures)
 
-`expect.tools` 是专门为工具测试设计的简化断言。它会自动扫描 `messages` 链路中所有由 AI（`assistant` 角色）发起的工具调用，并将其聚合后与预期进行匹配。
+```typescript
+const fixtures = [
+  {
+    input: "你好",
+    expect: {
+      output: /Hello/i  // 推荐：使用 expect.output 代替顶层 output
+    }
+  }
+];
+```
 
-**规范说明：**
+### 3. 运行测试
 
-- **自动聚合**: 引擎会遍历所有消息，提取所有 `tools` 列表。
-- **匹配模式**:
-  - 如果 `expect.tools` 是一个 **数组**，默认采用 **`$all`** 逻辑（所有项必须出现，顺序无关）。
-  - 如果 `expect.tools` 包含 **`$sequence`**，则要求工具按指定的顺序被调用。
-- **深度匹配**: 每个工具项的 `name`、`args` 和 `result` 均支持正则、部分对象匹配及模板变量。
+```typescript
+const runner = new AITestRunner(myExecutor);
+const result = await runner.run('my-script-id', fixtures);
+```
+
+---
+
+## 详细功能指南
+
+### 1. 验证引擎 (Validation Engine)
+
+验证引擎是测试的核心，支持通过 `expect` 对象定义复杂的断言。
+
+#### 1.1 基础匹配 (`expect.output`)
+
+支持字符串、正则表达式和数值校验。
+
+- **正则示例**：验证输出是否包含特定模式。
+
+  ```yaml
+  expect:
+    output: "/^Hello, .+\\!$/i" # 匹配 "Hello, Alice!"
+  ```
+
+#### 1.2 高级集合操作符
+
+针对数组类型（如消息列表或工具调用列表）提供强大的断言能力：
+
+- **`$contains`**: 只要数组中包含符合条件的项即可。
+- **`$all`**: 数组必须包含所有指定项，顺序无关。
+- **`$sequence`**: 数组必须按顺序包含指定项，中间允许有干扰项。
+- **`$not`**: 反向断言，匹配则失败。
+
+**示例：验证工具调用序列**
 
 ```yaml
 expect:
-  tools: [ { name: 'weather', args: { city: 'Shanghai' } } ]
+  messages:
+    $sequence:
+      - { role: 'assistant', tools: [{ name: 'get_user' }] }
+      - { role: 'assistant', tools: [{ name: 'send_email' }] }
 ```
 
-### 3. 模板变量与动态键
+#### 1.3 自定义校验函数
 
-你可以在 `fixtureConfig` 中定义变量，并在测试中通过 `{{name}}` 使用。现在连 **对象键名** 也可以是动态正则或嵌套路径：
+当声明式校验不足以覆盖需求时，可以使用函数：
 
-**动态正则键：**
+```typescript
+expect: {
+  output: (actual, input) => actual.length > 10 || "输出长度不足"
+}
+```
+
+### 2. AI 工具测试 (AI Tool Testing)
+
+针对 Agent 调用工具的场景，提供极简的配置方式。**注意：执行器必须返回标准的 `messages` 列表才能进行此项测试。**
+
+#### 2.1 工具配置与驱动
+
+- **`tools`**: 指定 AI 可以使用的工具列表。支持 `boolean | string | Record | Array`。
+- **`toolTester`**: 负责驱动测试的脚本 ID（默认为 `'toolTester'`）。它通常是一个能理解工具调用并执行的 Agent 脚本。
+
+#### 2.2 `tools: true` 自动绑定
+
+当测试一个工具脚本本身时，无需重复书写工具 ID。
+
+- **逻辑**：自动将当前 `script` ID 包装成 `[script]` 传给 AI。
+- **重定向**：会自动将执行脚本切换为 `toolTester`。
 
 ```yaml
-# fixtureConfig
-variables:
-  id: "123"
+# weather.ai.yaml 的测试配置
 ---
-- input: { query: "user" }
-  output:
-    "/^user_{{id}}_/": "ok" # 动态匹配 user_123_... 格式的键
+tools: true  # 自动将 weather.ai.yaml 设为可用工具
+---
+- input: "查上海天气"
+  expect:
+    tools: [{ name: 'weather', args: { city: 'Shanghai' } }]
 ```
 
-**嵌套路径键：**
+#### 2.3 `expect.tools` 语法糖
 
-你可以使用点号分隔的路径（如 `a.b.c`）直接验证深层属性：
+无需手动解析 `messages` 链路，引擎会自动提取所有 `assistant` 发起的工具调用进行匹配。
 
-```yaml
-- input: "获取个人信息"
-  output:
-    "user.profile.name": "Alice"
-    "user.profile.age": 30
-```
+### 3. JSON Schema 验证
 
-### 4. Diff 验证字符串
+对于结构化输出，JSON Schema 是最严谨的校验方式。
 
-使用 `diff` 可以对字符串进行补充验证。在 `ai-test-runner` 中，`diff` 列表被视为一个 **“允许的偏差白名单”**。
+#### 3.1 启发式识别 (Heuristic Recognition)
 
-#### 白名单逻辑说明
+默认情况下，Runner 开启了启发式识别。如果一个对象具有 `type` 属性，且其值为 `string`, `number`, `integer`, `boolean`, `object`, `array` 之一，它会被自动识别为 JSON Schema。
 
-1. **区分“允许”与“错误”**：如果没有这份清单，任何字符差异（哪怕是一个空格或换行）都会导致验证失败。通过在 `diff` 中列出 `\n`，你是在告诉引擎：“如果输出末尾多了个换行，那是可以接受的；但如果多了一个感叹号 `!`，那就是错误的。”
-2. **子集匹配 (Subset Matching) - 默认模式**：
-    * 实际发生的变更必须是白名单的 **子集**。
-    * 你可以不发生白名单里的变更（除非该项设为 `required: true`），但绝对不能发生白名单之外的变更。
-3. **严格模式 (`strict: diff`)**：实际发生的变更必须与白名单 **完全一致**（全集匹配）。
-4. **宽容模式 (`diffPermissive: true`)**：忽略所有未声明的变更，仅验证是否存在标记为 `required` 的必须变更项。
+如果你希望某个字段仅仅是包含 `type` 属性的普通业务数据，请设置 `disableHeuristicSchema: true`。
 
-#### 示例
+#### 3.2 显式校验
+
+推荐使用 `$schema` 操作符：
 
 ```yaml
-- input: "测试内容"
-  output: "测试内容"
-  # 默认行为：白名单模式
-  diff:
-    - value: "。"
-      added: true   # 允许：结尾多一个点是可以接受的
-    - value: "\n"
-      added: true   # 允许：额外的空行是可以接受的
-    - value: "必须包含"
-      added: true
-      required: true # 强制：实际输出中必须存在此变更
-```
-
-**高级 Diff 配置：**
-
-```yaml
-diff:
-  permissive: true # 开启宽容模式（忽略未在 items 中声明的变更）
-  items:
-    - { value: "\n", added: true }
-```
-
-可以匹配: `测试内容\n` 或 `测试内容必须包含\n`
-
-### 5. 用 JSON Schema 验证
-
-`ai-test-runner` 提供了强大的 JSON Schema 支持来验证复杂的数据结构。
-
-#### 显式验证 (推荐)
-
-使用 `$schema` 操作符显式指示一个数据块应作为 JSON Schema 进行验证：
-
-```yaml
-- input: { get_user: 1 }
+expect:
   output:
     profile:
       $schema:
         type: object
         properties:
-          name: { type: string, pattern: "^[A-Z]" }
           age: { type: number, minimum: 18 }
 ```
 
-#### 启发式识别 (旧版)
+### 4. 语义化差异匹配 (Diff)
 
-引擎也会自动将包含标准 `type` 属性（如 string, number 等）的对象识别为 JSON Schema。但为了避免歧义，建议优先使用 `$schema`。
+解决 LLM 输出“对但不完全一样”的问题。
 
-**禁用启发式识别：**
+#### 4.1 白名单模式 (默认)
 
-如果你的数据中本身就包含名为 `type` 且不是 Schema 的属性，你可以全局或在单个用例中禁用此行为：
+只有声明过的差异才是允许的。任何未在 `diff` 中声明的字符变更都会导致失败。
 
-```yaml
-# 在配置或单个用例中
-disableHeuristicSchema: true
-```
+#### 4.2 宽容模式 (`diffPermissive`)
 
-禁用后，只有 `$schema` 操作符或 `!json-schema` 标签会触发 JSON Schema 验证。
+设置 `diffPermissive: true` 或在预期中使用 `diff: { permissive: true }` 可以关闭严格白名单。此时引擎会忽略所有未声明的变更，仅验证 `required: true` 的项是否按预期发生了变化。
 
 ```yaml
-- input: { get_user: 1 }
-  output:
-    name: { type: string, pattern: "^[A-Z]" }
+expect:
+  output: "Hello"
+  diff:
+    permissive: true # 忽略所有其他变化
+    items:
+      - { value: "User", added: true, required: true } # 仅确保 User 被添加了
 ```
-
-#### 扩展关键字说明
-
-- **字符串**: `regexp` (正则), `transform` (trim, toLowerCase 等)。
-- **数值**: `range` (范围), `exclusiveRange`。
-- **对象**: `allRequired` (全部必填), `anyRequired` (任意必填), `deepProperties` (深层属性)。
-- **动态默认值**: `timestamp`, `datetime`, `randomint` 等。
 
 ---
 
-## 集成 API 示例
+## 技术规范 (Technical Reference)
 
-### 实现执行器
+### 1. 核心约定与数据规范 (Conventions & Specs)
+
+#### 1.1 脚本 ID 判定
+
+Runner 通过以下逻辑判定 `script` 是否为合法 ID（而非源码）：
+`!/[\n\r{}]/.test(script) && script.length < 256`。
+**注意**：使用 `tools: true` 时必须提供 ID，因为 AI 无法以源码作为工具名。
+
+#### 1.2 标准消息格式 (`Message`)
+
+执行器返回的 `messages` 是一个对象数组，代表了 AI 与用户/工具的完整交互链路。这也是 `expect.tools` 语法糖的**唯一数据源**。
 
 ```typescript
-import { AITestRunner, AIScriptExecutor } from '@isdk/ai-test-runner';
+interface ToolCall {
+  name: string;               // 工具名称 (必填)
+  args: Record<string, any>;  // 调用参数 (必填)
+  result?: any;               // 工具执行后的返回结果 (可选，用于验证闭环)
+}
 
-// 1. 实现执行器，对接你的 AI 引擎
-const executor: AIScriptExecutor = {
-  async execute({ script, args }) {
-    // 你的 AI 执行逻辑
-    return {
-      output: "执行结果",
-      messages: [ /* 交互历史 */ ]
-    };
-  }
-};
-
-// 2. 初始化 Runner
-const runner = new AITestRunner(executor);
-
-// 3. 监听事件进行实时日志输出
-runner.on('test:pass', (log) => console.log(`用例 ${log.i} 通过`));
-runner.on('test:fail', (log) => console.error(`用例 ${log.i} 失败`, log.failures));
-
-// 4. 运行测试
-const result = await runner.run('script-id', fixtures, {
-  fixtureConfig: { /* 全局配置 */ },
-  strict: false
-});
+interface Message {
+  role: 'user' | 'assistant' | 'tool' | 'system';
+  content?: string;           // 文本内容
+  /**
+   * 工具调用列表。
+   * - 当 role 为 'assistant' 时，代表 AI 发起的调用请求。
+   * - 当 role 为 'tool' 时，代表工具执行的结果。
+   */
+  tools?: ToolCall[];
+}
 ```
 
-## 开源协议
+#### 1.3 `expect.tools` 的工作原理
+
+当你使用 `expect: { tools: [...] }` 时，Runner 会自动进行以下转换：
+
+1. **自动聚合**：遍历 `messages` 数组，提取所有包含 `tools` 属性的消息。
+2. **路径映射**：将校验目标映射到 `messages` 的深层结构中。例如 `tools: [ { name: 'calc' } ]` 实际上是在验证：*“是否存在一条消息，其 `tools` 数组中包含一个 `name` 为 'calc' 的对象？”*
+3. **操作符转换**：默认使用 `$all` 逻辑进行集合匹配。
+
+### 2. AIScriptExecutor 实现示例
+
+执行器是底层库与具体 AI 平台对接的唯一入口。
+
+```typescript
+import { AIScriptExecutor, AIExecutionContext, AIExecutionResult } from '@isdk/ai-test-runner';
+
+export class MyAIExecutor implements AIScriptExecutor {
+  async execute(context: AIExecutionContext): Promise<AIExecutionResult> {
+    const { script, args, options } = context;
+
+    // 示例：调用某个 AI SDK
+    const response = await someAIService.ask({
+      model: options.model || 'gpt-4',
+      prompt: script, // 如果是 ID，你可能需要先加载脚本内容
+      variables: args
+    });
+
+    return {
+      output: response.text,           // 用于结果校验
+      messages: response.fullHistory,  // 用于工具调用校验
+    };
+  }
+}
+```
+
+### 3. 事件生命周期
+
+| 事件名 | 触发时机 | 参数 |
+| :--- | :--- | :--- |
+| `test:start` | 开始执行前 | `{ i, script, input }` |
+| `test:pass` | 断言全部通过 | `AITestLogItem` |
+| `test:fail` | 断言失败 | `AITestLogItem` |
+| `test:error` | 代码执行崩溃 | `AITestLogItem` |
+| `test:skip` | 命中 skip 或 only 逻辑 | `AITestLogItem` |
+
+## 许可证
 
 MIT

@@ -84,6 +84,18 @@ async function resolveDefaultValue(value: any, defaultValue?: any, data?: any) {
 }
 
 /**
+ * Checks if a string is a valid script identifier (not source code).
+ * 
+ * @param script - The script string to check.
+ * @returns True if it looks like an ID/filename.
+ */
+function isScriptId(script: string) {
+  if (!script || typeof script !== 'string') return false
+  // If it contains newlines or curly braces, it's likely source code
+  return !/[\n\r{}]/.test(script) && script.length < 256
+}
+
+/**
  * Runner for executing AI script test fixtures and validating results.
  * 
  * @fires AITestRunner#test:start - Fired before executing a fixture.
@@ -194,30 +206,34 @@ export class AITestRunner extends EventEmitter {
     initialFixtureConfig: any,
     options: AITestRunnerOptions
   ): Promise<AITestLogItem> {
+    const ts = Date.now()
     let fixtureConfig = cloneDeep(initialFixtureConfig)
     const { userConfig = {} } = options
 
-    const input = await resolveDefaultValue(fixture.input, fixtureConfig?.input)
-    const output = await resolveDefaultValue(fixture.output, fixtureConfig?.output)
-
-    fixtureConfig = await formatObject(fixtureConfig, {
-      data: { ...(input && typeof input === 'object' ? input : { input }), ...fixtureConfig },
-      input: fixture,
-    })
-
-    const templateData = await this.resolveTemplateData(fixture, fixtureConfig, input, options)
-    const currentScript = this.resolveScript(fixture, fixtureConfig, defaultScript)
-
-    const execContext: AIExecutionContext = {
-      script: currentScript,
-      args: templateData,
-      options: { ...userConfig },
-    }
-
-    const ts = Date.now()
-    this.emit('test:start', { i, script: currentScript, input })
+    let input: any
+    let output: any
 
     try {
+      input = await resolveDefaultValue(fixture.input, fixtureConfig?.input)
+      output = await resolveDefaultValue(fixture.output, fixtureConfig?.output)
+
+      fixtureConfig = await formatObject(fixtureConfig, {
+        data: { ...(input && typeof input === 'object' ? input : { input }), ...fixtureConfig },
+        input: fixture,
+      })
+
+      const targetScript = fixture.script || fixtureConfig.script || defaultScript
+      const currentScript = this.resolveScript(fixture, fixtureConfig, defaultScript)
+      const templateData = await this.resolveTemplateData(fixture, fixtureConfig, input, options, targetScript)
+
+      const execContext: AIExecutionContext = {
+        script: currentScript,
+        args: templateData,
+        options: { ...userConfig },
+      }
+
+      this.emit('test:start', { i, script: currentScript, input })
+
       const execResult = await this.executor.execute(execContext)
       const duration = Date.now() - ts
       const failures = await this.validateFixture(fixture, fixtureConfig, templateData, execResult, options)
@@ -254,13 +270,31 @@ export class AITestRunner extends EventEmitter {
 
   /**
    * Resolves the final template data with multi-pass resolution for deep dependencies.
+   * Handles automatic tool resolution when `tools: true` is set.
    * 
+   * @param fixture - The current test fixture.
+   * @param fixtureConfig - The merged fixture configuration.
+   * @param input - The resolved input data.
+   * @param options - Global runner options.
+   * @param currentScript - The target script ID or source code.
+   * @returns A promise resolving to the final template data.
+   * @throws Error if `tools: true` is used with source code instead of a script ID.
    * @private
    */
-  private async resolveTemplateData(fixture: any, fixtureConfig: any, input: any, options: AITestRunnerOptions) {
+  private async resolveTemplateData(fixture: any, fixtureConfig: any, input: any, options: AITestRunnerOptions, currentScript?: string) {
     const { scriptConfig = {}, userConfig = {} } = options
-    const tools = fixture.tools || fixtureConfig.tools
+    let tools = fixture.tools ?? fixtureConfig.tools
     
+    if (tools === true) {
+      if (currentScript && isScriptId(currentScript)) {
+        tools = [currentScript]
+      } else if (currentScript) {
+        throw new Error(`Cannot use 'tools: true' when script is source code: ${currentScript.slice(0, 50)}...`)
+      }
+    } else if (tools && !Array.isArray(tools) && typeof tools !== 'boolean') {
+      tools = [tools]
+    }
+
     let templateData = {
       ...getTemplateData(scriptConfig),
       ...(input && typeof input === 'object' ? input : { input }),
@@ -285,14 +319,19 @@ export class AITestRunner extends EventEmitter {
 
   /**
    * Determines which script or tool tester to execute.
+   * Automatically switches to `toolTester` if tools are configured.
    * 
+   * @param fixture - The current test fixture.
+   * @param fixtureConfig - The merged fixture configuration.
+   * @param defaultScript - The default script from the runner.
+   * @returns The script ID or source code to be executed.
    * @private
    */
   private resolveScript(fixture: any, fixtureConfig: any, defaultScript: string) {
-    const tools = fixture.tools || fixtureConfig.tools
-    const toolTester = fixture.toolTester || fixtureConfig.toolTester
+    const tools = fixture.tools ?? fixtureConfig.tools
+    const toolTester = fixture.toolTester ?? fixtureConfig.toolTester
     
-    if (tools && tools.length > 0) {
+    if (tools === true || (Array.isArray(tools) && tools.length > 0) || (tools && !Array.isArray(tools) && typeof tools !== 'boolean')) {
       return toolTester || 'toolTester'
     }
     return fixture.script || fixtureConfig.script || defaultScript

@@ -129,6 +129,22 @@ export interface AITestFixtureResult {
 }
 
 /**
+ * Represents a single tool definition for testing.
+ * Can be a string (tool ID/filename) or a record (full tool definition).
+ */
+export type AITestTool = string | Record<string, any>
+
+/**
+ * Configuration for tool usage in test fixtures.
+ * 
+ * - `true`: Automatically use the current script as the tool.
+ * - `string`: A single tool ID or filename.
+ * - `Record<string, any>`: A single tool definition object.
+ * - `Array`: A collection of tool IDs or objects.
+ */
+export type AITestTools = boolean | AITestTool | AITestTool[]
+
+/**
  * Configuration for strict validation mode.
  * 
  * - `true`: Enable strict mode for all types.
