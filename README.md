@@ -183,15 +183,32 @@ expect:
 
 ## Technical Reference
 
-### 1. Conventions & Data Specifications
+### 1. AIScriptExecutor & Context
 
-#### 1.1 Script ID Detection
+The `AIScriptExecutor` is the primary integration point. The runner passes an `AIExecutionContext` to its `execute` method.
+
+#### 1.1 How `input` is Passed
+
+The `input` defined in your fixture is merged into `context.args` using the following rules:
+
+- **Object Input**: If `input` is an object (e.g., `{ query: "Hi" }`), its properties are spread directly into `args`. You can access them as `args.query`.
+- **Non-Object Input**: If `input` is a primitive (string, number, etc.), it is wrapped in an `input` field. You can access it as `args.input`.
+
+#### 1.2 How `tools` are Passed
+
+When `tools` are configured in a fixture or global config:
+
+- **Redirection**: The `context.script` is automatically changed to the `toolTester` (defaults to `'toolTester'`).
+- **Args Injection**: All resolved tools are passed as an array in `context.args.tools`.
+- **`tools: true`**: If set to `true`, the runner automatically includes the current script's ID in the `args.tools` array.
+
+#### 1.3 Script ID Detection
 
 The runner distinguishes a script ID from source code using the following logic:
 `!/[\n\r{}]/.test(script) && script.length < 256`.
 **Note**: `tools: true` requires a valid script ID.
 
-#### 1.2 Standard Message Format (`Message`)
+### 2. Standard Message Format (`Message`)
 
 The `messages` returned by the executor is an array of objects representing the full interaction trace. This is the **exclusive data source** for the `expect.tools` syntactic sugar.
 

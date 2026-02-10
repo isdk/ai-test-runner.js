@@ -183,15 +183,32 @@ expect:
 
 ## 技术规范 (Technical Reference)
 
-### 1. 核心约定与数据规范 (Conventions & Specs)
+### 1. AIScriptExecutor 与上下文 (Context)
 
-#### 1.1 脚本 ID 判定
+`AIScriptExecutor` 是集成 AI 平台的入口。Runner 会将 `AIExecutionContext` 传递给它的 `execute` 方法。
+
+#### 1.1 `input` 如何传递
+
+Fixture 中定义的 `input` 会通过以下规则合并到 `context.args` 中：
+
+- **对象类型的 Input**：如果 `input` 是一个对象（例如 `{ query: "你好" }`），其属性会被直接展开（spread）到 `args` 中。你可以直接通过 `args.query` 访问。
+- **非对象类型的 Input**：如果 `input` 是基本类型（字符串、数字等），它会被包装在 `input` 字段中。你可以通过 `args.input` 访问。
+
+#### 1.2 `tools` 如何传递
+
+当 Fixture 或全局配置中包含 `tools` 时：
+
+- **脚本重定向**：`context.script` 会自动切换为 `toolTester`（默认为 `'toolTester'`）。
+- **参数注入**：所有解析后的工具定义会以数组形式存放在 `context.args.tools` 中。
+- **`tools: true`**：如果设为 `true`，Runner 会自动将当前被测试的脚本 ID 加入到 `args.tools` 数组中。
+
+#### 1.3 脚本 ID 判定
 
 Runner 通过以下逻辑判定 `script` 是否为合法 ID（而非源码）：
 `!/[\n\r{}]/.test(script) && script.length < 256`。
 **注意**：使用 `tools: true` 时必须提供 ID，因为 AI 无法以源码作为工具名。
 
-#### 1.2 标准消息格式 (`Message`)
+### 2. 标准消息格式 (`Message`)
 
 执行器返回的 `messages` 是一个对象数组，代表了 AI 与用户/工具的完整交互链路。这也是 `expect.tools` 语法糖的**唯一数据源**。
 
