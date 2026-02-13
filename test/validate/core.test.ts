@@ -26,7 +26,15 @@ describe('validate/core', () => {
   it('should fail on RegExp mismatch', async () => {
     const failures = await validateMatch('hello world', /foo/)
     expect(failures).toHaveLength(1)
-    expect(failures[0].message).toBe('RegExp mismatch')
+    expect(failures[0].message).toContain('RegExp mismatch: expected /foo/')
+    expect(failures[0].expected).toBe('/foo/')
+  })
+
+  it('should fail on RegExp mismatch with flags', async () => {
+    const failures = await validateMatch('hello world', /foo/i)
+    expect(failures).toHaveLength(1)
+    expect(failures[0].message).toContain('RegExp mismatch: expected /foo/i')
+    expect(failures[0].expected).toBe('/foo/i')
   })
 
   it('should support templates in expected string', async () => {

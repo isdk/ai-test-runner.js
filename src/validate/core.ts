@@ -62,9 +62,10 @@ async function _validateMatch(
       templateFormat: data?.templateFormat,
     })
     if (!regEx.test(actual)) {
+      const regStr = regEx.toString()
       ctx.addFailure({
-        message: 'RegExp mismatch',
-        expected: regEx.source,
+        message: `RegExp mismatch: expected ${regStr}, but got ${JSON.stringify(actual)}`,
+        expected: regStr,
         actual,
       })
     }
