@@ -4,7 +4,8 @@ import {
   diffWords,
   diffWordsWithSpace,
   diffSentences,
-  Change
+  Change,
+  DiffSentencesOptionsNonabortable
 } from 'diff'
 import { isRegExp, toRegExp, getKeysPath } from '@isdk/ai-tool'
 import { get as getByPath, cloneDeep } from 'lodash-es'
@@ -46,6 +47,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
     if (!inExpected) {
       // Added in actual
       diffs.push({
+        count: 1,
         added: true,
         removed: false,
         path,
@@ -55,6 +57,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
     } else if (!inActual) {
       // Removed from expected
       diffs.push({
+        count: 1,
         added: false,
         removed: true,
         path,
@@ -64,6 +67,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
     } else if (JSON.stringify(eVal) !== JSON.stringify(aVal)) {
       // Changed
       diffs.push({
+        count: 1,
         added: false,
         removed: true,
         path,
@@ -71,6 +75,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
         value: `${path}: ${JSON.stringify(eVal)}`
       })
       diffs.push({
+        count: 1,
         added: true,
         removed: false,
         path,
@@ -136,7 +141,7 @@ export function getDiff(expected: any, actual: any, options: AIDiffOptions = {})
       result = diffWordsWithSpace(expected, actual, options)
       break
     case 'sentences':
-      result = diffSentences(expected, actual, options)
+      result = diffSentences(expected, actual, options as DiffSentencesOptionsNonabortable)
       break
     default:
       result = diffChars(expected, actual, options)
@@ -147,10 +152,10 @@ export function getDiff(expected: any, actual: any, options: AIDiffOptions = {})
   // We only do this in 'auto' mode to remain strict while keeping high readability.
   // For 'json', we usually want semantic equality, so we don't fallback.
   if (
-    originalType === 'auto' && 
-    type !== 'chars' && 
-    type !== 'json' && 
-    expected !== actual && 
+    originalType === 'auto' &&
+    type !== 'chars' &&
+    type !== 'json' &&
+    expected !== actual &&
     !result.some(d => d.added || d.removed)
   ) {
     return diffChars(String(expected), String(actual), options)
@@ -245,7 +250,7 @@ export function findDiffItem(
     } else if (value != null) {
       const itemValue = item.value
       const itemValueNoNL = itemValue.replace(/\r?\n$/, '')
-      
+
       if (isRegExp(value)) {
         const regEx = toRegExp(value)
         if (!regEx.test(itemValue) && !regEx.test(itemValueNoNL)) {
