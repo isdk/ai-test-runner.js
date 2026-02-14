@@ -187,6 +187,36 @@ describe('validate/core', () => {
       expect(failures).toHaveLength(1)
       expect(failures[0].key).toBe('users[1].name')
     })
+
+    it('should report all error paths correctly for multiple failures', async () => {
+      const actual = {
+        users: [
+          { id: 1, name: 'Alice', age: 20 },
+          { id: 2, name: 'Bob', age: 25 }
+        ],
+        meta: {
+          version: '1.0',
+          count: 2
+        }
+      }
+      const expected = {
+        users: [
+          { id: 1, name: 'Alice', age: 21 },
+          { id: 2, name: 'Charlie', age: 25 }
+        ],
+        meta: {
+          version: '1.1',
+          count: 2
+        }
+      }
+
+      const failures = await validateMatch(actual, expected)
+      expect(failures).toHaveLength(3)
+      const keys = failures.map(f => f.key)
+      expect(keys).toContain('users[0].age')
+      expect(keys).toContain('users[1].name')
+      expect(keys).toContain('meta.version')
+    })
   })
 
   describe('isStrict array integration', () => {
