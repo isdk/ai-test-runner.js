@@ -6,6 +6,16 @@ import { Change } from 'diff'
  */
 export interface AIDiffItem extends Change {
   /** 
+   * The path in the object structure (e.g., "user.id" or "tags[0]"). 
+   * Present when performing structured diffs (like JSON).
+   */
+  path?: string
+  /**
+   * The logical value associated with this change.
+   * Present when performing structured diffs (like JSON).
+   */
+  val?: any
+  /** 
    * Indicates whether this specific change has been verified against the expected whitelist. 
    * Internal use during the validation process.
    */
@@ -14,6 +24,49 @@ export interface AIDiffItem extends Change {
    * If true, this change MUST be present in the actual output for the validation to pass. 
    */
   required?: boolean
+}
+
+/**
+ * Supported diff strategies for string comparison.
+ * - `auto`: Automatically detect the best diff strategy based on content.
+ * - `chars`: Character-level diffing.
+ * - `words`: Word-level diffing (ignoring whitespace).
+ * - `wordsWithSpace`: Word-level diffing (including whitespace).
+ * - `lines`: Line-level diffing.
+ * - `sentences`: Sentence-level diffing.
+ * - `json`: JSON-level diffing (serializes objects to JSON first).
+ */
+export type AIDiffType = 'auto' | 'chars' | 'words' | 'wordsWithSpace' | 'lines' | 'sentences' | 'json';
+
+/**
+ * Configuration options for string diffing.
+ */
+export interface AIDiffOptions {
+  /** 
+   * The diff strategy to use. 
+   * Defaults to 'auto' when no whitelist is provided for better readability, 
+   * or 'chars' when a whitelist is provided for precision.
+   */
+  type?: AIDiffType
+  /** A list of expected diff items (whitelist) to match against the actual changes. */
+  items?: AIDiffItem[]
+  /** 
+   * Whether to allow unverified diff changes in non-strict mode. 
+   * If true, changes not present in the `items` list will not cause a failure.
+   */
+  permissive?: boolean
+  /** Whether to ignore case differences. */
+  ignoreCase?: boolean
+  /** (lines) Whether to ignore leading and trailing whitespace. */
+  ignoreWhitespace?: boolean
+  /** (lines) Whether to ignore a missing newline character at the end of the last line. */
+  ignoreNewlineAtEof?: boolean
+  /** (lines) Whether to treat the newline character at the end of each line as its own token. */
+  newlineIsToken?: boolean
+  /** (lines) Whether to remove all trailing CR characters. */
+  stripTrailingCr?: boolean
+  /** (words) Optional Intl.Segmenter for word-level diffing. */
+  intlSegmenter?: any
 }
 
 /**

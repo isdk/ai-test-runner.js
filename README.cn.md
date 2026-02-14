@@ -160,13 +160,41 @@ expect:
 
 ### 4. 语义化差异匹配 (Diff)
 
-解决 LLM 输出“对但不完全一样”的问题。
+解决 LLM 输出“对但不完全一样”的问题。ai-test-runner 提供了强大的差异匹配引擎，能够智能地分析输出变化。
 
-#### 4.1 白名单模式 (默认)
+#### 4.1 智能 Diff 策略 (`auto`)
 
-只有声明过的差异才是允许的。任何未在 `diff` 中声明的字符变更都会导致失败。
+系统默认（或通过 `diff: 'auto'` / `diff: true`）使用智能探测逻辑：
 
-#### 4.2 宽容模式 (`diffPermissive`)
+- **JSON**: 自动识别并格式化对比，基于路径（Path）进行键值对差分，完全无视缩进和字段顺序。
+- **多行文本**: 自动使用按行对比 (`lines`)。
+- **长文本**: 自动使用按词对比 (`words`)。
+- **短字符串**: 使用精确的按字符对比 (`chars`)。
+
+#### 4.2 支持的策略类型
+
+你可以显式指定 `type` 来强制使用特定算法：
+
+- `chars`: 字符级对比（默认）。
+- `words`: 词级对比（忽略空格）。
+- `wordsWithSpace`: 词级对比（保留空格）。
+- `lines`: 行级对比。
+- `sentences`: 句子级对比。
+- `json`: 结构化 JSON 对比。
+
+示例：
+
+```yaml
+expect:
+  diff:
+    type: json
+    items:
+      - path: "user.id"
+        val: 123
+        added: true
+```
+
+#### 4.3 宽容模式 (`diffPermissive`)
 
 设置 `diffPermissive: true` 或在预期中使用 `diff: { permissive: true }` 可以关闭严格白名单。此时引擎会忽略所有未声明的变更，仅验证 `required: true` 的项是否按预期发生了变化。
 

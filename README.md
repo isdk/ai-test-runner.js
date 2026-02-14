@@ -160,15 +160,43 @@ expect:
 
 ### 4. Semantic Diff Validation
 
-Handles LLM output instability (e.g., variations in whitespace or punctuation).
+Solves the "technically correct but slightly different" output problem from LLMs. ai-test-runner features a powerful diff engine that intelligently analyzes output changes.
 
-#### 4.1 Whitelist Mode (Default)
+#### 4.1 Smart Diff Strategy (`auto`)
 
-Only declared differences are allowed. Any character change not explicitly in the `diff` list will cause a failure.
+By default (or via `diff: 'auto'` or `diff: true`), the engine uses heuristic detection:
 
-#### 4.2 Permissive Mode (`diffPermissive`)
+- **JSON**: Automatically formats and compares by key-value pairs using paths, ignoring indentation and field order.
+- **Multi-line Text**: Switches to line-by-line diff (`lines`).
+- **Long Text**: Switches to word-by-word diff (`words`).
+- **Short Strings**: Uses precise character-by-character diff (`chars`).
 
-Setting `diffPermissive: true` or using `diff: { permissive: true }` disables the strict whitelist. The engine will ignore all undeclared changes and only verify that `required: true` items changed as expected.
+#### 4.2 Supported Diff Types
+
+You can explicitly set the `type` to force a specific algorithm:
+
+- `chars`: Character-level (default).
+- `words`: Word-level (ignores whitespace).
+- `wordsWithSpace`: Word-level (preserves whitespace).
+- `lines`: Line-level.
+- `sentences`: Sentence-level.
+- `json`: Structured JSON diff.
+
+Example:
+
+```yaml
+expect:
+  diff:
+    type: json
+    items:
+      - path: "data.status"
+        val: "success"
+        added: true
+```
+
+#### 4.3 Permissive Mode (`diffPermissive`)
+
+Setting `diffPermissive: true` or using `diff: { permissive: true }` in expectations disables the strict whitelist. The engine will ignore all undeclared changes and only verify that `required: true` items changed as expected.
 
 ```yaml
 expect:
