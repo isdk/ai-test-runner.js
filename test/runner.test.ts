@@ -187,4 +187,54 @@ describe('AITestRunner', () => {
     const result = await runner.run('test-script', fixtures)
     expect(result.passedCount).toBe(1)
   })
+
+  it('should support output and expect simultaneously', async () => {
+    const fixtures = [
+      {
+        input: { echo: 'hello' },
+        output: 'hello',
+        expect: {
+          output: 'hello'
+        }
+      }
+    ]
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+    expect(result.failedCount).toBe(0)
+  })
+
+  it('should support template replacement with input.value', async () => {
+    const fixtures = [
+      {
+        input: { language: 'en', echo: { lang: 'en' } },
+        output: {
+          lang: '{{input.language}}'
+        }
+      }
+    ]
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+  })
+
+  it('should support template replacement in RegExp object', async () => {
+    const fixtures = [
+      {
+        input: { name: 'Alice', echo: 'Hello Alice' },
+        output: /{{name}}/
+      }
+    ]
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+  })
+
+  it('should support template replacement in regex string', async () => {
+    const fixtures = [
+      {
+        input: { name: 'Alice', echo: 'Hello Alice' },
+        output: "/{{name}}/i"
+      }
+    ]
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+  })
 })

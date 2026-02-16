@@ -62,7 +62,17 @@ const result = await runner.run('my-script-id', fixtures);
 
 ### 1. Validation Engine
 
-The engine allows defining complex assertions via the `expect` object.
+The engine allows defining complex assertions via the `expect` object. Note that you can use both top-level `output` and the `expect` object simultaneously in a single fixture.
+
+**Example: Simultaneous Validation**
+
+```yaml
+- input: { name: 'Alice' }
+  output: "Hello Alice"  # Validates the main output string
+  expect:
+    messages:            # Validates the internal execution trace
+      $contains: { role: 'assistant', content: /Alice/ }
+```
 
 #### 1.1 Basic Matching (`expect.output`)
 
@@ -73,6 +83,13 @@ Supports strings, regular expressions, and numeric checks.
   ```yaml
   expect:
     output: "/^Hello, .+\\!$/i" # Matches "Hello, Alice!"
+  ```
+
+- **Regex with Templates**: Templates can be used inside regular expression objects or regex strings.
+
+  ```yaml
+  - input: { name: 'Alice' }
+    output: "/{{name}}/i"  # Will be resolved to /Alice/i
   ```
 
 #### 1.2 Advanced Collection Operators
@@ -221,6 +238,17 @@ The `input` defined in your fixture is merged into `context.args` using the foll
 
 - **Object Input**: If `input` is an object (e.g., `{ query: "Hi" }`), its properties are spread directly into `args`. You can access them as `args.query`.
 - **Non-Object Input**: If `input` is a primitive (string, number, etc.), it is wrapped in an `input` field. You can access it as `args.input`.
+
+In addition to direct property access, you can also access the `input` object itself via the `input` prefix in templates (e.g., `{{input.query}}` or `{{input}}`).
+
+**Example: Input Prefix in Templates**
+
+```yaml
+- input: { language: 'en', user: { name: 'Bob' } }
+  output:
+    lang: "{{input.language}}"    # Accesses deep input property
+    text: "Hi {{input.user.name}}" # Accesses nested input property
+```
 
 #### 1.2 How `tools` are Passed
 

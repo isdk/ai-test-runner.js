@@ -62,7 +62,17 @@ const result = await runner.run('my-script-id', fixtures);
 
 ### 1. 验证引擎 (Validation Engine)
 
-验证引擎是测试的核心，支持通过 `expect` 对象定义复杂的断言。
+验证引擎是测试的核心，支持通过 `expect` 对象定义复杂的断言。注意，你可以在单个测试用例中同时使用顶层 `output` 和 `expect` 对象。
+
+**示例：同时进行多种验证**
+
+```yaml
+- input: { name: 'Alice' }
+  output: "Hello Alice"  # 验证主输出字符串
+  expect:
+    messages:            # 验证内部执行链路
+      $contains: { role: 'assistant', content: /Alice/ }
+```
 
 #### 1.1 基础匹配 (`expect.output`)
 
@@ -73,6 +83,13 @@ const result = await runner.run('my-script-id', fixtures);
   ```yaml
   expect:
     output: "/^Hello, .+\\!$/i" # 匹配 "Hello, Alice!"
+  ```
+
+- **正则模板支持**：你可以在正则对象或正则字符串中使用模板。
+
+  ```yaml
+  - input: { name: 'Alice' }
+    output: "/{{name}}/i"  # 将被解析为 /Alice/i
   ```
 
 #### 1.2 高级集合操作符
@@ -221,6 +238,17 @@ Fixture 中定义的 `input` 会通过以下规则合并到 `context.args` 中�
 
 - **对象类型的 Input**：如果 `input` 是一个对象（例如 `{ query: "你好" }`），其属性会被直接展开（spread）到 `args` 中。你可以直接通过 `args.query` 访问。
 - **非对象类型的 Input**：如果 `input` 是基本类型（字符串、数字等），它会被包装在 `input` 字段中。你可以通过 `args.input` 访问。
+
+除了直接访问属性外，你还可以在模板中通过 `input` 前缀访问完整的 `input` 对象（例如 `{{input.query}}` 或 `{{input}}`）。
+
+**示例：在模板中使用 input 前缀**
+
+```yaml
+- input: { language: 'en', user: { name: 'Bob' } }
+  output:
+    lang: "{{input.language}}"    # 访问 input 的深层属性
+    text: "Hi {{input.user.name}}" # 访问嵌套属性
+```
 
 #### 1.2 `tools` 如何传递
 
