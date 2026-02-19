@@ -169,6 +169,7 @@ export class AITestRunner extends EventEmitter {
           expected: fixture.output,
           duration: 0,
         }
+        if (fixture.title) {logItem.title = fixture.title}
         logs.push(logItem)
         this.emit('test:skip', logItem)
         continue
@@ -224,6 +225,8 @@ export class AITestRunner extends EventEmitter {
 
     let input: any
     let output: any
+    const result: any = {}
+    if (fixture.title) {result.title = fixture.title}
 
     try {
       input = await resolveDefaultValue(fixture.input, fixtureConfig?.input)
@@ -280,6 +283,7 @@ export class AITestRunner extends EventEmitter {
           : undefined
 
       return {
+        ...result,
         passed,
         input,
         actual: execResult.output,
@@ -297,6 +301,7 @@ export class AITestRunner extends EventEmitter {
       }
     } catch (error: any) {
       return {
+        ...result,
         passed: false,
         input,
         actual: undefined,

@@ -143,6 +143,8 @@ export interface AIValidationFailure {
  * Detailed log entry for a single test fixture execution.
  */
 export interface AITestLogItem {
+  /** The name of the test fixture. */
+  title?: string
   /** True if all validations passed for this fixture. */
   passed: boolean
   /** The resolved input provided to the AI script. */
