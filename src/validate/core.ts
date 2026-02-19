@@ -163,7 +163,9 @@ async function _validateMatch(
       const val = expected[operator]
       const isBuiltIn =
         !!OPERATORS[operator] && operatorHandler === OPERATORS[operator]
-      const needsArray = isBuiltIn && !['$not', '$schema'].includes(operator)
+      const needsArray =
+        isBuiltIn &&
+        !['$not', '$schema', '$and', '$or'].includes(operator)
       if (needsArray && !Array.isArray(actual)) {
         ctx.addFailure({
           message: `Operator ${operator} requires an array, but got ${typeof actual}`,

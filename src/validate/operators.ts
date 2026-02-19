@@ -165,6 +165,93 @@ export async function validateSchemaOperator(
   return validateJsonSchema(actual, expected, ctx)
 }
 
+/**
+ * Validates that a value matches ALL specified expectations.
+ * Implements the `$and` operator.
+ *
+ * @param actual - The actual value to check.
+ * @param expectedList - Array of patterns/values that must all be matched.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
+export async function validateAnd(
+  actual: any,
+  expectedList: any[],
+  ctx: ValidationContext,
+  validateMatch: ValidateMatchFn
+): Promise<AIValidationFailure[]> {
+  if (!Array.isArray(expectedList)) {
+    ctx.addFailure({
+      message: '$and operator requires an array of expectations',
+      expected: expectedList,
+      actual,
+    })
+    return ctx.failures
+  }
+
+  for (let i = 0; i < expectedList.length; i++) {
+    const subCtx = ctx.createSubContext(`$and[${i}]`)
+    await validateMatch(actual, expectedList[i], subCtx)
+  }
+  return ctx.failures
+}
+
+/**
+ * Validates that a value matches at least ONE of the specified expectations.
+ * Implements the `$or` operator.
+ *
+ * @param actual - The actual value to check.
+ * @param expectedList - Array of patterns/values where at least one must match.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursion handle.
+ * @returns Failure list from context.
+ */
+export async function validateOr(
+  actual: any,
+  expectedList: any[],
+  ctx: ValidationContext,
+  validateMatch: ValidateMatchFn
+): Promise<AIValidationFailure[]> {
+  if (!Array.isArray(expectedList)) {
+    ctx.addFailure({
+      message: '$or operator requires an array of expectations',
+      expected: expectedList,
+      actual,
+    })
+    return ctx.failures
+  }
+
+  const allFailures: AIValidationFailure[][] = []
+  for (let i = 0; i < expectedList.length; i++) {
+    const branchFailures: AIValidationFailure[] = []
+    const subCtx = ctx.createSubContext(`$or[${i}]`, {
+      failures: branchFailures,
+    })
+    await validateMatch(actual, expectedList[i], subCtx)
+
+    if (branchFailures.length === 0) {
+      return [] // Success: at least one branch matched
+    }
+    allFailures.push(branchFailures)
+  }
+
+  // All branches failed, summarize
+  const summary = allFailures
+    .map((failures, i) => {
+      const branchMsg = failures.map((f) => f.message).join('; ')
+      return `Branch ${i}: ${branchMsg}`
+    })
+    .join(' | ')
+
+  ctx.addFailure({
+    message: `$or mismatch: none of the conditions met. Details: ${summary}`,
+    expected: expectedList,
+    actual,
+  })
+  return ctx.failures
+}
+
 /** Map of supported collection validation operators. */
 export const OPERATORS: Record<
   string,
@@ -175,6 +262,8 @@ export const OPERATORS: Record<
     validateMatch: ValidateMatchFn
   ) => Promise<AIValidationFailure[]>
 > = {
+  $and: validateAnd,
+  $or: validateOr,
   $contains: validateContains,
   $all: validateAll,
   $sequence: validateSequence,

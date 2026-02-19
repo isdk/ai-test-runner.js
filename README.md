@@ -92,14 +92,30 @@ Supports strings, regular expressions, and numeric checks.
     output: "/{{name}}/i"  # Will be resolved to /Alice/i
   ```
 
-#### 1.2 Advanced Collection Operators
+#### 1.2 Advanced Collection and Logic Operators
 
-Powerful assertions for arrays (e.g., message traces or tool call lists):
+Powerful assertions for complex validation scenarios, including logical and collection-based matching:
 
+- **`$and`**: Passes if **all** validation conditions in the array are met. Useful for applying multiple constraints (e.g., regex and length) to the same property.
+- **`$or`**: Passes if **at least one** condition in the array is met.
 - **`$contains`**: Passes if the array contains at least one item matching the pattern.
 - **`$all`**: Passes if the array contains all specified items, regardless of order.
 - **`$sequence`**: Passes if the array contains specified items in the exact order (noise allowed in between).
 - **`$not`**: Negative assertion; fails if the pattern matches.
+
+**Example: Using Logic Operators**
+
+```yaml
+expect:
+  output:
+    $and:
+      - "/^Hello/"         # Must start with Hello
+      - { $not: "/World/" } # AND must not contain World
+  messages:
+    $or:
+      - $contains: { role: 'assistant', tools: [{ name: 'get_user' }] }
+      - $contains: { role: 'assistant', tools: [{ name: 'find_person' }] }
+```
 
 **Example: Validating Tool Call Sequence**
 

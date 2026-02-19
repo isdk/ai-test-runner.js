@@ -92,14 +92,30 @@ const result = await runner.run('my-script-id', fixtures);
     output: "/{{name}}/i"  # 将被解析为 /Alice/i
   ```
 
-#### 1.2 高级集合操作符
+#### 1.2 高级集合与逻辑操作符
 
-针对数组类型（如消息列表或工具调用列表）提供强大的断言能力：
+针对复杂验证场景，提供强大的逻辑与集合断言能力：
 
+- **`$and`**: 必须满足数组中的**所有**验证条件。常用于对同一属性应用多个约束（如同时满足正则和长度要求）。
+- **`$or`**: 只要满足数组中的**任意一个**验证条件即可。
 - **`$contains`**: 只要数组中包含符合条件的项即可。
 - **`$all`**: 数组必须包含所有指定项，顺序无关。
 - **`$sequence`**: 数组必须按顺序包含指定项，中间允许有干扰项。
 - **`$not`**: 反向断言，匹配则失败。
+
+**示例：使用逻辑操作符**
+
+```yaml
+expect:
+  output:
+    $and:
+      - "/^Hello/"         # 必须以 Hello 开头
+      - { $not: "/World/" } # 且不能包含 World
+  messages:
+    $or:
+      - $contains: { role: 'assistant', tools: [{ name: 'get_user' }] }
+      - $contains: { role: 'assistant', tools: [{ name: 'find_person' }] }
+```
 
 **示例：验证工具调用序列**
 
