@@ -211,6 +211,7 @@ expect: {
 
 支持以下引用协议：
 
+- **协议前缀**：自定义操作符支持协议前缀，以便未来扩展支持其他编程语言。如果不设置协议前缀，默认值为 `js:` (JavaScript)。
 - **本地文件**: `js://./utils.js#checkCode` 或 `./utils.js#checkCode`（相对于 `baseDir`）。
 - **npm 包**: `lodash-es#isEqual` 或 `my-test-utils#validator`。
 - **导出说明**: 使用 `#` 指定导出名称，默认为 `default` 导出。

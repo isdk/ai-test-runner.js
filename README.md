@@ -211,6 +211,7 @@ Two configuration formats are supported:
 
 The following reference protocols are supported:
 
+- **Protocol Prefix**: Custom operators support protocol prefixes for future extensibility to other languages. If no prefix is provided, it defaults to `js:` (JavaScript).
 - **Local Files**: `js://./utils.js#checkCode` or `./utils.js#checkCode` (relative to `baseDir`).
 - **npm Packages**: `lodash-es#isEqual` or `my-test-utils#validator`.
 - **Export Specification**: Use `#` to specify the export name; defaults to the `default` export.
