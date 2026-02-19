@@ -1,5 +1,6 @@
 import { pathToFileURL } from 'node:url'
 import { join, isAbsolute } from 'node:path'
+import { camelCase } from 'lodash-es'
 import { ValidationOperatorHandler, ValidationContext } from './types.js'
 
 export type CustomOperatorHandler = (
@@ -15,13 +16,26 @@ export function wrapCustomOperator(
   handler: CustomOperatorHandler
 ): ValidationOperatorHandler {
   return async (actual, expected, ctx, validateMatch) => {
-    const fixture = {
+    const fixture: any = {
       ...(ctx.input && typeof ctx.input === 'object'
         ? ctx.input
         : { input: ctx.input }),
       $data: ctx.data,
       $validate: (act: any, exp: any) => validateMatch(act, exp, ctx),
     }
+
+    let options: any
+    if (
+      expected !== null &&
+      typeof expected === 'object' &&
+      '$value' in expected
+    ) {
+      options = { ...expected }
+      delete options.$value
+      expected = expected.$value
+    }
+    fixture.$options = options
+
     const result = await handler(actual, expected, fixture)
     if (result !== true) {
       ctx.addFailure({
@@ -38,26 +52,46 @@ export function wrapCustomOperator(
 }
 
 /**
- * Loads operators from a record of strings or handlers.
+ * Loads operators from a record of strings or handlers, or an array of strings.
  * Strings are treated as module paths with optional export names (e.g., "js://./utils.js#myOp").
+ * If an array is provided, names are inferred from the paths or export names.
  */
 export async function loadOperators(
-  operators: Record<
-    string,
-    string | ValidationOperatorHandler | CustomOperatorHandler
-  >,
+  operators:
+    | Record<string, string | ValidationOperatorHandler | CustomOperatorHandler>
+    | (string | ValidationOperatorHandler | CustomOperatorHandler)[],
   baseDir?: string
 ): Promise<Record<string, ValidationOperatorHandler>> {
   const result: Record<string, ValidationOperatorHandler> = {}
+  if (!operators) return result
 
-  for (const [name, value] of Object.entries(operators)) {
+  const opEntries = Array.isArray(operators)
+    ? operators
+        .map((v, index) => {
+          if (!v) return null
+          let name = ''
+          if (typeof v === 'string') {
+            const filename = v.split('#')[0].split('/').pop() || ''
+            const part =
+              v.split('#')[1] ||
+              camelCase(filename.replace(/\.(js|ts|mjs|cjs|jsx|tsx)$/, ''))
+            name = part || ''
+          } else if (typeof v === 'function') {
+            name = v.name || `op${index}`
+          }
+          if (name && !name.startsWith('$')) {
+            name = '$' + name
+          }
+          return name ? ([name, v] as [string, any]) : null
+        })
+        .filter((entry): entry is [string, any] => !!entry)
+    : Object.entries(operators)
+
+  for (let [name, value] of opEntries) {
+    if (!name.startsWith('$')) {
+      name = '$' + name
+    }
     if (typeof value === 'function') {
-      // It's already a function, we need to check if it's a standard or custom handler.
-      // We'll assume if it takes 3 or 4 arguments it's a standard handler,
-      // otherwise it's a custom one. But that's risky.
-      // Let's assume for now all provided functions via options are custom handlers
-      // unless they specifically match the internal signature.
-      // Actually, standard handlers take 4 arguments (actual, expected, ctx, validateMatch).
       if (value.length === 4) {
         result[name] = value as ValidationOperatorHandler
       } else {
@@ -85,7 +119,12 @@ export async function loadOperators(
         module = await import(path)
       }
 
-      const handler = exportName ? module[exportName] : module.default
+      const moduleName = name.startsWith('$') ? name.slice(1) : name
+      const handler = exportName
+        ? module[exportName]
+        : typeof module.default === 'function'
+          ? module.default
+          : module[moduleName] || module.default
 
       if (typeof handler !== 'function') {
         throw new Error(`Operator ${name} at ${value} is not a function`)

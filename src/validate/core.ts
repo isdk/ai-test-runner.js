@@ -160,12 +160,15 @@ async function _validateMatch(
     }
 
     if (operator && keys.length === 1) {
-      const val = expected[operator]
+      let val = expected[operator]
       const isBuiltIn =
         !!OPERATORS[operator] && operatorHandler === OPERATORS[operator]
+
+      // Format templates in operator parameters
+      val = await formatObject(cloneDeep(val), { data, input })
+
       const needsArray =
-        isBuiltIn &&
-        !['$not', '$schema', '$and', '$or'].includes(operator)
+        isBuiltIn && !['$not', '$schema', '$and', '$or'].includes(operator)
       if (needsArray && !Array.isArray(actual)) {
         ctx.addFailure({
           message: `Operator ${operator} requires an array, but got ${typeof actual}`,

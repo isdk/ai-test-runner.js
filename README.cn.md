@@ -160,7 +160,25 @@ expect: {
 
 #### 2.1 定义与引用
 
-自定义操作符可以在 YAML 的 Front-matter（文件级）或单个测试用例（用例级）中定义。建议以 `$` 开头命名以区分于普通属性。
+自定义操作符可以在 YAML 的 Front-matter（文件级）或单个测试用例（用例级）中定义。
+
+支持以下两种配置格式：
+
+- **对象形式 (显式命名)**: 通过键值对指定操作符名称。
+  ```yaml
+  operators:
+    checkCode: "./checkers.js#checkCode"
+    isEqual: "lodash-es#isEqual"
+  ```
+- **数组形式 (自动推断)**: 直接列出路径，由框架自动推断名称。
+  ```yaml
+  operators:
+    - "js://./checkers.js#checkCode" # 自动推断为 $checkCode
+  ```
+
+**名称推断与 $ 前缀：**
+- **自动补齐**: 无论使用哪种形式，框架都会自动为操作符补齐 `$` 前缀（如 `checkCode` 变为 `$checkCode`），以确保与内置操作符风格一致。
+- **推断逻辑**: 在数组形式下，框架会优先使用导出名（`#` 后内容）。若无导出名，则使用文件名并自动转换为 **小驼峰 (camelCase)** 格式（例如 `my-check.js` 或 `my.check.js` 都会推断为 `$myCheck`）。
 
 支持以下引用协议：
 
@@ -168,13 +186,12 @@ expect: {
 - **npm 包**: `lodash-es#isEqual` 或 `my-test-utils#validator`。
 - **导出说明**: 使用 `#` 指定导出名称，默认为 `default` 导出。
 
-**示例：**
+**示例：使用数组形式加载**
 
 ```yaml
 ---
 operators:
-  $checkCode: "./checkers.js#checkCode"
-  $isEqual: "lodash-es#isEqual"
+  - "./checkers.js#checkCode" # 自动推断为 $checkCode
 ---
 - input: "写一个求和函数"
   expect:
@@ -197,9 +214,11 @@ operators:
  * @param fixture  - 当前测试上下文，包含：
  *                   - $data: 已渲染的完整模板数据
  *                   - $validate: 递归校验方法 (act, exp) => Promise<Failures[]>
+ *                   - $options: 从 $value 结构中拆解出的辅助参数 (见下文)
  *                   - 其它 fixture 顶层属性
  */
 export async function checkCode(actual, expected, fixture) {
+  // 提示：expected 参数已支持变量替换，如：$checkCode: { name: "{{targetName}}" }
   if (expected.strict && actual.includes('eval')) {
     return "不允许使用 eval"; // 返回字符串代表失败原因
   }
@@ -220,7 +239,36 @@ export async function myOp(actual, expected, ctx, validateMatch) {
 }
 ```
 
-#### 2.3 递归校验与 $validate
+#### 2.3 $value 约定：分离主值与参数
+
+为了让操作符接口更统一，ai-test-runner 引入了 `$value` 约定。它允许你同时传递一个“主校验目标”和多个“辅助配置参数”。
+
+当你在 YAML 中使用 `$value` 结构时：
+- `$value` 的内容将被作为 `expected` 传入。
+- 其余属性将被提取到 `fixture.$options` 中。
+
+**YAML 示例：**
+
+```yaml
+expect:
+  output:
+    $checkCode:
+      $value: "function sum" # 主校验内容
+      timeout: 1000          # 辅助参数，进入 fixture.$options
+      strict: true
+```
+
+**操作符实现：**
+
+```javascript
+export function checkCode(actual, expected, fixture) {
+  const { timeout, strict } = fixture.$options;
+  // expected 此时直接等于 "function sum"
+  // ...
+}
+```
+
+#### 2.4 递归校验与 $validate
 
 你可以在自定义操作符中调用 `fixture.$validate` 来复用已有的验证逻辑（包括正则、Schema 或其它操作符）。
 

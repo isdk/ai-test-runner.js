@@ -160,7 +160,25 @@ When declarative matching or simple custom functions aren't enough, you can defi
 
 #### 2.1 Definition & Reference
 
-Custom operators can be defined in the YAML Front-matter (file-level) or within a single test case (item-level). It's recommended to start the operator name with `$` to distinguish it from standard properties.
+Custom operators can be defined in the YAML Front-matter (file-level) or within a single test case (item-level).
+
+Two configuration formats are supported:
+
+- **Object Format (Explicit)**: Specify the operator name as a key.
+  ```yaml
+  operators:
+    checkCode: "./checkers.js#checkCode"
+    isEqual: "lodash-es#isEqual"
+  ```
+- **Array Format (Inferred)**: List the paths directly, and the framework will infer the name.
+  ```yaml
+  operators:
+    - "js://./checkers.js#checkCode" # Automatically inferred as $checkCode
+  ```
+
+**Name Inference & $ Prefix:**
+- **Auto-prefixing**: Regardless of the format used, the framework automatically prepends a `$` prefix (e.g., `checkCode` becomes `$checkCode`) to match the style of built-in operators.
+- **Inference Logic**: In the array format, the framework prioritizes the export name (after `#`). If not provided, it uses the filename and automatically converts it to **camelCase** (e.g., `my-check.js` or `my.check.js` will resolve to `$myCheck`).
 
 The following reference protocols are supported:
 
@@ -168,13 +186,12 @@ The following reference protocols are supported:
 - **npm Packages**: `lodash-es#isEqual` or `my-test-utils#validator`.
 - **Export Specification**: Use `#` to specify the export name; defaults to the `default` export.
 
-**Example:**
+**Example: Loading via Array**
 
 ```yaml
 ---
 operators:
-  $checkCode: "./checkers.js#checkCode"
-  $isEqual: "lodash-es#isEqual"
+  - "./checkers.js#checkCode" # Inferred as $checkCode
 ---
 - input: "Write a sum function"
   expect:
@@ -197,9 +214,11 @@ Suitable for most business logic validations.
  * @param fixture  - Current test context, including:
  *                   - $data: Fully rendered template data
  *                   - $validate: Recursive validation method (act, exp) => Promise<Failures[]>
+ *                   - $options: Auxiliary parameters extracted from the $value structure (see below)
  *                   - Other top-level properties of the fixture
  */
 export async function checkCode(actual, expected, fixture) {
+  // Tip: The 'expected' parameter supports variable substitution, e.g., $checkCode: { name: "{{targetName}}" }
   if (expected.strict && actual.includes('eval')) {
     return "eval is not allowed"; // Return a string representing the failure reason
   }
@@ -220,7 +239,36 @@ export async function myOp(actual, expected, ctx, validateMatch) {
 }
 ```
 
-#### 2.3 Recursive Validation & $validate
+#### 2.3 The $value Convention: Separating Target and Options
+
+To unify operator interfaces, ai-test-runner introduces the `$value` convention. It allows you to pass a main "validation target" along with multiple auxiliary "configuration options".
+
+When using the `$value` structure in YAML:
+- The content of `$value` is passed as the `expected` argument.
+- All other properties are extracted into `fixture.$options`.
+
+**YAML Example:**
+
+```yaml
+expect:
+  output:
+    $checkCode:
+      $value: "function sum" # Main validation target
+      timeout: 1000          # Auxiliary option, available in fixture.$options
+      strict: true
+```
+
+**Operator Implementation:**
+
+```javascript
+export function checkCode(actual, expected, fixture) {
+  const { timeout, strict } = fixture.$options;
+  // 'expected' is now directly "function sum"
+  // ...
+}
+```
+
+#### 2.4 Recursive Validation & $validate
 
 You can call `fixture.$validate` within a custom operator to reuse existing validation logic (including regex, Schema, or other operators).
 

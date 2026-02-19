@@ -158,10 +158,6 @@ export async function validateSchemaOperator(
   ctx: ValidationContext,
   _validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
-  const { data, input } = ctx
-  if (!(expected instanceof YamlTypeJsonSchema)) {
-    expected = await formatObject(cloneDeep(expected), { data, input })
-  }
   return validateJsonSchema(actual, expected, ctx)
 }
 
