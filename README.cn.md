@@ -190,18 +190,22 @@ expect: {
 支持以下两种配置格式：
 
 - **对象形式 (显式命名)**: 通过键值对指定操作符名称。
+
   ```yaml
   operators:
     checkCode: "./checkers.js#checkCode"
     isEqual: "lodash-es#isEqual"
   ```
+
 - **数组形式 (自动推断)**: 直接列出路径，由框架自动推断名称。
+
   ```yaml
   operators:
     - "js://./checkers.js#checkCode" # 自动推断为 $checkCode
   ```
 
 **名称推断与 $ 前缀：**
+
 - **自动补齐**: 无论使用哪种形式，框架都会自动为操作符补齐 `$` 前缀（如 `checkCode` 变为 `$checkCode`），以确保与内置操作符风格一致。
 - **推断逻辑**: 在数组形式下，框架会优先使用导出名（`#` 后内容）。若无导出名，则使用文件名并自动转换为 **小驼峰 (camelCase)** 格式（例如 `my-check.js` 或 `my.check.js` 都会推断为 `$myCheck`）。
 
@@ -269,6 +273,7 @@ export async function myOp(actual, expected, ctx, validateMatch) {
 为了让操作符接口更统一，ai-test-runner 引入了 `$value` 约定。它允许你同时传递一个“主校验目标”和多个“辅助配置参数”。
 
 当你在 YAML 中使用 `$value` 结构时：
+
 - `$value` 的内容将被作为 `expected` 传入。
 - 其余属性将被提取到 `fixture.$options` 中。
 

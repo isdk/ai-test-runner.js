@@ -190,18 +190,22 @@ Custom operators can be defined in the YAML Front-matter (file-level) or within 
 Two configuration formats are supported:
 
 - **Object Format (Explicit)**: Specify the operator name as a key.
+
   ```yaml
   operators:
     checkCode: "./checkers.js#checkCode"
     isEqual: "lodash-es#isEqual"
   ```
+
 - **Array Format (Inferred)**: List the paths directly, and the framework will infer the name.
+
   ```yaml
   operators:
     - "js://./checkers.js#checkCode" # Automatically inferred as $checkCode
   ```
 
 **Name Inference & $ Prefix:**
+
 - **Auto-prefixing**: Regardless of the format used, the framework automatically prepends a `$` prefix (e.g., `checkCode` becomes `$checkCode`) to match the style of built-in operators.
 - **Inference Logic**: In the array format, the framework prioritizes the export name (after `#`). If not provided, it uses the filename and automatically converts it to **camelCase** (e.g., `my-check.js` or `my.check.js` will resolve to `$myCheck`).
 
@@ -269,6 +273,7 @@ export async function myOp(actual, expected, ctx, validateMatch) {
 To unify operator interfaces, ai-test-runner introduces the `$value` convention. It allows you to pass a main "validation target" along with multiple auxiliary "configuration options".
 
 When using the `$value` structure in YAML:
+
 - The content of `$value` is passed as the `expected` argument.
 - All other properties are extracted into `fixture.$options`.
 
