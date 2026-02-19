@@ -11,6 +11,7 @@ import {
   AITestRunnerOptions,
 } from './types.js'
 import { formatObject, validateMatch } from './validate/index.js'
+import { loadOperators } from './validate/loader.js'
 import { YamlTypeJsonSchema } from './yaml-types/index.js'
 
 const ReasonNames = [
@@ -85,7 +86,7 @@ async function resolveDefaultValue(value: any, defaultValue?: any, data?: any) {
 
 /**
  * Checks if a string is a valid script identifier (not source code).
- * 
+ *
  * @param script - The script string to check.
  * @returns True if it looks like an ID/filename.
  */
@@ -97,7 +98,7 @@ function isScriptId(script: string) {
 
 /**
  * Runner for executing AI script test fixtures and validating results.
- * 
+ *
  * @fires AITestRunner#test:start - Fired before executing a fixture.
  * @fires AITestRunner#test:pass - Fired when a fixture passes all validations.
  * @fires AITestRunner#test:fail - Fired when a fixture fails validation.
@@ -140,6 +141,9 @@ export class AITestRunner extends EventEmitter {
 
     const initialFixtureConfig = cloneDeep(_initialFixtureConfig || {})
     const hasOnly = fixtures.some((f) => f.only)
+    const globalOperators = options.operators
+      ? await loadOperators(options.operators, options.baseDir)
+      : {}
 
     if (scriptConfig.output) {
       initialFixtureConfig.outputSchema = defaultsDeep(
@@ -170,7 +174,14 @@ export class AITestRunner extends EventEmitter {
         continue
       }
 
-      const logItem = await this.runFixture(i, script, fixture, initialFixtureConfig, options)
+      const logItem = await this.runFixture(
+        i,
+        script,
+        fixture,
+        initialFixtureConfig,
+        options,
+        globalOperators
+      )
       logs.push(logItem)
 
       if (logItem.passed) {
@@ -196,7 +207,7 @@ export class AITestRunner extends EventEmitter {
 
   /**
    * Executes a single test fixture.
-   * 
+   *
    * @private
    */
   private async runFixture(
@@ -204,7 +215,8 @@ export class AITestRunner extends EventEmitter {
     defaultScript: string,
     fixture: any,
     initialFixtureConfig: any,
-    options: AITestRunnerOptions
+    options: AITestRunnerOptions,
+    globalOperators: any = {}
   ): Promise<AITestLogItem> {
     const ts = Date.now()
     let fixtureConfig = cloneDeep(initialFixtureConfig)
@@ -218,13 +230,27 @@ export class AITestRunner extends EventEmitter {
       output = await resolveDefaultValue(fixture.output, fixtureConfig?.output)
 
       fixtureConfig = await formatObject(fixtureConfig, {
-        data: { ...(input && typeof input === 'object' ? input : { input }), ...fixtureConfig },
+        data: {
+          ...(input && typeof input === 'object' ? input : { input }),
+          ...fixtureConfig,
+        },
         input: fixture,
       })
 
-      const targetScript = fixture.script || fixtureConfig.script || defaultScript
-      const currentScript = this.resolveScript(fixture, fixtureConfig, defaultScript)
-      const templateData = await this.resolveTemplateData(fixture, fixtureConfig, input, options, targetScript)
+      const targetScript =
+        fixture.script || fixtureConfig.script || defaultScript
+      const currentScript = this.resolveScript(
+        fixture,
+        fixtureConfig,
+        defaultScript
+      )
+      const templateData = await this.resolveTemplateData(
+        fixture,
+        fixtureConfig,
+        input,
+        options,
+        targetScript
+      )
 
       const execContext: AIExecutionContext = {
         script: currentScript,
@@ -236,12 +262,22 @@ export class AITestRunner extends EventEmitter {
 
       const execResult = await this.executor.execute(execContext)
       const duration = Date.now() - ts
-      const failures = await this.validateFixture(fixture, fixtureConfig, templateData, execResult, options)
-      
+      const failures = await this.validateFixture(
+        fixture,
+        fixtureConfig,
+        templateData,
+        execResult,
+        options,
+        globalOperators
+      )
+
       let passed = failures.length === 0
       if (fixture.not) passed = !passed
 
-      const reason = typeof execResult.output === 'object' ? getReasonValue(execResult.output) : undefined
+      const reason =
+        typeof execResult.output === 'object'
+          ? getReasonValue(execResult.output)
+          : undefined
 
       return {
         passed,
@@ -249,7 +285,11 @@ export class AITestRunner extends EventEmitter {
         actual: execResult.output,
         expected: output,
         reason,
-        expectedSchema: await this.getExpectedSchema(fixture, fixtureConfig, templateData),
+        expectedSchema: await this.getExpectedSchema(
+          fixture,
+          fixtureConfig,
+          templateData
+        ),
         failures: failures.length ? failures : undefined,
         i,
         duration,
@@ -271,7 +311,7 @@ export class AITestRunner extends EventEmitter {
   /**
    * Resolves the final template data with multi-pass resolution for deep dependencies.
    * Handles automatic tool resolution when `tools: true` is set.
-   * 
+   *
    * @param fixture - The current test fixture.
    * @param fixtureConfig - The merged fixture configuration.
    * @param input - The resolved input data.
@@ -281,15 +321,23 @@ export class AITestRunner extends EventEmitter {
    * @throws Error if `tools: true` is used with source code instead of a script ID.
    * @private
    */
-  private async resolveTemplateData(fixture: any, fixtureConfig: any, input: any, options: AITestRunnerOptions, currentScript?: string) {
+  private async resolveTemplateData(
+    fixture: any,
+    fixtureConfig: any,
+    input: any,
+    options: AITestRunnerOptions,
+    currentScript?: string
+  ) {
     const { scriptConfig = {}, userConfig = {} } = options
     let tools = fixture.tools ?? fixtureConfig.tools
-    
+
     if (tools === true) {
       if (currentScript && isScriptId(currentScript)) {
         tools = [currentScript]
       } else if (currentScript) {
-        throw new Error(`Cannot use 'tools: true' when script is source code: ${currentScript.slice(0, 50)}...`)
+        throw new Error(
+          `Cannot use 'tools: true' when script is source code: ${currentScript.slice(0, 50)}...`
+        )
       }
     } else if (tools && !Array.isArray(tools) && typeof tools !== 'boolean') {
       tools = [tools]
@@ -297,6 +345,7 @@ export class AITestRunner extends EventEmitter {
 
     let templateData = {
       ...getTemplateData(scriptConfig),
+      ...fixture,
       ...(input && typeof input === 'object' ? input : { input }),
       ...fixtureConfig,
       ...(userConfig.data || {}),
@@ -320,18 +369,26 @@ export class AITestRunner extends EventEmitter {
   /**
    * Determines which script or tool tester to execute.
    * Automatically switches to `toolTester` if tools are configured.
-   * 
+   *
    * @param fixture - The current test fixture.
    * @param fixtureConfig - The merged fixture configuration.
    * @param defaultScript - The default script from the runner.
    * @returns The script ID or source code to be executed.
    * @private
    */
-  private resolveScript(fixture: any, fixtureConfig: any, defaultScript: string) {
+  private resolveScript(
+    fixture: any,
+    fixtureConfig: any,
+    defaultScript: string
+  ) {
     const tools = fixture.tools ?? fixtureConfig.tools
     const toolTester = fixture.toolTester ?? fixtureConfig.toolTester
-    
-    if (tools === true || (Array.isArray(tools) && tools.length > 0) || (tools && !Array.isArray(tools) && typeof tools !== 'boolean')) {
+
+    if (
+      tools === true ||
+      (Array.isArray(tools) && tools.length > 0) ||
+      (tools && !Array.isArray(tools) && typeof tools !== 'boolean')
+    ) {
       return toolTester || 'toolTester'
     }
     return fixture.script || fixtureConfig.script || defaultScript
@@ -339,54 +396,108 @@ export class AITestRunner extends EventEmitter {
 
   /**
    * Performs all validations (Schema, Output, Expect) for a fixture.
-   * 
+   *
    * @private
    */
-  private async validateFixture(fixture: any, fixtureConfig: any, templateData: any, execResult: any, options: AITestRunnerOptions) {
+  private async validateFixture(
+    fixture: any,
+    fixtureConfig: any,
+    templateData: any,
+    execResult: any,
+    options: AITestRunnerOptions,
+    globalOperators: any = {}
+  ) {
     const { userConfig = {} } = options
     const failures: any[] = []
-    const checkSchema = userConfig.checkSchema ?? fixture.checkSchema ?? fixtureConfig.checkSchema
-    const strict = fixture.strict ?? fixtureConfig.strict ?? userConfig.strict ?? options.strict
-    const disableHeuristicSchema = fixture.disableHeuristicSchema ?? fixtureConfig.disableHeuristicSchema ?? userConfig.disableHeuristicSchema ?? options.disableHeuristicSchema
+    const checkSchema =
+      userConfig.checkSchema ?? fixture.checkSchema ?? fixtureConfig.checkSchema
+    const strict =
+      fixture.strict ??
+      fixtureConfig.strict ??
+      userConfig.strict ??
+      options.strict
+    const disableHeuristicSchema =
+      fixture.disableHeuristicSchema ??
+      fixtureConfig.disableHeuristicSchema ??
+      userConfig.disableHeuristicSchema ??
+      options.disableHeuristicSchema
+    const allowOperatorOverride =
+      fixture.allowOperatorOverride ??
+      fixtureConfig.allowOperatorOverride ??
+      options.allowOperatorOverride
+
+    const fixtureOps = fixture.operators || fixtureConfig.operators
+    let operators = globalOperators
+    if (fixtureOps) {
+      const loadedFixtureOps = await loadOperators(fixtureOps, options.baseDir)
+      operators = { ...globalOperators, ...loadedFixtureOps }
+    }
 
     // 1. JSON Schema Validation
     if (checkSchema !== false) {
-      const expectedSchema = await this.getExpectedSchema(fixture, fixtureConfig, templateData)
+      const expectedSchema = await this.getExpectedSchema(
+        fixture,
+        fixtureConfig,
+        templateData
+      )
       if (expectedSchema && expectedSchema.type) {
         const schemaFailures = await validateMatch(
           execResult.output,
           expectedSchema,
-          { data: templateData, input: fixture, strict, disableHeuristicSchema }
+          {
+            data: templateData,
+            input: fixture,
+            strict,
+            disableHeuristicSchema,
+            operators,
+            allowOperatorOverride,
+          }
         )
         if (schemaFailures) failures.push(...schemaFailures)
       }
     }
 
     // 2. Output Matching
-    const output = fixture.output !== undefined ? fixture.output : fixtureConfig.output
+    const output =
+      fixture.output !== undefined ? fixture.output : fixtureConfig.output
     if (output !== undefined) {
-      const formattedOutput = typeof output === 'function' ? output : await formatObject(cloneDeep(output), {
-        data: templateData,
-        input: fixture,
-      })
-      const matchFailures = await validateMatch(execResult.output, formattedOutput, {
-        data: templateData,
-        input: fixture,
-        strict,
-        disableHeuristicSchema,
-      })
+      const formattedOutput =
+        typeof output === 'function'
+          ? output
+          : await formatObject(cloneDeep(output), {
+              data: templateData,
+              input: fixture,
+            })
+      const matchFailures = await validateMatch(
+        execResult.output,
+        formattedOutput,
+        {
+          data: templateData,
+          input: fixture,
+          strict,
+          disableHeuristicSchema,
+          operators,
+          allowOperatorOverride,
+        }
+      )
       if (matchFailures) failures.push(...matchFailures)
     }
 
     // 3. Expect Trace Validation
     const expect = fixture.expect || fixtureConfig.expect
     if (expect) {
-      const expectedResult = await this.prepareExpectation(expect, templateData, fixture)
+      const expectedResult = await this.prepareExpectation(
+        expect,
+        templateData,
+        fixture
+      )
       const expectFailures = await validateMatch(execResult, expectedResult, {
         data: templateData,
         input: fixture,
         strict,
         disableHeuristicSchema,
+        operators,
+        allowOperatorOverride,
       })
       if (expectFailures) failures.push(...expectFailures)
     }
@@ -396,11 +507,19 @@ export class AITestRunner extends EventEmitter {
 
   /**
    * Resolves and formats the expected JSON schema.
-   * 
+   *
    * @private
    */
-  private async getExpectedSchema(fixture: any, fixtureConfig: any, templateData: any) {
-    let schema = defaultsDeep({}, fixture.outputSchema, fixtureConfig.outputSchema)
+  private async getExpectedSchema(
+    fixture: any,
+    fixtureConfig: any,
+    templateData: any
+  ) {
+    let schema = defaultsDeep(
+      {},
+      fixture.outputSchema,
+      fixtureConfig.outputSchema
+    )
     if (schema && schema.type) {
       schema = await formatObject(schema, {
         data: templateData,
@@ -412,10 +531,14 @@ export class AITestRunner extends EventEmitter {
 
   /**
    * Prepares the expectation object, including tool call matching sugar.
-   * 
+   *
    * @private
    */
-  private async prepareExpectation(expect: any, templateData: any, fixture: any) {
+  private async prepareExpectation(
+    expect: any,
+    templateData: any,
+    fixture: any
+  ) {
     if (typeof expect === 'function') return expect
 
     const expectedResult = cloneDeep(expect)
@@ -423,23 +546,30 @@ export class AITestRunner extends EventEmitter {
       const toolsExpect = expectedResult.tools
       let toolsMatcher
       const tAll = Array.isArray(toolsExpect) ? toolsExpect : toolsExpect.$all
-      
+
       if (tAll) {
         toolsMatcher = {
           $all: tAll.map((t: any) => ({ tools: { $contains: t } })),
         }
       } else if (toolsExpect.$sequence) {
         toolsMatcher = {
-          $sequence: toolsExpect.$sequence.map((t: any) => ({ tools: { $contains: t } })),
+          $sequence: toolsExpect.$sequence.map((t: any) => ({
+            tools: { $contains: t },
+          })),
         }
       }
 
       if (toolsMatcher) {
         if (expectedResult.messages) {
-          if (typeof expectedResult.messages === 'object' && expectedResult.messages.$all) {
+          if (
+            typeof expectedResult.messages === 'object' &&
+            expectedResult.messages.$all
+          ) {
             expectedResult.messages.$all.push(toolsMatcher)
           } else {
-            expectedResult.messages = { $all: [expectedResult.messages, toolsMatcher] }
+            expectedResult.messages = {
+              $all: [expectedResult.messages, toolsMatcher],
+            }
           }
         } else {
           expectedResult.messages = toolsMatcher

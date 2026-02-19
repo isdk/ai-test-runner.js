@@ -166,10 +166,18 @@ export async function validateSchemaOperator(
 }
 
 /** Map of supported collection validation operators. */
-export const OPERATORS: Record<string, (actual: any, expected: any, ctx: ValidationContext, validateMatch: ValidateMatchFn) => Promise<AIValidationFailure[]>> = {
-  '$contains': validateContains,
-  '$all': validateAll,
-  '$sequence': validateSequence,
-  '$not': validateNot,
-  '$schema': validateSchemaOperator,
+export const OPERATORS: Record<
+  string,
+  (
+    actual: any,
+    expected: any,
+    ctx: ValidationContext,
+    validateMatch: ValidateMatchFn
+  ) => Promise<AIValidationFailure[]>
+> = {
+  $contains: validateContains,
+  $all: validateAll,
+  $sequence: validateSequence,
+  $not: validateNot,
+  $schema: validateSchemaOperator,
 }

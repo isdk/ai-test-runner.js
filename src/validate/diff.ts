@@ -5,18 +5,26 @@ import {
   diffWordsWithSpace,
   diffSentences,
   Change,
-  DiffSentencesOptionsNonabortable
+  DiffSentencesOptionsNonabortable,
 } from 'diff'
 import { isRegExp, toRegExp, getKeysPath } from '@isdk/ai-tool'
 import { get as getByPath, cloneDeep } from 'lodash-es'
-import { AIDiffItem, AIValidationFailure, AIDiffOptions, AIDiffType } from '../types.js'
+import {
+  AIDiffItem,
+  AIValidationFailure,
+  AIDiffOptions,
+  AIDiffType,
+} from '../types.js'
 import { ValidationContext } from './types.js'
 import { isStrict } from './utils.js'
 import { formatTemplate } from './template.js'
 
 function isJsonLike(str: string): boolean {
   const s = str.trim()
-  return (s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))
+  return (
+    (s.startsWith('{') && s.endsWith('}')) ||
+    (s.startsWith('[') && s.endsWith(']'))
+  )
 }
 
 function parseJsonSafe(str: string): any {
@@ -30,11 +38,17 @@ function parseJsonSafe(str: string): any {
 /**
  * Performs a structured, path-based diff on two JSON-serializable objects.
  */
-function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions = {}): AIDiffItem[] {
+function diffJsonStructured(
+  expected: any,
+  actual: any,
+  _options: AIDiffOptions = {}
+): AIDiffItem[] {
   const expectedPaths = getKeysPath(expected)
   const actualPaths = getKeysPath(actual)
 
-  const allPaths = Array.from(new Set([...expectedPaths, ...actualPaths])).sort()
+  const allPaths = Array.from(
+    new Set([...expectedPaths, ...actualPaths])
+  ).sort()
   const diffs: AIDiffItem[] = []
 
   for (const path of allPaths) {
@@ -52,7 +66,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
         removed: false,
         path,
         val: aVal,
-        value: `${path}: ${JSON.stringify(aVal)}`
+        value: `${path}: ${JSON.stringify(aVal)}`,
       })
     } else if (!inActual) {
       // Removed from expected
@@ -62,7 +76,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
         removed: true,
         path,
         val: eVal,
-        value: `${path}: ${JSON.stringify(eVal)}`
+        value: `${path}: ${JSON.stringify(eVal)}`,
       })
     } else if (JSON.stringify(eVal) !== JSON.stringify(aVal)) {
       // Changed
@@ -72,7 +86,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
         removed: true,
         path,
         val: eVal,
-        value: `${path}: ${JSON.stringify(eVal)}`
+        value: `${path}: ${JSON.stringify(eVal)}`,
       })
       diffs.push({
         count: 1,
@@ -80,7 +94,7 @@ function diffJsonStructured(expected: any, actual: any, _options: AIDiffOptions 
         removed: false,
         path,
         val: aVal,
-        value: `${path}: ${JSON.stringify(aVal)}`
+        value: `${path}: ${JSON.stringify(aVal)}`,
       })
     }
   }
@@ -115,7 +129,11 @@ function detectDiffType(expected: string, actual: string): AIDiffType {
 /**
  * Gets the diff items using the specified or detected strategy.
  */
-export function getDiff(expected: any, actual: any, options: AIDiffOptions = {}): AIDiffItem[] {
+export function getDiff(
+  expected: any,
+  actual: any,
+  options: AIDiffOptions = {}
+): AIDiffItem[] {
   const originalType = options.type || 'chars'
   let type: AIDiffType = originalType
 
@@ -126,8 +144,12 @@ export function getDiff(expected: any, actual: any, options: AIDiffOptions = {})
   let result: AIDiffItem[]
   switch (type) {
     case 'json': {
-      const e = typeof expected === 'string' ? parseJsonSafe(expected) || expected : expected
-      const a = typeof actual === 'string' ? parseJsonSafe(actual) || actual : actual
+      const e =
+        typeof expected === 'string'
+          ? parseJsonSafe(expected) || expected
+          : expected
+      const a =
+        typeof actual === 'string' ? parseJsonSafe(actual) || actual : actual
       result = diffJsonStructured(e, a, options)
       break
     }
@@ -141,7 +163,11 @@ export function getDiff(expected: any, actual: any, options: AIDiffOptions = {})
       result = diffWordsWithSpace(expected, actual, options)
       break
     case 'sentences':
-      result = diffSentences(expected, actual, options as DiffSentencesOptionsNonabortable)
+      result = diffSentences(
+        expected,
+        actual,
+        options as DiffSentencesOptionsNonabortable
+      )
       break
     default:
       result = diffChars(expected, actual, options)
@@ -156,7 +182,7 @@ export function getDiff(expected: any, actual: any, options: AIDiffOptions = {})
     type !== 'chars' &&
     type !== 'json' &&
     expected !== actual &&
-    !result.some(d => d.added || d.removed)
+    !result.some((d) => d.added || d.removed)
   ) {
     return diffChars(String(expected), String(actual), options)
   }
@@ -171,7 +197,10 @@ export function getDiff(expected: any, actual: any, options: AIDiffOptions = {})
  * @param ctx - Validation context providing data for template resolution.
  * @returns A new list of formatted diff items.
  */
-export async function formatDiffList(diff: AIDiffItem[], ctx: ValidationContext) {
+export async function formatDiffList(
+  diff: AIDiffItem[],
+  ctx: ValidationContext
+) {
   const result = cloneDeep(diff)
   for (const d of result) {
     const value = d.value
@@ -284,7 +313,8 @@ export async function validateStringDiff(
 ): Promise<AIValidationFailure[]> {
   const { input } = ctx
   let expectedDiff = input?.diff
-  let diffPermissive = ctx.diffPermissive ?? input?.diffPermissive ?? input?.input?.diffPermissive
+  let diffPermissive =
+    ctx.diffPermissive ?? input?.diffPermissive ?? input?.input?.diffPermissive
   let diffOptions: AIDiffOptions = {}
 
   if (expectedDiff === true) {
@@ -297,7 +327,10 @@ export async function validateStringDiff(
         diffPermissive = diffPermissive ?? diffOptions.permissive
         expectedDiff = diffOptions.items
       }
-    } else if (typeof expectedDiff === 'string' && expectedDiff !== 'function') {
+    } else if (
+      typeof expectedDiff === 'string' &&
+      expectedDiff !== 'function'
+    ) {
       // Shorthand for diff type: 'auto', 'lines', etc.
       diffOptions = { type: expectedDiff as AIDiffType }
       expectedDiff = undefined
@@ -318,14 +351,16 @@ export async function validateStringDiff(
 
     const successfulItems = diff.filter((d) => {
       let matchedIdx = -1
-      const matched = (formattedExpectedDiff as AIDiffItem[]).some((ed, idx) => {
-        const m = findDiffItem([ed], d, ctx)
-        if (m) {
-          matchedIdx = idx
-          return true
+      const matched = (formattedExpectedDiff as AIDiffItem[]).some(
+        (ed, idx) => {
+          const m = findDiffItem([ed], d, ctx)
+          if (m) {
+            matchedIdx = idx
+            return true
+          }
+          return false
         }
-        return false
-      })
+      )
       if (matched) {
         matchedExpectedIndices.add(matchedIdx)
       }
@@ -335,9 +370,11 @@ export async function validateStringDiff(
     const strictDiff = isStrict('diff', ctx)
     const allExpectedMatched =
       matchedExpectedIndices.size === expectedDiff.length
-    const missingRequiredItems = (expectedDiff as AIDiffItem[]).filter((ed, idx) => {
-      return ed.required === true && !matchedExpectedIndices.has(idx)
-    })
+    const missingRequiredItems = (expectedDiff as AIDiffItem[]).filter(
+      (ed, idx) => {
+        return ed.required === true && !matchedExpectedIndices.has(idx)
+      }
+    )
     const hasUnverified = diff.some(
       (d) => (d.added || d.removed) && !successfulItems.includes(d)
     )
@@ -348,7 +385,9 @@ export async function validateStringDiff(
     const getDiffDesc = (item: AIDiffItem) => {
       if (item.value) return item.value
       if (item.path) {
-        return item.val !== undefined ? `${item.path}: ${JSON.stringify(item.val)}` : item.path
+        return item.val !== undefined
+          ? `${item.path}: ${JSON.stringify(item.val)}`
+          : item.path
       }
       return 'unknown'
     }
@@ -369,7 +408,9 @@ export async function validateStringDiff(
       }
       if (missingRequiredItems.length > 0) {
         failed = true
-        reasons.push(`missing required diff items: ${missingRequiredItems.map(item => `${item.added ? '+' : '-'}"${getDiffDesc(item)}"`).join(', ')}`)
+        reasons.push(
+          `missing required diff items: ${missingRequiredItems.map((item) => `${item.added ? '+' : '-'}"${getDiffDesc(item)}"`).join(', ')}`
+        )
       }
     }
 

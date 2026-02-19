@@ -121,7 +121,109 @@ expect: {
 }
 ```
 
-### 2. AI Tool Testing
+#### 1.4 Template Object Support
+
+The template system not only supports string replacement but also allows direct replacement of "pure placeholders" with original objects/values. This is especially useful when you need to pass complex objects from input data directly to validators or use them as expected output.
+
+- **Pure Placeholder Replacement**: If a template string contains only a single variable (e.g., `{{user}}`), and that variable is an object/array/boolean in the data, the template is replaced with the value itself rather than a stringified result.
+- **Deep Recursive Resolution**: If the resolved object still contains templates, the system automatically resolves them recursively.
+- **Complex Path Support**: Supports deep property access, such as `{{users[0].profile}}`.
+
+**Example: Direct Object Validation**
+
+```yaml
+- input:
+    user: { id: 1, name: 'Alice' }
+  expect:
+    output: "{{user}}"  # Resolved directly to { id: 1, name: 'Alice' }, enabling deep object matching.
+```
+
+### 2. Custom Validation Operators
+
+When declarative matching or simple custom functions aren't enough, you can define reusable validation logic via `operators`.
+
+#### 2.1 Definition & Reference
+
+Custom operators can be defined in the YAML Front-matter (file-level) or within a single test case (item-level). It's recommended to start the operator name with `$` to distinguish it from standard properties.
+
+The following reference protocols are supported:
+
+- **Local Files**: `js://./utils.js#checkCode` or `./utils.js#checkCode` (relative to `baseDir`).
+- **npm Packages**: `lodash-es#isEqual` or `my-test-utils#validator`.
+- **Export Specification**: Use `#` to specify the export name; defaults to the `default` export.
+
+**Example:**
+
+```yaml
+---
+operators:
+  $checkCode: "./checkers.js#checkCode"
+  $isEqual: "lodash-es#isEqual"
+---
+- input: "Write a sum function"
+  expect:
+    output:
+      $checkCode: { strict: true, lang: 'ts' }
+```
+
+#### 2.2 Operator Function Signature
+
+The system supports two signature modes. The **Simplified Mode** is recommended for the best developer experience.
+
+##### Simplified Mode (Recommended)
+
+Suitable for most business logic validations.
+
+```javascript
+/**
+ * @param actual   - The actual output from the AI
+ * @param expected - Parameters passed to this operator in YAML (e.g., { strict: true })
+ * @param fixture  - Current test context, including:
+ *                   - $data: Fully rendered template data
+ *                   - $validate: Recursive validation method (act, exp) => Promise<Failures[]>
+ *                   - Other top-level properties of the fixture
+ */
+export async function checkCode(actual, expected, fixture) {
+  if (expected.strict && actual.includes('eval')) {
+    return "eval is not allowed"; // Return a string representing the failure reason
+  }
+  return true; // Return true to indicate success
+}
+```
+
+##### Standard Mode (Low-level)
+
+If you need to directly manipulate the failure list or perform complex path control. Automatically triggered when the function receives 4 arguments.
+
+```javascript
+export async function myOp(actual, expected, ctx, validateMatch) {
+  if (actual !== expected) {
+    ctx.addFailure({ message: 'mismatch', expected, actual });
+  }
+  return ctx.failures;
+}
+```
+
+#### 2.3 Recursive Validation & $validate
+
+You can call `fixture.$validate` within a custom operator to reuse existing validation logic (including regex, Schema, or other operators).
+
+```javascript
+export async function $eachMatch(actualArray, pattern, fixture) {
+  for (const item of actualArray) {
+    const failures = await fixture.$validate(item, pattern);
+    if (failures.length > 0) return `Item ${item} does not match pattern`;
+  }
+  return true;
+}
+```
+
+#### 2.4 Configuration Options
+
+- **`allowOperatorOverride`**: (Default `false`) Whether to allow custom operators to override built-in ones (e.g., `$contains`).
+- **`baseDir`**: The base directory used to resolve local relative paths.
+
+### 3. AI Tool Testing
 
 Simplified solutions for Agents and tool call scenarios. **Note: The executor must return standard `messages` for these tests to function.**
 

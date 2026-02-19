@@ -24,7 +24,10 @@ export async function validateMatch(
   expected: any,
   options: MatchValueOptions | ValidationContext = {}
 ): Promise<AIValidationFailure[]> {
-  const ctx = options instanceof ValidationContext ? options : new ValidationContext(options)
+  const ctx =
+    options instanceof ValidationContext
+      ? options
+      : new ValidationContext(options)
   return _validateMatch(actual, expected, ctx)
 }
 
@@ -94,10 +97,7 @@ async function _validateMatch(
         actual,
       })
     } else {
-      if (
-        isStrict('array', ctx) &&
-        actual.length !== expected.length
-      ) {
+      if (isStrict('array', ctx) && actual.length !== expected.length) {
         ctx.addFailure({
           message: `Array length mismatch (strict mode): expected ${expected.length}, actual ${actual.length}`,
           expected: expected.length,
@@ -113,7 +113,9 @@ async function _validateMatch(
     }
   } else if (vType === 'function') {
     const result = await expected(actual, input)
-    const expectedName = expected.name ? expected.name + '()'  : expected.toString()
+    const expectedName = expected.name
+      ? expected.name + '()'
+      : expected.toString()
     if (result !== true) {
       ctx.addFailure({
         message: `Custom function validation failed: ${result}`,
@@ -121,7 +123,10 @@ async function _validateMatch(
         actual,
       })
     }
-  } else if (expected instanceof YamlTypeJsonSchema || (!ctx.disableHeuristicSchema && isJsonSchema(expected))) {
+  } else if (
+    expected instanceof YamlTypeJsonSchema ||
+    (!ctx.disableHeuristicSchema && isJsonSchema(expected))
+  ) {
     if (!(expected instanceof YamlTypeJsonSchema)) {
       expected = await formatObject(cloneDeep(expected), { data, input })
     }
@@ -139,10 +144,26 @@ async function _validateMatch(
     }
 
     const keys = Object.keys(expected)
-    const operator = keys.find((k) => OPERATORS[k])
+    let operator: string | undefined
+    let operatorHandler: any
+    if (ctx.allowOperatorOverride) {
+      operator = keys.find((k) => ctx.operators?.[k] || OPERATORS[k])
+      operatorHandler = ctx.operators?.[operator!] || OPERATORS[operator!]
+    } else {
+      operator = keys.find((k) => OPERATORS[k])
+      if (operator) {
+        operatorHandler = OPERATORS[operator]
+      } else {
+        operator = keys.find((k) => ctx.operators?.[k])
+        operatorHandler = ctx.operators?.[operator!]
+      }
+    }
+
     if (operator && keys.length === 1) {
       const val = expected[operator]
-      const needsArray = !['$not', '$schema'].includes(operator)
+      const isBuiltIn =
+        !!OPERATORS[operator] && operatorHandler === OPERATORS[operator]
+      const needsArray = isBuiltIn && !['$not', '$schema'].includes(operator)
       if (needsArray && !Array.isArray(actual)) {
         ctx.addFailure({
           message: `Operator ${operator} requires an array, but got ${typeof actual}`,
@@ -150,7 +171,7 @@ async function _validateMatch(
           actual,
         })
       } else {
-        await OPERATORS[operator](actual, val, ctx, _validateMatch)
+        await operatorHandler(actual, val, ctx, _validateMatch)
       }
       return ctx.failures
     }
@@ -174,16 +195,21 @@ async function _validateMatch(
 
       if (k.startsWith('/') && k.endsWith('/')) {
         const reg = new RegExp(k.slice(1, -1))
-        matchedKey = actual && typeof actual === 'object'
-          ? Object.keys(actual).find((ak) => reg.test(ak))
-          : undefined
+        matchedKey =
+          actual && typeof actual === 'object'
+            ? Object.keys(actual).find((ak) => reg.test(ak))
+            : undefined
         if (matchedKey) {
           actualValue = actual[matchedKey]
           matchedActualKeys.add(matchedKey)
         }
       } else {
         actualValue = getByPath(actual, k)
-        if (actual && typeof actual === 'object' && (k in actual || actualValue !== undefined)) {
+        if (
+          actual &&
+          typeof actual === 'object' &&
+          (k in actual || actualValue !== undefined)
+        ) {
           matchedKey = k
           matchedActualKeys.add(k.split('.')[0].split('[')[0])
         }
@@ -194,7 +220,8 @@ async function _validateMatch(
     }
 
     if (isStrict('object', ctx)) {
-      const actualKeys = actual && typeof actual === 'object' ? Object.keys(actual) : []
+      const actualKeys =
+        actual && typeof actual === 'object' ? Object.keys(actual) : []
       for (const ak of actualKeys) {
         if (!matchedActualKeys.has(ak)) {
           const subCtx = ctx.createSubContext(ak)

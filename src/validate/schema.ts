@@ -3,7 +3,15 @@ import { AIValidationFailure } from '../types.js'
 import { ValidationContext } from './types.js'
 
 /** Standard JSON Schema primitive types. */
-const JSON_SCHEMA_TYPES = new Set(['string', 'number', 'integer', 'boolean', 'object', 'array', 'null'])
+const JSON_SCHEMA_TYPES = new Set([
+  'string',
+  'number',
+  'integer',
+  'boolean',
+  'object',
+  'array',
+  'null',
+])
 
 /**
  * Heuristically determines if a given value should be treated as a JSON Schema.
@@ -16,10 +24,13 @@ const JSON_SCHEMA_TYPES = new Set(['string', 'number', 'integer', 'boolean', 'ob
 export function isJsonSchema(expected: any): boolean {
   if (expected instanceof YamlTypeJsonSchema) return true
   if (typeof expected === 'object' && expected !== null && expected.type) {
-    if (typeof expected.type === 'string' && JSON_SCHEMA_TYPES.has(expected.type)) {
+    if (
+      typeof expected.type === 'string' &&
+      JSON_SCHEMA_TYPES.has(expected.type)
+    ) {
       const keys = Object.keys(expected)
       // Basic heuristic to distinguish from other objects (like operators)
-      return keys.every(k => !['$contains', '$all', '$sequence'].includes(k))
+      return keys.every((k) => !['$contains', '$all', '$sequence'].includes(k))
     }
   }
   return false

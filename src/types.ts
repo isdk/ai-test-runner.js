@@ -5,8 +5,8 @@ import { Change } from 'diff'
  * Extends the `Change` object from the `diff` library with additional validation metadata.
  */
 export interface AIDiffItem extends Change {
-  /** 
-   * The path in the object structure (e.g., "user.id" or "tags[0]"). 
+  /**
+   * The path in the object structure (e.g., "user.id" or "tags[0]").
    * Present when performing structured diffs (like JSON).
    */
   path?: string
@@ -15,13 +15,13 @@ export interface AIDiffItem extends Change {
    * Present when performing structured diffs (like JSON).
    */
   val?: any
-  /** 
-   * Indicates whether this specific change has been verified against the expected whitelist. 
+  /**
+   * Indicates whether this specific change has been verified against the expected whitelist.
    * Internal use during the validation process.
    */
   verified?: boolean
-  /** 
-   * If true, this change MUST be present in the actual output for the validation to pass. 
+  /**
+   * If true, this change MUST be present in the actual output for the validation to pass.
    */
   required?: boolean
 }
@@ -36,22 +36,29 @@ export interface AIDiffItem extends Change {
  * - `sentences`: Sentence-level diffing.
  * - `json`: JSON-level diffing (serializes objects to JSON first).
  */
-export type AIDiffType = 'auto' | 'chars' | 'words' | 'wordsWithSpace' | 'lines' | 'sentences' | 'json';
+export type AIDiffType =
+  | 'auto'
+  | 'chars'
+  | 'words'
+  | 'wordsWithSpace'
+  | 'lines'
+  | 'sentences'
+  | 'json'
 
 /**
  * Configuration options for string diffing.
  */
 export interface AIDiffOptions {
-  /** 
-   * The diff strategy to use. 
-   * Defaults to 'auto' when no whitelist is provided for better readability, 
+  /**
+   * The diff strategy to use.
+   * Defaults to 'auto' when no whitelist is provided for better readability,
    * or 'chars' when a whitelist is provided for precision.
    */
   type?: AIDiffType
   /** A list of expected diff items (whitelist) to match against the actual changes. */
   items?: AIDiffItem[]
-  /** 
-   * Whether to allow unverified diff changes in non-strict mode. 
+  /**
+   * Whether to allow unverified diff changes in non-strict mode.
    * If true, changes not present in the `items` list will not cause a failure.
    */
   permissive?: boolean
@@ -76,13 +83,13 @@ export interface AIDiffOptions {
 export interface AIExecutionContext {
   /** The identifier or content of the script/prompt to be executed. */
   script: string
-  /** 
-   * Arguments and variables to be injected into the script. 
+  /**
+   * Arguments and variables to be injected into the script.
    * These are typically resolved from templates.
    */
   args: Record<string, any>
-  /** 
-   * Additional execution-level options (e.g., model parameters, temperature). 
+  /**
+   * Additional execution-level options (e.g., model parameters, temperature).
    */
   options?: any
 }
@@ -91,12 +98,12 @@ export interface AIExecutionContext {
  * The result returned by an `AIScriptExecutor`.
  */
 export interface AIExecutionResult {
-  /** 
-   * The primary output produced by the script (e.g., a generated string or a structured object). 
+  /**
+   * The primary output produced by the script (e.g., a generated string or a structured object).
    */
   output: any
-  /** 
-   * The full interaction history or execution trace, often used for complex assertions 
+  /**
+   * The full interaction history or execution trace, often used for complex assertions
    * like validating tool call sequences.
    */
   messages?: any[]
@@ -144,8 +151,8 @@ export interface AITestLogItem {
   actual: any
   /** The expected output or matcher used for validation. */
   expected: any
-  /** 
-   * Extracted reasoning or explanation from the AI output, if available 
+  /**
+   * Extracted reasoning or explanation from the AI output, if available
    * (e.g., from a 'reasoning' field in JSON).
    */
   reason?: string
@@ -189,7 +196,7 @@ export type AITestTool = string | Record<string, any>
 
 /**
  * Configuration for tool usage in test fixtures.
- * 
+ *
  * - `true`: Automatically use the current script as the tool.
  * - `string`: A single tool ID or filename.
  * - `Record<string, any>`: A single tool definition object.
@@ -199,7 +206,7 @@ export type AITestTools = boolean | AITestTool | AITestTool[]
 
 /**
  * Configuration for strict validation mode.
- * 
+ *
  * - `true`: Enable strict mode for all types.
  * - `false`: Disable strict mode (partial matching).
  * - `'object' | 'diff' | 'array'`: Enable strict mode only for the specified type.
@@ -211,28 +218,40 @@ export type AIStrictOption = boolean | string | string[]
  * Options for the `AITestRunner.run` method.
  */
 export interface AITestRunnerOptions {
-  /** 
-   * Base configuration and default values for all fixtures in this run. 
+  /**
+   * Base configuration and default values for all fixtures in this run.
    */
   fixtureConfig?: any
-  /** 
-   * User-provided runtime configuration, often passed down to the executor. 
+  /**
+   * User-provided runtime configuration, often passed down to the executor.
    */
   userConfig?: any
-  /** 
-   * A map of fixture indices to skip during execution. 
+  /**
+   * A map of fixture indices to skip during execution.
    */
   skips?: { [k: number]: boolean }
-  /** 
-   * Metadata about the script itself, such as output schema definitions. 
+  /**
+   * Metadata about the script itself, such as output schema definitions.
    */
   scriptConfig?: any
-  /** 
-   * Global strict mode configuration. Individual fixtures can override this. 
+  /**
+   * Global strict mode configuration. Individual fixtures can override this.
    */
   strict?: AIStrictOption
   /**
    * Whether to disable heuristic JSON Schema recognition globally.
    */
   disableHeuristicSchema?: boolean
+  /**
+   * Custom validation operators.
+   */
+  operators?: Record<string, any>
+  /**
+   * Whether to allow custom operators to override built-in ones.
+   */
+  allowOperatorOverride?: boolean
+  /**
+   * Base directory for resolving relative paths in operators.
+   */
+  baseDir?: string
 }

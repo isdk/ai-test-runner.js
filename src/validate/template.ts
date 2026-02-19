@@ -1,7 +1,4 @@
-import {
-  PromptTemplate,
-  PromptTemplateOptions,
-} from '@isdk/ai-tool'
+import { PromptTemplate, PromptTemplateOptions } from '@isdk/ai-tool'
 import { omit } from 'lodash-es'
 
 /**
@@ -29,8 +26,9 @@ export async function formatTemplate(
         template: value,
         ...formatOptions,
         data,
+        raw: true,
       })
-      if (typeof content === 'string') {
+      if (content !== undefined) {
         value = content
       }
     }
@@ -55,7 +53,10 @@ export async function formatTemplate(
  */
 export async function formatObject(input: any, options: PromptTemplateOptions) {
   if (input && options.data) {
-    const vType = typeof input
+    if (typeof input === 'string' || input instanceof RegExp) {
+      input = await formatTemplate(input, options)
+    }
+
     if (Array.isArray(input)) {
       for (let i = 0; i < input.length; i++) {
         const vItem = input[i]
@@ -64,17 +65,19 @@ export async function formatObject(input: any, options: PromptTemplateOptions) {
           input[i] = actualItem
         }
       }
-    } else if (vType === 'string' || input instanceof RegExp) {
-      input = await formatTemplate(input, options)
-    } else if (vType === 'object') {
+    } else if (
+      input &&
+      typeof input === 'object' &&
+      !(input instanceof RegExp)
+    ) {
       const keys = Object.keys(input)
       for (const k of keys) {
         const newK = await formatTemplate(k, options)
         const v = input[k]
         const actualValue = await formatObject(v, options)
-        if (actualValue !== v || newK !== k) {
+        if (actualValue !== v || String(newK) !== k) {
           delete input[k]
-          input[newK] = actualValue
+          input[String(newK)] = actualValue
         }
       }
     }

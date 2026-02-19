@@ -19,9 +19,9 @@ const ValidateSymbol = Symbol('validate')
 
 /**
  * Represents a YAML-compatible JSON Schema object.
- * When used with the `!json-schema` tag, it allows defining expectations 
+ * When used with the `!json-schema` tag, it allows defining expectations
  * that are automatically compiled into Ajv validation functions.
- * 
+ *
  * @example
  * ```yaml
  * output: !json-schema
@@ -39,7 +39,7 @@ export class YamlTypeJsonSchema extends YamlTypeBaseObject {
 
   /**
    * Type guard to check if an object is an instance of YamlTypeJsonSchema.
-   * Handles cases where the object might come from a different module instance 
+   * Handles cases where the object might come from a different module instance
    * by checking the constructor's static YAMLTag.
    *
    * @param obj - The object to check.
@@ -56,7 +56,7 @@ export class YamlTypeJsonSchema extends YamlTypeBaseObject {
 
   /**
    * Ensures a value is a YamlTypeJsonSchema instance.
-   * If the input is already an instance, it's returned as-is; 
+   * If the input is already an instance, it's returned as-is;
    * otherwise, a new instance is created from the provided schema object.
    *
    * @param schema - A raw schema object or an existing YamlTypeJsonSchema instance.

@@ -121,7 +121,109 @@ expect: {
 }
 ```
 
-### 2. AI 工具测试 (AI Tool Testing)
+#### 1.4 模板对象支持 (Template Object Support)
+
+模板系统不仅支持字符串替换，还支持将“纯占位符”直接替换为原始对象。这在需要将输入数据中的复杂对象直接传递给验证器或作为预期输出时非常有用。
+
+- **纯占位符替换**：如果模板字符串仅包含一个变量（例如 `{{user}}`），且数据中该变量是一个对象/数组/布尔值，则该模板将被替换为该值本身，而非字符串化的结果。
+- **深度递归解析**：如果替换出的对象内部仍然包含模板，系统会自动进行递归解析。
+- **复杂路径支持**：支持访问深层属性，如 `{{users[0].profile}}`。
+
+**示例：直接验证对象**
+
+```yaml
+- input:
+    user: { id: 1, name: 'Alice' }
+  expect:
+    output: "{{user}}"  # 结果直接为 { id: 1, name: 'Alice' }，支持深度对象匹配
+```
+
+### 2. 自定义验证操作符 (Custom Operators)
+
+当声明式校验或简单的自定义函数不足以满足需求时，你可以通过 `operators` 定义可复用的验证逻辑。
+
+#### 2.1 定义与引用
+
+自定义操作符可以在 YAML 的 Front-matter（文件级）或单个测试用例（用例级）中定义。建议以 `$` 开头命名以区分于普通属性。
+
+支持以下引用协议：
+
+- **本地文件**: `js://./utils.js#checkCode` 或 `./utils.js#checkCode`（相对于 `baseDir`）。
+- **npm 包**: `lodash-es#isEqual` 或 `my-test-utils#validator`。
+- **导出说明**: 使用 `#` 指定导出名称，默认为 `default` 导出。
+
+**示例：**
+
+```yaml
+---
+operators:
+  $checkCode: "./checkers.js#checkCode"
+  $isEqual: "lodash-es#isEqual"
+---
+- input: "写一个求和函数"
+  expect:
+    output:
+      $checkCode: { strict: true, lang: 'ts' }
+```
+
+#### 2.2 操作符函数签名
+
+系统支持两种签名模式。建议使用 **简化模式** 以获得最佳的开发体验。
+
+##### 简化模式 (推荐)
+
+适用于大多数业务逻辑校验。
+
+```javascript
+/**
+ * @param actual   - AI 的实际输出
+ * @param expected - YAML 中传给该操作符的参数 (如 { strict: true })
+ * @param fixture  - 当前测试上下文，包含：
+ *                   - $data: 已渲染的完整模板数据
+ *                   - $validate: 递归校验方法 (act, exp) => Promise<Failures[]>
+ *                   - 其它 fixture 顶层属性
+ */
+export async function checkCode(actual, expected, fixture) {
+  if (expected.strict && actual.includes('eval')) {
+    return "不允许使用 eval"; // 返回字符串代表失败原因
+  }
+  return true; // 返回 true 代表通过
+}
+```
+
+##### 标准模式 (底层)
+
+如果你需要直接操作验证失败列表或进行复杂的路径控制。当函数接收 4 个参数时自动触发。
+
+```javascript
+export async function myOp(actual, expected, ctx, validateMatch) {
+  if (actual !== expected) {
+    ctx.addFailure({ message: '不匹配', expected, actual });
+  }
+  return ctx.failures;
+}
+```
+
+#### 2.3 递归校验与 $validate
+
+你可以在自定义操作符中调用 `fixture.$validate` 来复用已有的验证逻辑（包括正则、Schema 或其它操作符）。
+
+```javascript
+export async function $eachMatch(actualArray, pattern, fixture) {
+  for (const item of actualArray) {
+    const failures = await fixture.$validate(item, pattern);
+    if (failures.length > 0) return `项 ${item} 不匹配模式`;
+  }
+  return true;
+}
+```
+
+#### 2.4 配置项
+
+- **`allowOperatorOverride`**: (默认 `false`) 是否允许自定义操作符覆盖内置操作符（如 `$contains`）。
+- **`baseDir`**: 用于解析本地相对路径的基准目录。
+
+### 3. AI 工具测试 (AI Tool Testing)
 
 针对 Agent 调用工具的场景，提供极简的配置方式。**注意：执行器必须返回标准的 `messages` 列表才能进行此项测试。**
 

@@ -18,6 +18,10 @@ export interface MatchValueOptions {
   diffPermissive?: boolean
   /** Whether to disable heuristic JSON Schema recognition. Defaults to false. */
   disableHeuristicSchema?: boolean
+  /** Custom validation operators. */
+  operators?: Record<string, ValidationOperatorHandler>
+  /** Whether to allow custom operators to override built-in ones. Defaults to false. */
+  allowOperatorOverride?: boolean
 }
 
 /**
@@ -39,6 +43,10 @@ export class ValidationContext {
   diffPermissive?: boolean
   /** Whether to disable heuristic JSON Schema recognition. */
   disableHeuristicSchema?: boolean
+  /** Custom validation operators. */
+  operators?: Record<string, ValidationOperatorHandler>
+  /** Whether to allow custom operators to override built-in ones. */
+  allowOperatorOverride?: boolean
 
   /**
    * Creates a new validation context.
@@ -52,6 +60,8 @@ export class ValidationContext {
     this.strict = options.strict
     this.diffPermissive = options.diffPermissive
     this.disableHeuristicSchema = options.disableHeuristicSchema
+    this.operators = options.operators
+    this.allowOperatorOverride = options.allowOperatorOverride
   }
 
   /**
@@ -62,7 +72,7 @@ export class ValidationContext {
   addFailure(failure: Partial<AIValidationFailure>) {
     this.failures.push({
       key: this.key,
-      ...failure
+      ...failure,
     })
   }
 
@@ -73,7 +83,10 @@ export class ValidationContext {
    * @param options - Optional overrides for the sub-context.
    * @returns A new ValidationContext instance for the nested path.
    */
-  createSubContext(subKey: string, options: Partial<MatchValueOptions> = {}): ValidationContext {
+  createSubContext(
+    subKey: string,
+    options: Partial<MatchValueOptions> = {}
+  ): ValidationContext {
     let newKey = this.key
     if (subKey) {
       if (subKey.startsWith('[') || !newKey) {
@@ -86,7 +99,7 @@ export class ValidationContext {
       ...this,
       failures: this.failures,
       key: newKey,
-      ...options
+      ...options,
     })
   }
 }
@@ -98,5 +111,9 @@ export type ValidationOperatorHandler = (
   actual: any,
   expected: any,
   ctx: ValidationContext,
-  validateMatch: (actual: any, expected: any, ctx: ValidationContext) => Promise<AIValidationFailure[]>
+  validateMatch: (
+    actual: any,
+    expected: any,
+    ctx: ValidationContext
+  ) => Promise<AIValidationFailure[]>
 ) => Promise<AIValidationFailure[]>
