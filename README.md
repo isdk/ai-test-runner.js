@@ -102,6 +102,31 @@ Powerful assertions for complex validation scenarios, including logical and coll
 - **`$all`**: Passes if the array contains all specified items, regardless of order.
 - **`$sequence`**: Passes if the array contains specified items in the exact order (noise allowed in between).
 - **`$not`**: Negative assertion; fails if the pattern matches.
+- **`$exists`**: Validates whether a property exists. Supports shorthand (checks if value is `undefined`) and strict mode (checks if key is present in the object).
+
+**Example: Using Logical and Existence Operators**
+
+```yaml
+expect:
+  output:
+    $and:
+      - "/^Hello/"         # Must start with Hello
+      - { $not: "/World/" } # AND must not contain World
+    metadata:
+      author: { $exists: true }  # Author must exist
+      internal_id: { $exists: false } # Internal ID must not exist
+```
+
+**Example: Strict Mode Property Absence**
+
+```yaml
+expect:
+  output:
+    legacy_field:
+      $exists:
+        $value: false
+        strict: true  # Key must be physically absent from the object
+```
 
 **Example: Using Logic Operators**
 

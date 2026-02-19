@@ -102,6 +102,31 @@ const result = await runner.run('my-script-id', fixtures);
 - **`$all`**: 数组必须包含所有指定项，顺序无关。
 - **`$sequence`**: 数组必须按顺序包含指定项，中间允许有干扰项。
 - **`$not`**: 反向断言，匹配则失败。
+- **`$exists`**: 验证属性是否存在。支持简写（验证值是否为 `undefined`）和严格模式（验证键是否在对象中）。
+
+**示例：使用逻辑与存在性操作符**
+
+```yaml
+expect:
+  output:
+    $and:
+      - "/^Hello/"         # 必须以 Hello 开头
+      - { $not: "/World/" } # 且不能包含 World
+    metadata:
+      author: { $exists: true }  # 必须有作者属性
+      internal_id: { $exists: false } # 不能包含内部 ID
+```
+
+**示例：严格模式验证属性不存在**
+
+```yaml
+expect:
+  output:
+    legacy_field:
+      $exists:
+        $value: false
+        strict: true  # 严格要求该键必须不在对象中（而不仅仅是值为 undefined）
+```
 
 **示例：使用逻辑操作符**
 

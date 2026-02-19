@@ -22,6 +22,8 @@ export interface MatchValueOptions {
   operators?: Record<string, ValidationOperatorHandler>
   /** Whether to allow custom operators to override built-in ones. Defaults to false. */
   allowOperatorOverride?: boolean
+  /** Whether the current key is actually present in the parent object. */
+  isKeyPresent?: boolean
 }
 
 /**
@@ -47,6 +49,8 @@ export class ValidationContext {
   operators?: Record<string, ValidationOperatorHandler>
   /** Whether to allow custom operators to override built-in ones. */
   allowOperatorOverride?: boolean
+  /** Whether the current key is actually present in the parent object. */
+  isKeyPresent?: boolean
 
   /**
    * Creates a new validation context.
@@ -62,6 +66,7 @@ export class ValidationContext {
     this.disableHeuristicSchema = options.disableHeuristicSchema
     this.operators = options.operators
     this.allowOperatorOverride = options.allowOperatorOverride
+    this.isKeyPresent = options.isKeyPresent
   }
 
   /**

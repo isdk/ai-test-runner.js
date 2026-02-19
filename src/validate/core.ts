@@ -1,5 +1,5 @@
 import { isRegExp, toRegExp } from '@isdk/ai-tool'
-import { get as getByPath, cloneDeep } from 'lodash-es'
+import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
 import { AIValidationFailure } from '../types.js'
 import { MatchValueOptions, ValidationContext } from './types.js'
 import { isStrict } from './utils.js'
@@ -168,7 +168,8 @@ async function _validateMatch(
       val = await formatObject(cloneDeep(val), { data, input })
 
       const needsArray =
-        isBuiltIn && !['$not', '$schema', '$and', '$or'].includes(operator)
+        isBuiltIn &&
+        !['$not', '$schema', '$and', '$or', '$exists'].includes(operator)
       if (needsArray && !Array.isArray(actual)) {
         ctx.addFailure({
           message: `Operator ${operator} requires an array, but got ${typeof actual}`,
@@ -197,6 +198,7 @@ async function _validateMatch(
       const v = expected[k]
       let actualValue: any
       let matchedKey: string | undefined
+      let isKeyPresent = false
 
       if (k.startsWith('/') && k.endsWith('/')) {
         const reg = new RegExp(k.slice(1, -1))
@@ -207,20 +209,22 @@ async function _validateMatch(
         if (matchedKey) {
           actualValue = actual[matchedKey]
           matchedActualKeys.add(matchedKey)
+          isKeyPresent = true
         }
       } else {
         actualValue = getByPath(actual, k)
+        isKeyPresent = hasByPath(actual, k)
         if (
           actual &&
           typeof actual === 'object' &&
-          (k in actual || actualValue !== undefined)
+          (isKeyPresent || actualValue !== undefined)
         ) {
           matchedKey = k
           matchedActualKeys.add(k.split('.')[0].split('[')[0])
         }
       }
 
-      const subCtx = ctx.createSubContext(matchedKey || k)
+      const subCtx = ctx.createSubContext(matchedKey || k, { isKeyPresent })
       await _validateMatch(actualValue, v, subCtx)
     }
 

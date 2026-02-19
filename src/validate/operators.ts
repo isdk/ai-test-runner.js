@@ -248,6 +248,76 @@ export async function validateOr(
   return ctx.failures
 }
 
+/**
+ * Validates whether a property exists or is defined.
+ * Implements the `$exists` operator.
+ * Supports a simple boolean or a configuration object with `$value` and `strict`.
+ *
+ * @param actual - The actual value to check.
+ * @param expected - Boolean or { $value: boolean, strict?: boolean }.
+ * @param ctx - Validation context.
+ * @returns Failure list from context.
+ */
+export async function validateExists(
+  actual: any,
+  expected: any,
+  ctx: ValidationContext
+): Promise<AIValidationFailure[]> {
+  let expectedExists: boolean
+  let strict = false
+
+  if (
+    typeof expected === 'object' &&
+    expected !== null &&
+    '$value' in expected
+  ) {
+    expectedExists = !!expected.$value
+    strict = !!expected.strict
+  } else {
+    expectedExists = !!expected
+  }
+
+  const isPresent = ctx.isKeyPresent
+  const isUndefined = actual === undefined
+
+  let failed = false
+  let message = ''
+
+  if (strict) {
+    if (expectedExists && !isPresent) {
+      failed = true
+      message = `$exists mismatch: key expected to be present but it is missing`
+    } else if (!expectedExists && isPresent) {
+      failed = true
+      message = `$exists mismatch: key expected to be missing but it exists`
+    }
+  } else {
+    if (expectedExists && isUndefined) {
+      failed = true
+      message = `$exists mismatch: value expected to be defined but it is undefined`
+    } else if (!expectedExists && !isUndefined) {
+      failed = true
+      message = `$exists mismatch: value expected to be undefined but it is defined`
+    }
+  }
+
+  if (failed) {
+    ctx.addFailure({
+      message,
+      expected: expectedExists,
+      actual: strict
+        ? isPresent
+          ? 'present'
+          : 'missing'
+        : isUndefined
+          ? 'undefined'
+          : 'defined',
+    })
+  }
+
+  return ctx.failures
+}
+
 /** Map of supported collection validation operators. */
 export const OPERATORS: Record<
   string,
@@ -265,4 +335,5 @@ export const OPERATORS: Record<
   $sequence: validateSequence,
   $not: validateNot,
   $schema: validateSchemaOperator,
+  $exists: validateExists,
 }
