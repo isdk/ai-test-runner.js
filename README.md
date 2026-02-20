@@ -211,7 +211,7 @@ score: 80
 # Detailed object with "Red-Line" logic
 score:
   value: 80
-  required: true  # Mandatory: if this fails, 'passed' becomes false regardless of the total score.
+  critical: true  # Mandatory: if this fails, 'passed' becomes false regardless of the total score.
 ```
 
 #### 2.4 $expect: The Scoring Wrapper
@@ -222,7 +222,7 @@ score:
 output:
   $and:
     - $expect: /Spring/
-      score: { value: 80, required: true }
+      score: { value: 80, critical: true }
       title: "Core keyword"
     - $expect: /Flower/
       score: 20
@@ -238,7 +238,7 @@ expect:
     items:
       - value: "Key Conclusion"
         added: true
-        score: { value: 90, required: true }
+        score: { value: 90, critical: true }
       - value: "optional adjective"
         added: true
         score: 10
@@ -248,9 +248,10 @@ expect:
 #### 2.6 Log Feedback
 
 The resulting `logItem` includes:
+
 - **`score`**: The final calculated quantitative score.
 - **`passScore`**: The threshold for passing.
-- **`failedRequired`**: A list of mandatory items that failed, explaining why a high-scoring test might still be marked as `passed: false`.
+- **`failedCritical`**: A list of mandatory items that failed, explaining why a high-scoring test might still be marked as `passed: false`.
 
 ### 3. Custom Validation Operators
 
@@ -632,6 +633,7 @@ Detailed result for each executed fixture.
 | `expected` | Expected output (formatted) |
 | `reason` | Extracted reasoning/explanation |
 | `expectedSchema` | Resolved JSON Schema |
+| `failedCritical` | List of mandatory (critical) validation failures |
 | `failures` | List of validation failures |
 | `error` | Technical execution error |
 | `duration` | Execution time (ms) |

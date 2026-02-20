@@ -211,7 +211,7 @@ score: 80
 # 也可以是对象，包含红线逻辑
 score:
   value: 80
-  required: true  # 必须项（红线）：如果此项不通过，即便总分及格，passed 也会设为 false
+  critical: true  # 必须项（红线）：如果此项不通过，即便总分及格，passed 也会设为 false
 ```
 
 #### 2.4 $expect：评分包装算子
@@ -222,7 +222,7 @@ score:
 output:
   $and:
     - $expect: /春天/
-      score: { value: 80, required: true }
+      score: { value: 80, critical: true }
       title: "季节核心词"
     - $expect: /花/
       score: 20
@@ -238,7 +238,7 @@ expect:
     items:
       - value: "核心结论"
         added: true
-        score: { value: 90, required: true }
+        score: { value: 90, critical: true }
       - value: "修饰词"
         added: true
         score: 10
@@ -248,9 +248,10 @@ expect:
 #### 2.6 日志反馈
 
 在执行结果的 `logItem` 中，你会看到：
+
 - **`score`**: 最终得出的量化分值。
 - **`passScore`**: 及格线参考。
-- **`failedRequired`**: 如果测试因为触碰“红线”而失败，这里会列出具体导致失败的强制性验证项。
+- **`failedCritical`**: 如果测试因为触碰“红线”而失败，这里会列出具体导致失败的强制性验证项。
 
 ### 3. 自定义验证操作符 (Custom Operators)
 
@@ -632,6 +633,7 @@ export interface AITestFixture {
 | `expected` | 预期的输出（格式化后） |
 | `reason` | 提取出的推理/解释内容 |
 | `expectedSchema` | 解析后的 JSON Schema |
+| `failedCritical` | 强制性（红线）校验失败详情列表 |
 | `failures` | 校验失败详情列表 |
 | `error` | 执行过程中的技术错误 |
 | `duration` | 执行耗时 (ms) |

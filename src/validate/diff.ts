@@ -268,7 +268,6 @@ export async function validateStringDiff(
   actual: string,
   expected: string,
   ctx: ValidationContext,
-  critical?: boolean,
   options?: AIDiffOptions
 ): Promise<AIValidationFailure[]> {
   const { input } = ctx
@@ -357,7 +356,9 @@ export async function validateStringDiff(
     }
 
     if (failed) {
-      ctx.addFailure({ message: `String mismatch with diff: ${reasons.join('; ')}`, expected, actual, diff }, { critical: critical })
+      ctx.addFailure(
+        { message: `String mismatch with diff: ${reasons.join('; ')}`, expected, actual, diff }
+      )
       diff = undefined
     } else diff = undefined
   } else if (typeof expectedDiff === 'function') {
@@ -375,7 +376,7 @@ export async function validateStringDiff(
   }
 
   if (diff && diff.some((d) => d.added || d.removed)) {
-    ctx.addFailure({ message: 'String mismatch with diff', expected, actual, diff }, { critical })
+    ctx.addFailure({ message: 'String mismatch with diff', expected, actual, diff })
   } else if (!expectedDiff && !diff && ctx.scoring) {
     ctx.earnedScore = ctx.allocatedScore
   }

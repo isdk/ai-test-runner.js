@@ -330,7 +330,7 @@ export async function validateDiff(
     ctx.earnedScore = 0
     ctx.addFailure({ message: 'Value mismatch: expected string for $diff', expected: expectedValue, actual })
   } else {
-    await validateStringDiff(actual, expectedValue, ctx, ctx.isCriticalBranch, diffOptions)
+    await validateStringDiff(actual, expectedValue, ctx, diffOptions)
   }
   return ctx.failures
 }
