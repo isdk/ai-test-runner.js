@@ -518,7 +518,68 @@ export class MyAIExecutor implements AIScriptExecutor {
 }
 ```
 
-### 3. 事件生命周期
+### 3. 核心类型说明
+
+#### 3.1 `AITestFixture`
+
+单个测试用例的定义。
+
+```typescript
+export interface AITestFixture {
+  title?: string;
+  input?: any;                // 注入模板的数据
+  output?: any;               // 预期的主要输出
+  outputSchema?: any;         // 用于校验输出的 JSON Schema
+  script?: string;            // 覆盖默认脚本 ID/源码
+  tools?: AITestTools;        // 工具配置
+  toolTester?: string;        // 自定义工具测试脚本
+  expect?: any;               // 针对 Trace/Messages 的验证
+  strict?: AIStrictOption;    // 严格模式开关
+  checkSchema?: boolean;      // 是否启用 Schema 校验
+  disableHeuristicSchema?: boolean;
+  operators?: Record<string, any>; // 自定义操作符
+  allowOperatorOverride?: boolean;
+  only?: boolean;             // 仅运行此测试
+  skip?: boolean;             // 跳过此测试
+  not?: boolean;              // 结果取反
+  [key: string]: any;         // 自定义模板变量
+}
+```
+
+#### 3.2 `AITestLogItem`
+
+每个 Fixture 执行后的详细日志项。
+
+| 属性 | 说明 |
+| :--- | :--- |
+| `title` | 测试标题 |
+| `passed` | 校验是否通过 |
+| `input` | 解析后的输入数据 |
+| `actual` | AI 的实际输出 |
+| `expected` | 预期的输出（格式化后） |
+| `reason` | 提取出的推理/解释内容 |
+| `expectedSchema` | 解析后的 JSON Schema |
+| `failures` | 校验失败详情列表 |
+| `error` | 执行过程中的技术错误 |
+| `duration` | 执行耗时 (ms) |
+| `script` | **(新)** 实际执行的脚本 ID 或源码 |
+| `actualTrace` | **(新)** 完整的交互历史 (messages) |
+| `expectedTrace` | **(新)** 解析后的 Trace 预期目标 |
+| `tools` | **(新)** 最终解析出的工具列表 |
+| `vars` | **(新)** 执行时最终解析出的模板变量集 |
+
+#### 3.3 `AITestRunnerOptions`
+
+运行器的全局配置项。
+
+| 属性 | 说明 |
+| :--- | :--- |
+| `fixtureConfig` | 所有 Fixture 的默认值 (`Partial<AITestFixture>`) |
+| `userConfig` | 传递给执行器的运行时配置 |
+| `strict` | 全局严格模式设置 |
+| `logVars` | **(新)** 控制 vars 是否包含在日志中: `true`, `false`, 或 `'error'` |
+
+### 4. 事件生命周期
 
 | 事件名 | 触发时机 | 参数 |
 | :--- | :--- | :--- |

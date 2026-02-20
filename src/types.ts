@@ -172,6 +172,26 @@ export interface AITestLogItem {
   duration: number
   /** Whether the test expectation was negated (passes if validation fails). */
   not?: boolean
+  /** The specific script ID or source code executed. */
+  script?: string
+  /**
+   * The full interaction history or execution trace (from AIExecutionResult.messages).
+   * Useful for debugging tool calls and message sequences.
+   */
+  actualTrace?: any[]
+  /**
+   * The resolved and formatted expectation for the execution trace (from AITestFixture.expect).
+   */
+  expectedTrace?: any
+  /**
+   * The final set of tools provided to the executor after resolving IDs and 'tools: true'.
+   */
+  tools?: any[]
+  /**
+   * The final resolved template data (variables) used during execution and validation.
+   * Inclusion depends on `AITestRunnerOptions.logVars`.
+   */
+  vars?: Record<string, any>
 }
 
 /**
@@ -188,6 +208,52 @@ export interface AITestFixtureResult {
   logs: AITestLogItem[]
   /** Total wall-clock time for the entire run in milliseconds. */
   duration: number
+}
+
+/**
+ * Represents a single test fixture definition.
+ */
+export interface AITestFixture {
+  /** A descriptive title for the test case. */
+  title?: string
+  /** The input data for the test, often used to populate script templates. */
+  input?: any
+  /** The expected primary output from the AI. */
+  output?: any
+  /** A JSON Schema to validate the AI output against. */
+  outputSchema?: any
+  /**
+   * The specific script or template ID to use for this test.
+   * Overrides the default script provided to the runner.
+   */
+  script?: string
+  /** Tools available to the AI during this test. */
+  tools?: AITestTools
+  /** A specialized script/executor for testing tool calls. */
+  toolTester?: string
+  /**
+   * Expectations for the full execution trace (e.g., messages, tool calls).
+   * Will be compared against `AIExecutionResult.messages`.
+   */
+  expect?: any
+  /** Strict validation mode configuration for this fixture. */
+  strict?: AIStrictOption
+  /** Whether to perform JSON Schema validation. */
+  checkSchema?: boolean
+  /** Whether to disable heuristic JSON Schema recognition. */
+  disableHeuristicSchema?: boolean
+  /** Custom validation operators for this fixture. */
+  operators?: Record<string, any>
+  /** Whether to allow custom operators to override built-in ones. */
+  allowOperatorOverride?: boolean
+  /** If true, only this fixture (and others marked 'only') will run. */
+  only?: boolean
+  /** If true, this fixture will be skipped. */
+  skip?: boolean
+  /** If true, the test passes if validation fails. */
+  not?: boolean
+  /** Support for arbitrary custom properties used in templates. */
+  [key: string]: any
 }
 
 /**
@@ -223,7 +289,7 @@ export interface AITestRunnerOptions {
   /**
    * Base configuration and default values for all fixtures in this run.
    */
-  fixtureConfig?: any
+  fixtureConfig?: Partial<AITestFixture>
   /**
    * User-provided runtime configuration, often passed down to the executor.
    */
@@ -256,4 +322,11 @@ export interface AITestRunnerOptions {
    * Base directory for resolving relative paths in operators.
    */
   baseDir?: string
+  /**
+   * Whether to include the resolved template variables (`vars`) in the log.
+   * - `true`: Always include.
+   * - `false`: Never include (default).
+   * - `'error'`: Only include when the test fails.
+   */
+  logVars?: boolean | 'error'
 }

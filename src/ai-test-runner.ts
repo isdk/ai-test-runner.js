@@ -9,6 +9,7 @@ import {
   AIExecutionContext,
   AIScriptExecutor,
   AITestRunnerOptions,
+  AITestFixture,
 } from './types.js'
 import { formatObject, validateMatch } from './validate/index.js'
 import { loadOperators } from './validate/loader.js'
@@ -125,7 +126,7 @@ export class AITestRunner extends EventEmitter {
    */
   async run(
     script: string,
-    fixtures: any[],
+    fixtures: AITestFixture[],
     options: AITestRunnerOptions = {}
   ): Promise<AITestFixtureResult> {
     const {
@@ -216,8 +217,8 @@ export class AITestRunner extends EventEmitter {
   private async runFixture(
     i: number,
     defaultScript: string,
-    fixture: any,
-    initialFixtureConfig: any,
+    fixture: AITestFixture,
+    initialFixtureConfig: Partial<AITestFixture>,
     options: AITestRunnerOptions,
     globalOperators: any = {}
   ): Promise<AITestLogItem> {
@@ -269,7 +270,7 @@ export class AITestRunner extends EventEmitter {
 
       const execResult = await this.executor.execute(execContext)
       const duration = Date.now() - ts
-      const failures = await this.validateFixture(
+      const { failures, expectedTrace } = await this.validateFixture(
         fixture,
         fixtureConfig,
         templateData,
@@ -286,7 +287,7 @@ export class AITestRunner extends EventEmitter {
           ? getReasonValue(execResult.output)
           : undefined
 
-      return {
+      const logItem: AITestLogItem = {
         ...result,
         passed,
         input,
@@ -302,7 +303,18 @@ export class AITestRunner extends EventEmitter {
         i,
         duration,
         not: fixture.not,
+        script: currentScript,
+        actualTrace: execResult.messages,
+        expectedTrace,
+        tools: templateData.tools,
       }
+
+      const logVars = options.logVars
+      if (logVars === true || (logVars === 'error' && !passed)) {
+        logItem.vars = templateData
+      }
+
+      return logItem
     } catch (error: any) {
       return {
         ...result,
@@ -331,8 +343,8 @@ export class AITestRunner extends EventEmitter {
    * @private
    */
   private async resolveTemplateData(
-    fixture: any,
-    fixtureConfig: any,
+    fixture: AITestFixture,
+    fixtureConfig: Partial<AITestFixture>,
     input: any,
     options: AITestRunnerOptions,
     currentScript?: string
@@ -386,8 +398,8 @@ export class AITestRunner extends EventEmitter {
    * @private
    */
   private resolveScript(
-    fixture: any,
-    fixtureConfig: any,
+    fixture: AITestFixture,
+    fixtureConfig: Partial<AITestFixture>,
     defaultScript: string
   ) {
     const tools = fixture.tools ?? fixtureConfig.tools
@@ -409,13 +421,13 @@ export class AITestRunner extends EventEmitter {
    * @private
    */
   private async validateFixture(
-    fixture: any,
-    fixtureConfig: any,
+    fixture: AITestFixture,
+    fixtureConfig: Partial<AITestFixture>,
     templateData: any,
     execResult: any,
     options: AITestRunnerOptions,
     globalOperators: any = {}
-  ) {
+  ): Promise<{ failures: any[]; expectedTrace?: any }> {
     const { userConfig = {} } = options
     const failures: any[] = []
     const checkSchema =
@@ -494,13 +506,14 @@ export class AITestRunner extends EventEmitter {
 
     // 3. Expect Trace Validation
     const expect = fixture.expect || fixtureConfig.expect
+    let expectedTrace: any
     if (expect) {
-      const expectedResult = await this.prepareExpectation(
+      expectedTrace = await this.prepareExpectation(
         expect,
         templateData,
         fixture
       )
-      const expectFailures = await validateMatch(execResult, expectedResult, {
+      const expectFailures = await validateMatch(execResult, expectedTrace, {
         data: templateData,
         input: fixture,
         strict,
@@ -511,7 +524,7 @@ export class AITestRunner extends EventEmitter {
       if (expectFailures) failures.push(...expectFailures)
     }
 
-    return failures
+    return { failures, expectedTrace }
   }
 
   /**
@@ -520,8 +533,8 @@ export class AITestRunner extends EventEmitter {
    * @private
    */
   private async getExpectedSchema(
-    fixture: any,
-    fixtureConfig: any,
+    fixture: AITestFixture,
+    fixtureConfig: Partial<AITestFixture>,
     templateData: any
   ) {
     let schema = defaultsDeep(
@@ -546,7 +559,7 @@ export class AITestRunner extends EventEmitter {
   private async prepareExpectation(
     expect: any,
     templateData: any,
-    fixture: any
+    fixture: AITestFixture
   ) {
     if (typeof expect === 'function') return expect
 

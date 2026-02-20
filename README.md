@@ -518,7 +518,68 @@ export class MyAIExecutor implements AIScriptExecutor {
 }
 ```
 
-### 3. Event Lifecycle
+### 3. Core Types
+
+#### 3.1 `AITestFixture`
+
+The definition for a single test case.
+
+```typescript
+export interface AITestFixture {
+  title?: string;
+  input?: any;                // Data injected into templates
+  output?: any;               // Expected primary output
+  outputSchema?: any;         // JSON Schema for output validation
+  script?: string;            // Script ID/source override
+  tools?: AITestTools;        // Tools configuration
+  toolTester?: string;        // Custom tool tester script
+  expect?: any;               // Trace/Messages validation
+  strict?: AIStrictOption;    // Strict mode toggle
+  checkSchema?: boolean;      // Enable/disable schema check
+  disableHeuristicSchema?: boolean;
+  operators?: Record<string, any>; // Custom operators
+  allowOperatorOverride?: boolean;
+  only?: boolean;             // Run only this test
+  skip?: boolean;             // Skip this test
+  not?: boolean;              // Negate validation
+  [key: string]: any;         // Custom template variables
+}
+```
+
+#### 3.2 `AITestLogItem`
+
+Detailed result for each executed fixture.
+
+| Property | Description |
+| :--- | :--- |
+| `title` | Fixture title |
+| `passed` | Whether all validations passed |
+| `input` | Resolved input data |
+| `actual` | Actual output from AI |
+| `expected` | Expected output (formatted) |
+| `reason` | Extracted reasoning/explanation |
+| `expectedSchema` | Resolved JSON Schema |
+| `failures` | List of validation failures |
+| `error` | Technical execution error |
+| `duration` | Execution time (ms) |
+| `script` | **(New)** Actual script ID/source used |
+| `actualTrace` | **(New)** Full interaction history (messages) |
+| `expectedTrace` | **(New)** Resolved expectation for trace |
+| `tools` | **(New)** Final resolved tools list |
+| `vars` | **(New)** Final resolved template variables |
+
+#### 3.3 `AITestRunnerOptions`
+
+Global configuration for the runner.
+
+| Property | Description |
+| :--- | :--- |
+| `fixtureConfig` | Default values for all fixtures (`Partial<AITestFixture>`) |
+| `userConfig` | Runtime config passed to the executor |
+| `strict` | Global strict mode setting |
+| `logVars` | **(New)** Control inclusion of `vars` in log: `true`, `false`, or `'error'` |
+
+### 4. Event Lifecycle
 
 | Event | Triggered | Parameters |
 | :--- | :--- | :--- |
