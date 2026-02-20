@@ -94,15 +94,23 @@ Supports strings, regular expressions, and numeric checks.
 
 #### 1.2 Advanced Collection and Logic Operators
 
-Powerful assertions for complex validation scenarios, including logical and collection-based matching:
+Powerful assertions for complex validation scenarios, including logical, collection-based, and specialized matching:
 
-- **`$and`**: Passes if **all** validation conditions in the array are met. Useful for applying multiple constraints (e.g., regex and length) to the same property.
+**Logic & Collection:**
+
+- **`$and`**: Passes if **all** validation conditions in the array are met.
 - **`$or`**: Passes if **at least one** condition in the array is met.
+- **`$not`**: Negative assertion; fails if the pattern matches.
 - **`$contains`**: Passes if the array contains at least one item matching the pattern.
 - **`$all`**: Passes if the array contains all specified items, regardless of order.
 - **`$sequence`**: Passes if the array contains specified items in the exact order (noise allowed in between).
-- **`$not`**: Negative assertion; fails if the pattern matches.
-- **`$exists`**: Validates whether a property exists. Supports shorthand (checks if value is `undefined`) and strict mode (checks if key is present in the object).
+- **`$exists`**: Validates whether a property exists. Supports shorthand and strict mode.
+
+**Specialized Operators:**
+
+- **`$expect`**: A transparent wrapper used to attach scoring metadata (weight, critical) and titles to any validation node. [See Scoring Strategy](#2-scoring-strategy).
+- **`$diff`**: Forces semantic diff analysis with specific strategies or whitelists. [See Semantic Diff Validation](#4-semantic-diff-validation).
+- **`$schema`**: Explicitly validates a value against a JSON Schema. [See JSON Schema Validation](#3-json-schema-validation).
 
 **Example: Using Logical and Existence Operators**
 
@@ -450,7 +458,13 @@ expect:
 
 Solves the "technically correct but slightly different" output problem from LLMs. ai-test-runner features a powerful diff engine that intelligently analyzes output changes.
 
-#### 4.1 Smart Diff Strategy (`auto`)
+#### 4.1 Built-in Semantic Feedback
+
+By design, **all string comparisons in the engine automatically leverage the diff engine upon failure.**
+
+Even if you don't explicitly use the `$diff` operator, if a string match (including those inside `$expect`) fails a simple inclusion check, the engine automatically performs a structured diff. This ensures that every validation failure provides high-signal feedback, showing exactly which characters, words, or JSON fields differ, rather than a generic "mismatch" message.
+
+#### 4.2 Smart Diff Strategy (`auto`)
 
 By default (or via `diff: 'auto'` or `diff: true`), the engine uses heuristic detection:
 
