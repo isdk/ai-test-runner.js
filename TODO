@@ -88,3 +88,23 @@ feats:
    2. 修改 validateMatch 的签名，使其除了返回 failures 外，还能返回 score 或 matchRatio。
        * 或者，将 failures 视为扣分项：TotalScore - Sum(failures.penalty)。
 
+
+ 评分的多样化来源 (Scoring Sources)
+  目前的验证逻辑是基于规则的（Rule-based）。引入评分后，我们可能需要支持以下几种评分方式：
+
+   * 相似度得分 (Similarity Score):
+       * 语义相似度 (Semantic Similarity): 使用 Embedding 模型计算向量余弦相似度。这对于“意思对但措辞不同”的场景至关重要。
+       * 编辑距离/字符串指标: 如 Levenshtein, BLEU, ROUGE 等。虽然在现代 AI 测试中逐渐被 LLM-as-a-judge 取代，但在某些结构化文本对比中仍有价值。
+   * LLM-as-a-judge:
+       * 调用另一个（通常更强大的，如 GPT-4）AI 模型来根据给定的 Rubric（评分标准）进行打分（0-10 或 0-1）。
+   * 启发式/规则权重 (Weighted Heuristics):
+       * 例如：如果包含关键字 A，加 20 分；如果符合格式 B，加 30 分；如果存在逻辑错误 C，扣 50 分。
+   * 概率/确定性指标:
+       * 如果 AI 输出包含 logprobs，可以用来衡量输出的置信度（虽然这更多是模型端的指标）。
+
+   interface AIValidationScore {
+     score: number;       // 0.0 到 1.0
+     weight?: number;    // 该项在总分中的权重
+     message?: string;    // 评分理由 (例如 LLM 给出的评语)
+     details?: any;       // 原始指标 (如余弦值、编辑距离)
+   }
