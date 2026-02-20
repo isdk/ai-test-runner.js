@@ -276,7 +276,7 @@ export class AITestRunner extends EventEmitter {
         score,
         maxScore,
         passScore,
-        failedRequired,
+        failedCritical,
       } = await this.validateFixture(
           fixture,
           fixtureConfig,
@@ -288,7 +288,7 @@ export class AITestRunner extends EventEmitter {
 
       let passed = failures.length === 0
       if (score !== undefined) {
-        passed = score >= passScore! && failedRequired.length === 0
+        passed = score >= passScore! && failedCritical.length === 0
       }
       if (fixture.not) passed = !passed
 
@@ -303,7 +303,7 @@ export class AITestRunner extends EventEmitter {
         score,
         maxScore,
         passScore,
-        failedRequired: failedRequired.length ? failedRequired : undefined,
+        failedCritical: failedCritical.length ? failedCritical : undefined,
         input,
         actual: execResult.output,
         expected: output,
@@ -447,7 +447,7 @@ export class AITestRunner extends EventEmitter {
     score?: number
     maxScore?: number
     passScore?: number
-    failedRequired: any[]
+    failedCritical: any[]
   }> {
     const { userConfig = {} } = options
     const failures: any[] = []
@@ -504,7 +504,7 @@ export class AITestRunner extends EventEmitter {
     if (expect) validationBlocks++
 
     const allocatedPerBlock = validationBlocks > 0 ? maxScore / validationBlocks : maxScore
-    const failedRequired: any[] = []
+    const failedCritical: any[] = []
     let totalEarnedScore = 0
 
     const commonCtxOptions = {
@@ -519,7 +519,7 @@ export class AITestRunner extends EventEmitter {
       passScore,
       unassignedWeight,
       allocatedScore: allocatedPerBlock,
-      failedRequired,
+      failedCritical,
     }
 
     // Let's refactor to use a single shared context if possible, or at least track earnedScore.
@@ -567,7 +567,7 @@ export class AITestRunner extends EventEmitter {
       score: scoring ? totalEarnedScore : undefined,
       maxScore: scoring ? maxScore : undefined,
       passScore: scoring ? passScore : undefined,
-      failedRequired,
+      failedCritical,
     }
   }
 

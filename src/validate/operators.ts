@@ -46,17 +46,17 @@ export async function validateContains(
     subCtx.failures = []
     subCtx.allocatedScore = ctx.allocatedScore
     await validateMatch(item, expected, subCtx)
-    
+
     if (subCtx.earnedScore > maxBranchEarnedScore) {
       maxBranchEarnedScore = subCtx.earnedScore
     }
-    
+
     if (subCtx.failures.length === 0) {
       matchedAny = true
       if (!ctx.scoring) break
     }
   }
-  
+
   ctx.earnedScore = maxBranchEarnedScore
   if (matchedAny) {
     return []
@@ -120,7 +120,7 @@ export async function validateSequence(
       subCtx.failures = []
       subCtx.allocatedScore = subAllocated
       await validateMatch(actual[tempIdx], expected, subCtx)
-      
+
       if (subCtx.earnedScore > maxBranchEarnedScore) {
         maxBranchEarnedScore = subCtx.earnedScore
       }
@@ -330,8 +330,7 @@ export async function validateDiff(
     ctx.earnedScore = 0
     ctx.addFailure({ message: 'Value mismatch: expected string for $diff', expected: expectedValue, actual })
   } else {
-    // Pass ctx.isRequiredBranch as the 'required' flag for the diff action
-    await validateStringDiff(actual, expectedValue, ctx, ctx.isRequiredBranch, diffOptions)
+    await validateStringDiff(actual, expectedValue, ctx, ctx.isCriticalBranch, diffOptions)
   }
   return ctx.failures
 }

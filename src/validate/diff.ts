@@ -268,7 +268,7 @@ export async function validateStringDiff(
   actual: string,
   expected: string,
   ctx: ValidationContext,
-  required?: boolean,
+  critical?: boolean,
   options?: AIDiffOptions
 ): Promise<AIValidationFailure[]> {
   const { input } = ctx
@@ -326,11 +326,11 @@ export async function validateStringDiff(
         }
         return null
       })
-      
+
       const totalPeerCount = expectedDiff.length + (includeStrictness ? 1 : 0)
       const weightPool = includeStrictness ? [...explicitWeights, null] : explicitWeights
       const weights = calculateNormalizedWeights(weightPool, totalPeerCount, { unassignedWeight: ctx.unassignedWeight })
-      
+
       let earnedFraction = 0
       for (let i = 0; i < expectedDiff.length; i++) {
         if (matchedExpectedIndices.has(i)) earnedFraction += weights[i]
@@ -357,7 +357,7 @@ export async function validateStringDiff(
     }
 
     if (failed) {
-      ctx.addFailure({ message: `String mismatch with diff: ${reasons.join('; ')}`, expected, actual, diff }, { required: required || missingRequiredItems.length > 0 })
+      ctx.addFailure({ message: `String mismatch with diff: ${reasons.join('; ')}`, expected, actual, diff }, { critical: critical })
       diff = undefined
     } else diff = undefined
   } else if (typeof expectedDiff === 'function') {
@@ -375,7 +375,7 @@ export async function validateStringDiff(
   }
 
   if (diff && diff.some((d) => d.added || d.removed)) {
-    ctx.addFailure({ message: 'String mismatch with diff', expected, actual, diff }, { required })
+    ctx.addFailure({ message: 'String mismatch with diff', expected, actual, diff }, { critical })
   } else if (!expectedDiff && !diff && ctx.scoring) {
     ctx.earnedScore = ctx.allocatedScore
   }

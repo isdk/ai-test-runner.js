@@ -34,10 +34,10 @@ export interface MatchValueOptions {
   unassignedWeight?: number
   /** The score allocated to this validation node from its parent. */
   allocatedScore?: number
-  /** Whether the current validation branch is mandatory (required). */
-  isRequiredBranch?: boolean
-  /** Accumulator for failures in 'required' (critical) items. */
-  failedRequired?: AIValidationFailure[]
+  /** Whether the current validation branch is mandatory (Critical). */
+  isCriticalBranch?: boolean
+  /** Accumulator for failures in critical items. */
+  failedCritical?: AIValidationFailure[]
 }
 
 /**
@@ -77,10 +77,10 @@ export class ValidationContext {
   allocatedScore: number
   /** The total score earned at this level (and its children). */
   earnedScore: number = 0
-  /** Whether the current validation branch is mandatory (required). */
-  isRequiredBranch: boolean
-  /** Accumulator for failures in 'required' (critical) items. */
-  failedRequired: AIValidationFailure[]
+  /** Whether the current validation branch is mandatory (critical). */
+  isCriticalBranch: boolean
+  /** Accumulator for failures in 'critical' items. */
+  failedCritical: AIValidationFailure[]
 
   /**
    * Creates a new validation context.
@@ -102,27 +102,27 @@ export class ValidationContext {
     this.passScore = options.passScore ?? this.maxScore
     this.unassignedWeight = options.unassignedWeight
     this.allocatedScore = options.allocatedScore ?? this.maxScore
-    this.isRequiredBranch = !!options.isRequiredBranch
-    this.failedRequired = options.failedRequired || []
+    this.isCriticalBranch = !!options.isCriticalBranch
+    this.failedCritical = options.failedCritical || []
   }
 
   /**
    * Adds a validation failure to the current context.
    * The current `key` from the context is automatically added to the failure if not provided.
    * @param failure - Partial failure information to add.
-   * @param options - Additional options, e.g., if this failure is in a 'required' item.
+   * @param options - Additional options, e.g., if this failure is in a 'critical' item.
    */
   addFailure(
     failure: Partial<AIValidationFailure>,
-    options: { required?: boolean } = {}
+    options: { critical?: boolean } = {}
   ) {
     const fullFailure = {
       key: this.key,
       ...failure,
     }
     this.failures.push(fullFailure)
-    if (options.required || this.isRequiredBranch) {
-      this.failedRequired.push(fullFailure)
+    if (options.critical || this.isCriticalBranch) {
+      this.failedCritical.push(fullFailure)
     }
   }
 
@@ -154,8 +154,8 @@ export class ValidationContext {
       passScore: this.passScore,
       unassignedWeight: this.unassignedWeight,
       allocatedScore: this.allocatedScore,
-      isRequiredBranch: this.isRequiredBranch,
-      failedRequired: this.failedRequired,
+      isCriticalBranch: this.isCriticalBranch,
+      failedCritical: this.failedCritical,
       ...options,
     })
   }

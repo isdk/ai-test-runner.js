@@ -64,12 +64,12 @@ describe('Scoring Strategy', () => {
     expect(log.passed).toBe(true)
   })
 
-  it('should handle mandatory (required) items', async () => {
+  it('should handle mandatory (critical) items', async () => {
     const fixture = {
       input: { a: 'winter', b: 'flower' },
       output: {
         $and: [
-          { $expect: /spring/, score: { value: 2, required: true } },
+          { $expect: /spring/, score: { value: 2, critical: true } },
           { $expect: /flower/, score: 8 }
         ]
       },
@@ -82,9 +82,9 @@ describe('Scoring Strategy', () => {
     const log = result.logs[0]
     // Score is 8/(2+8) * 100 = 80, which is > 50
     expect(log.score).toBe(80)
-    // But it should fail because the required item (spring) failed
+    // But it should fail because the critical item (spring) failed
     expect(log.passed).toBe(false)
-    expect(log.failedRequired?.length).toBeGreaterThan(0)
+    expect(log.failedCritical?.length).toBeGreaterThan(0)
   })
 
   it('should support hierarchical weights', async () => {
@@ -250,10 +250,10 @@ describe('Scoring Strategy', () => {
     expect(result3.logs[0].score).toBe(50)
   })
 
-  it('should fail if a required branch fails even with a high score', async () => {
+  it('should fail if a critical branch fails even with a high score', async () => {
     const fixture = {
       output: {
-        important: { $expect: 'CRITICAL', score: { value: 10, required: true } },
+        important: { $expect: 'CRITICAL', score: { value: 10, critical: true } },
         optional: { $expect: 'YES', score: 90 }
       },
       input: { important: 'WRONG', optional: 'YES' },
@@ -264,9 +264,9 @@ describe('Scoring Strategy', () => {
     const result = await runner.run('return-input', [fixture])
     // score = 90 / (10+90) * 100 = 90
     expect(result.logs[0].score).toBe(90)
-    // Even though 90 >= passScore(default 100), passed should be false because of required branch
+    // Even though 90 >= passScore(default 100), passed should be false because of critical branch
     expect(result.logs[0].passed).toBe(false)
-    expect(result.logs[0].failedRequired!.some((f: any) => f.key === 'important')).toBe(true)
+    expect(result.logs[0].failedCritical!.some((f: any) => f.key === 'important')).toBe(true)
   })
 
   it('should support deep hierarchical scoring', async () => {

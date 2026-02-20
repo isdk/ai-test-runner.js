@@ -152,8 +152,8 @@ export type AIScoreConfig =
   | {
       /** The relative weight or value of this item. */
       value: number
-      /** If true, this item must pass for the overall test to pass, regardless of the score. */
-      required?: boolean
+      /** If true, this item must pass for the overall test to pass, regardless of the score(red-line). */
+      critical?: boolean
     }
 
 /**
@@ -170,8 +170,8 @@ export interface AITestLogItem {
   maxScore?: number
   /** The minimum score required for the test to pass. */
   passScore?: number
-  /** A list of validation failures that were marked as 'required' but failed. */
-  failedRequired?: AIValidationFailure[]
+  /** A list of validation failures that were marked as 'critical' but failed. */
+  failedCritical?: AIValidationFailure[]
   /** The resolved input provided to the AI script. */
   input: any
   /** The actual output produced by the executor. */

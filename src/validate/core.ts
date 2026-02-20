@@ -12,7 +12,7 @@ import { YamlTypeJsonSchema } from '../yaml-types/index.js'
 /**
  * Metadata keys that are treated as scoring/documentation parameters.
  */
-const metaKeys = ['score', 'required', 'title', 'description']
+const metaKeys = ['score', 'critical', 'title', 'description']
 
 /**
  * Validates that an actual value matches an expected value.
@@ -31,11 +31,11 @@ export async function validateMatch(
 }
 
 /**
- * Internal helper to extract weight and required flag from a node.
+ * Internal helper to extract weight and critical flag from a node.
  */
-function getScoreConfig(item: any): { weight: number; required: boolean } {
+function getScoreConfig(item: any): { weight: number; critical: boolean } {
   let weight = 1
-  let required = false
+  let critical = false
 
   if (item && typeof item === 'object' && item.score !== undefined) {
     const s = item.score
@@ -43,11 +43,11 @@ function getScoreConfig(item: any): { weight: number; required: boolean } {
       weight = s
     } else if (typeof s === 'object' && s !== null) {
       weight = s.value ?? 1
-      required = !!s.required
+      critical = !!s.critical
     }
   }
 
-  return { weight, required }
+  return { weight, critical }
 }
 
 /**
@@ -99,9 +99,9 @@ async function _validateMatch(
       const otherKeys = keys.filter(k => k !== operator && !metaKeys.includes(k))
       if (keys.length === 1 || operator === '$expect' || otherKeys.length === 0) {
         const scoreCfg = getScoreConfig(expected)
-        const isRequired = scoreCfg.required
-        
-        const opCtx = ctx.createSubContext('', { isRequiredBranch: ctx.isRequiredBranch || isRequired })
+        const isCritical = scoreCfg.critical
+
+        const opCtx = ctx.createSubContext('', { isCriticalBranch: ctx.isCriticalBranch || isCritical })
 
         let val = expected[operator]
         const isBuiltIn = !!OPERATORS[operator] && operatorHandler === OPERATORS[operator]
@@ -148,15 +148,15 @@ async function _validateMatch(
   } else if (vType === 'string') {
     const hasDiffReq = !!input?.diff
     const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual)
-    
+
     if (!hasDiffReq && typeof actual === 'string' && actualStr.includes(expected.trim())) {
       ctx.earnedScore = ctx.allocatedScore
     } else if (typeof actual === 'string') {
       const failuresBefore = ctx.failures.length
       const earnedBefore = ctx.earnedScore
-      
+
       await validateStringDiff(actual, expected, ctx)
-      
+
       if (!hasDiffReq && ctx.failures.length === failuresBefore && ctx.earnedScore === earnedBefore) {
         ctx.earnedScore = ctx.allocatedScore
       }
@@ -174,7 +174,7 @@ async function _validateMatch(
           actual: actual.length,
         })
       }
-      
+
       const explicitWeights = expected.map(item => {
         if (item && typeof item === 'object' && item.score !== undefined) {
           const s = item.score
@@ -217,7 +217,7 @@ async function _validateMatch(
     } else {
       const allKeys = Object.keys(expected).filter(k => !metaKeys.includes(k))
       const matchedActualKeys = new Set<string>()
-      
+
       const explicitWeights = allKeys.map(k => {
         const item = expected[k]
         if (item && typeof item === 'object' && item.score !== undefined) {
