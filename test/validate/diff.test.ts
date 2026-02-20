@@ -456,6 +456,7 @@ describe('validate/diff', () => {
           }
         }
       })
+      console.log('🚀 ~ file: diff.test.ts:460 ~ failures:', failures)
       expect(failures).toHaveLength(0)
     })
 

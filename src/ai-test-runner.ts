@@ -11,7 +11,7 @@ import {
   AITestRunnerOptions,
   AITestFixture,
 } from './types.js'
-import { formatObject, validateMatch } from './validate/index.js'
+import { formatObject, validateMatch, ValidationContext } from './validate/index.js'
 import { loadOperators } from './validate/loader.js'
 import { YamlTypeJsonSchema } from './yaml-types/index.js'
 
@@ -270,16 +270,26 @@ export class AITestRunner extends EventEmitter {
 
       const execResult = await this.executor.execute(execContext)
       const duration = Date.now() - ts
-      const { failures, expectedTrace } = await this.validateFixture(
-        fixture,
-        fixtureConfig,
-        templateData,
-        execResult,
-        options,
-        globalOperators
-      )
+      const {
+        failures,
+        expectedTrace,
+        score,
+        maxScore,
+        passScore,
+        failedRequired,
+      } = await this.validateFixture(
+          fixture,
+          fixtureConfig,
+          templateData,
+          execResult,
+          options,
+          globalOperators
+        )
 
       let passed = failures.length === 0
+      if (score !== undefined) {
+        passed = score >= passScore! && failedRequired.length === 0
+      }
       if (fixture.not) passed = !passed
 
       const reason =
@@ -290,6 +300,10 @@ export class AITestRunner extends EventEmitter {
       const logItem: AITestLogItem = {
         ...result,
         passed,
+        score,
+        maxScore,
+        passScore,
+        failedRequired: failedRequired.length ? failedRequired : undefined,
         input,
         actual: execResult.output,
         expected: output,
@@ -427,7 +441,14 @@ export class AITestRunner extends EventEmitter {
     execResult: any,
     options: AITestRunnerOptions,
     globalOperators: any = {}
-  ): Promise<{ failures: any[]; expectedTrace?: any }> {
+  ): Promise<{
+    failures: any[]
+    expectedTrace?: any
+    score?: number
+    maxScore?: number
+    passScore?: number
+    failedRequired: any[]
+  }> {
     const { userConfig = {} } = options
     const failures: any[] = []
     const checkSchema =
@@ -446,6 +467,18 @@ export class AITestRunner extends EventEmitter {
       fixture.allowOperatorOverride ??
       fixtureConfig.allowOperatorOverride ??
       options.allowOperatorOverride
+    const scoring = fixture.scoring ?? fixtureConfig.scoring ?? options.scoring
+    const maxScore =
+      fixture.maxScore ?? fixtureConfig.maxScore ?? options.maxScore ?? 100
+    const passScore =
+      fixture.passScore ??
+      fixtureConfig.passScore ??
+      options.passScore ??
+      maxScore
+    const unassignedWeight =
+      fixture.unassignedWeight ??
+      fixtureConfig.unassignedWeight ??
+      options.unassignedWeight
 
     const fixtureOps = fixture.operators || fixtureConfig.operators
     let operators = globalOperators
@@ -454,33 +487,58 @@ export class AITestRunner extends EventEmitter {
       operators = { ...globalOperators, ...loadedFixtureOps }
     }
 
-    // 1. JSON Schema Validation
-    if (checkSchema !== false) {
-      const expectedSchema = await this.getExpectedSchema(
-        fixture,
-        fixtureConfig,
-        templateData
-      )
-      if (expectedSchema && expectedSchema.type) {
-        const schemaFailures = await validateMatch(
-          execResult.output,
-          expectedSchema,
-          {
-            data: templateData,
-            input: fixture,
-            strict,
-            disableHeuristicSchema,
-            operators,
-            allowOperatorOverride,
-          }
-        )
-        if (schemaFailures) failures.push(...schemaFailures)
-      }
+    // Determine how many validation blocks we have to distribute maxScore
+    const output =
+      fixture.output !== undefined ? fixture.output : fixtureConfig.output
+    const expect = fixture.expect || fixtureConfig.expect
+    const expectedSchema = await this.getExpectedSchema(
+      fixture,
+      fixtureConfig,
+      templateData
+    )
+
+    let validationBlocks = 0
+    if (checkSchema !== false && expectedSchema && expectedSchema.type)
+      validationBlocks++
+    if (output !== undefined) validationBlocks++
+    if (expect) validationBlocks++
+
+    const allocatedPerBlock = validationBlocks > 0 ? maxScore / validationBlocks : maxScore
+    const failedRequired: any[] = []
+    let totalEarnedScore = 0
+
+    const commonCtxOptions = {
+      data: templateData,
+      input: fixture,
+      strict,
+      disableHeuristicSchema,
+      operators,
+      allowOperatorOverride,
+      scoring,
+      maxScore,
+      passScore,
+      unassignedWeight,
+      allocatedScore: allocatedPerBlock,
+      failedRequired,
+    }
+
+    // Let's refactor to use a single shared context if possible, or at least track earnedScore.
+    const runValidation = async (actual: any, expected: any, weight: number) => {
+      const ctx = new ValidationContext({
+        ...commonCtxOptions,
+        allocatedScore: weight,
+      })
+      const result = await validateMatch(actual, expected, ctx)
+      totalEarnedScore += ctx.earnedScore
+      if (result) failures.push(...result)
+      return ctx
+    }
+
+    if (checkSchema !== false && expectedSchema && expectedSchema.type) {
+      await runValidation(execResult.output, expectedSchema, allocatedPerBlock)
     }
 
     // 2. Output Matching
-    const output =
-      fixture.output !== undefined ? fixture.output : fixtureConfig.output
     if (output !== undefined) {
       const formattedOutput =
         typeof output === 'function'
@@ -489,23 +547,10 @@ export class AITestRunner extends EventEmitter {
               data: templateData,
               input: fixture,
             })
-      const matchFailures = await validateMatch(
-        execResult.output,
-        formattedOutput,
-        {
-          data: templateData,
-          input: fixture,
-          strict,
-          disableHeuristicSchema,
-          operators,
-          allowOperatorOverride,
-        }
-      )
-      if (matchFailures) failures.push(...matchFailures)
+      await runValidation(execResult.output, formattedOutput, allocatedPerBlock)
     }
 
     // 3. Expect Trace Validation
-    const expect = fixture.expect || fixtureConfig.expect
     let expectedTrace: any
     if (expect) {
       expectedTrace = await this.prepareExpectation(
@@ -513,18 +558,17 @@ export class AITestRunner extends EventEmitter {
         templateData,
         fixture
       )
-      const expectFailures = await validateMatch(execResult, expectedTrace, {
-        data: templateData,
-        input: fixture,
-        strict,
-        disableHeuristicSchema,
-        operators,
-        allowOperatorOverride,
-      })
-      if (expectFailures) failures.push(...expectFailures)
+      await runValidation(execResult, expectedTrace, allocatedPerBlock)
     }
 
-    return { failures, expectedTrace }
+    return {
+      failures,
+      expectedTrace,
+      score: scoring ? totalEarnedScore : undefined,
+      maxScore: scoring ? maxScore : undefined,
+      passScore: scoring ? passScore : undefined,
+      failedRequired,
+    }
   }
 
   /**

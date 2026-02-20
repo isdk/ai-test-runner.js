@@ -179,7 +179,80 @@ expect: {
     output: "{{user}}"  # 结果直接为 { id: 1, name: 'Alice' }，支持深度对象匹配
 ```
 
-### 2. 自定义验证操作符 (Custom Operators)
+### 2. 评分策略 (Scoring Strategy)
+
+在 AI 这种非确定性（Non-deterministic）输出场景下，单纯的 Passed/Failed 往往过于武断。`ai-test-runner` 引入了一套强大的评分系统，能够量化 AI 的输出质量。
+
+#### 2.1 核心配置
+
+你可以在 Fixture 或全局配置中开启评分：
+
+- **`scoring`**: `true | false | 'auto'`。开启评分模式。
+- **`maxScore`**: (默认 `100`) 本次测试的总分上限。
+- **`passScore`**: (默认等于 `maxScore`) 判定测试通过（`passed: true`）所需的最低分值。
+- **`unassignedWeight`**: (可选) 为没有显式设置 `score` 的验证项指定默认相对权重。如果不设置，系统会根据显式分值的量级自动智能分配。
+
+#### 2.2 分层相对权重算法
+
+评分系统采用 **“自上而下分配，自下而上回溯”** 的层级权重模型。
+
+- **权重归一化**：在每一层级（对象属性、数组元素、逻辑算子子项），系统会计算所有 Peer 项的相对占比，并确保它们的权重之和为 100%。
+- **自动适配量级**：你可以使用 `0~1` 的百分比，也可以使用 `0~100` 的整数分值，系统会自动识别并进行比例缩放。
+- **动态平分**：如果某些项有分数而另一些没有，未标注项将平分剩余的权重。如果分值已分满，未标注项会自动获得一个微小的“占位权重”。
+
+#### 2.3 分值元数据 (`score`)
+
+任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$expect` 或直接在算子属性中注入分值：
+
+```yaml
+# score 可以是简写数字（代表相对权重）
+score: 80
+
+# 也可以是对象，包含红线逻辑
+score:
+  value: 80
+  required: true  # 必须项（红线）：如果此项不通过，即便总分及格，passed 也会设为 false
+```
+
+#### 2.4 $expect：评分包装算子
+
+`$expect` 是一个透明的容器，专门用于在任何地方注入评分元数据：
+
+```yaml
+output:
+  $and:
+    - $expect: /春天/
+      score: { value: 80, required: true }
+      title: "季节核心词"
+    - $expect: /花/
+      score: 20
+```
+
+#### 2.5 $diff：差异分值化
+
+对于长文本或复杂的 JSON 变化，你可以对 Diff 白名单中的每一项进行打分：
+
+```yaml
+expect:
+  diff:
+    items:
+      - value: "核心结论"
+        added: true
+        score: { value: 90, required: true }
+      - value: "修饰词"
+        added: true
+        score: 10
+    permissive: true # 宽容模式：忽略未声明的变化，仅根据白名单项评分
+```
+
+#### 2.6 日志反馈
+
+在执行结果的 `logItem` 中，你会看到：
+- **`score`**: 最终得出的量化分值。
+- **`passScore`**: 及格线参考。
+- **`failedRequired`**: 如果测试因为触碰“红线”而失败，这里会列出具体导致失败的强制性验证项。
+
+### 3. 自定义验证操作符 (Custom Operators)
 
 当声明式校验或简单的自定义函数不足以满足需求时，你可以通过 `operators` 定义可复用的验证逻辑。
 

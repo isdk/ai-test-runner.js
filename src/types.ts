@@ -24,6 +24,10 @@ export interface AIDiffItem extends Change {
    * If true, this change MUST be present in the actual output for the validation to pass.
    */
   required?: boolean
+  /**
+   * Scoring configuration for this specific diff item.
+   */
+  score?: AIScoreConfig
 }
 
 /**
@@ -140,6 +144,19 @@ export interface AIValidationFailure {
 }
 
 /**
+ * Configuration for scoring a validation item.
+ * Can be a simple number (weight) or a detailed object.
+ */
+export type AIScoreConfig =
+  | number
+  | {
+      /** The relative weight or value of this item. */
+      value: number
+      /** If true, this item must pass for the overall test to pass, regardless of the score. */
+      required?: boolean
+    }
+
+/**
  * Detailed log entry for a single test fixture execution.
  */
 export interface AITestLogItem {
@@ -147,6 +164,14 @@ export interface AITestLogItem {
   title?: string
   /** True if all validations passed for this fixture. */
   passed: boolean
+  /** The final calculated score (0.0 to maxScore). */
+  score?: number
+  /** The maximum possible score for this test. */
+  maxScore?: number
+  /** The minimum score required for the test to pass. */
+  passScore?: number
+  /** A list of validation failures that were marked as 'required' but failed. */
+  failedRequired?: AIValidationFailure[]
   /** The resolved input provided to the AI script. */
   input: any
   /** The actual output produced by the executor. */
@@ -246,6 +271,19 @@ export interface AITestFixture {
   operators?: Record<string, any>
   /** Whether to allow custom operators to override built-in ones. */
   allowOperatorOverride?: boolean
+  /**
+   * Scoring mode configuration.
+   * - `true`: Enable scoring.
+   * - `false`: Disable scoring.
+   * - `'auto'`: Automatically enable if 'score' properties are found.
+   */
+  scoring?: boolean | 'auto'
+  /** The maximum possible score for this fixture. Defaults to 1. */
+  maxScore?: number
+  /** The minimum score required for the fixture to pass. Defaults to maxScore. */
+  passScore?: number
+  /** The default relative weight for items that do not have an explicit 'score' property. */
+  unassignedWeight?: number
   /** If true, only this fixture (and others marked 'only') will run. */
   only?: boolean
   /** If true, this fixture will be skipped. */
@@ -329,4 +367,17 @@ export interface AITestRunnerOptions {
    * - `'error'`: Only include when the test fails.
    */
   logVars?: boolean | 'error'
+  /**
+   * Scoring mode configuration.
+   * - `true`: Enable scoring.
+   * - `false`: Disable scoring.
+   * - `'auto'`: Automatically enable if 'score' properties are found.
+   */
+  scoring?: boolean | 'auto'
+  /** The maximum possible score for this fixture. Defaults to 1. */
+  maxScore?: number
+  /** The minimum score required for the fixture to pass. Defaults to maxScore. */
+  passScore?: number
+  /** The default relative weight for items that do not have an explicit 'score' property. */
+  unassignedWeight?: number
 }

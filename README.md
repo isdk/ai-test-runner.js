@@ -179,7 +179,80 @@ The template system not only supports string replacement but also allows direct 
     output: "{{user}}"  # Resolved directly to { id: 1, name: 'Alice' }, enabling deep object matching.
 ```
 
-### 2. Custom Validation Operators
+### 2. Scoring Strategy
+
+In non-deterministic AI scenarios, a simple Passed/Failed result is often too arbitrary. `ai-test-runner` introduces a sophisticated scoring system to quantify LLM output quality.
+
+#### 2.1 Core Configuration
+
+Enable scoring in a fixture or globally:
+
+- **`scoring`**: `true | false | 'auto'`. Enables scoring mode.
+- **`maxScore`**: (Default `100`) The maximum possible score for the test.
+- **`passScore`**: (Default equals `maxScore`) The minimum score required for the test to be considered "passed" (`passed: true`).
+- **`unassignedWeight`**: (Optional) Default relative weight for items without an explicit `score`. If omitted, the system intelligently distributes weight based on the scale of explicit scores.
+
+#### 2.2 Hierarchical Relative Weighting
+
+The system uses a **"top-down distribution, bottom-up aggregation"** model.
+
+- **Weight Normalization**: Within each level (object properties, array elements, logic operator children), peer items compete for a share of the parent's score. The system ensures total relative weight sums to 100%.
+- **Adaptive Scale**: You can use percentages (`0~1`) or integer points (`0~100`); the system automatically scales them proportionally.
+- **Dynamic Allocation**: If some items have scores and others don't, unassigned items split the remaining weight. If the score is fully allocated, unassigned items receive a tiny "token" weight to ensure they still impact the total if they fail.
+
+#### 2.3 Score Metadata (`score`)
+
+Attach a score to any validation node (string, regex, operator, field) via `$expect` or directly in operator properties:
+
+```yaml
+# Short-hand number (relative weight)
+score: 80
+
+# Detailed object with "Red-Line" logic
+score:
+  value: 80
+  required: true  # Mandatory: if this fails, 'passed' becomes false regardless of the total score.
+```
+
+#### 2.4 $expect: The Scoring Wrapper
+
+`$expect` is a transparent operator used to wrap any validation with scoring metadata:
+
+```yaml
+output:
+  $and:
+    - $expect: /Spring/
+      score: { value: 80, required: true }
+      title: "Core keyword"
+    - $expect: /Flower/
+      score: 20
+```
+
+#### 2.5 $diff: Per-item Scoring
+
+For long-form text or complex JSON, you can score individual whitelist items:
+
+```yaml
+expect:
+  diff:
+    items:
+      - value: "Key Conclusion"
+        added: true
+        score: { value: 90, required: true }
+      - value: "optional adjective"
+        added: true
+        score: 10
+    permissive: true # Only score based on whitelist items, ignoring other changes.
+```
+
+#### 2.6 Log Feedback
+
+The resulting `logItem` includes:
+- **`score`**: The final calculated quantitative score.
+- **`passScore`**: The threshold for passing.
+- **`failedRequired`**: A list of mandatory items that failed, explaining why a high-scoring test might still be marked as `passed: false`.
+
+### 3. Custom Validation Operators
 
 When declarative matching or simple custom functions aren't enough, you can define reusable validation logic via `operators`.
 
