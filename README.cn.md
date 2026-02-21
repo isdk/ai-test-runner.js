@@ -189,51 +189,59 @@ expect: {
 
 ### 2. 评分策略 (Scoring Strategy)
 
-在 AI 这种非确定性（Non-deterministic）输出场景下，单纯的 Passed/Failed 往往过于武断。`ai-test-runner` 引入了一套强大的评分系统，能够量化 AI 的输出质量。
+在 AI 这种非确定性（Non-deterministic）输出场景下，单纯的 Passed/Failed 往往过于武断。`ai-test-runner` 引入了一套强大的评分系统，能够量化 AI 的输出质量，并支持灵活的策略和模糊匹配。
 
 #### 2.1 核心配置
 
 你可以在 Fixture 或全局配置中开启评分：
 
 - **`scoring`**: `true | false | 'auto'`。开启评分模式。
-- **`maxScore`**: (默认 `100`) 本次测试的总分上限。
+- **`maxScore`**: (默认 `100`) 本次测试的总分上限。该值也作为百分比权重分配的基准，如果未提供明确的 `unassignedWeight`。
 - **`passScore`**: (默认等于 `maxScore`) 判定测试通过（`passed: true`）所需的最低分值。
-- **`unassignedWeight`**: (可选) 为没有显式设置 `score` 的验证项指定默认相对权重。如果不设置，系统会根据显式分值的量级自动智能分配。
+- **`unassignedWeight`**: (可选) 为没有显式设置 `score` 的验证项指定默认相对权重。如果不设置，系统会根据显式分值的量级自动智能分配，通常使用 `maxScore` 作为百分比分配的基准。
 
-#### 2.2 分层相对权重算法
+#### 2.2 分层相对权重与策略
 
-评分系统采用 **“自上而下分配，自下而上回溯”** 的层级权重模型。
+评分系统采用 **“自上而下分配，自下而上聚合”** 的层级权重模型。分值会分配给子验证节点（例如，对象中的属性、数组中的元素、$and / $or 中的条件），然后聚合回父节点。具体的分配和聚合逻辑由 **评分策略 (Scoring Strategies)** 控制。
 
-- **权重归一化**：在每一层级（对象属性、数组元素、逻辑算子子项），系统会计算所有 Peer 项的相对占比，并确保它们的权重之和为 100%。
-- **自动适配量级**：你可以使用 `0~1` 的百分比，也可以使用 `0~100` 的整数分值，系统会自动识别并进行比例缩放。
-- **动态平分**：如果某些项有分数而另一些没有，未标注项将平分剩余的权重。如果分值已分满，未标注项会自动获得一个微小的“占位权重”。
+- **权重归一化**：在每一层级，Peer 项竞争分配父节点的 `allocatedScore`。
+- **自动适配量级**：你可以使用 `0~1` 的百分比，也可以使用 `0~maxScore` 的整数分值，系统会自动识别并进行比例缩放。
+- **动态分配**：如果某些项有分值而另一些没有，未标注项会根据所选策略和 `unassignedWeight` 分割剩余权重。
 
-#### 2.3 分值元数据 (`score`)
+#### 2.3 分值元数据 (`score`) 与自定义策略
 
-任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$expect` 或直接在算子属性中注入分值：
+任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$expect` 或直接在算子属性中注入分值元数据。`score` 属性现在支持指定 `strategy` 和 `threshold`。
 
 ```yaml
-# score 可以是简写数字（代表相对权重）
+# score 可以是简写数字（代表相对权重或 maxScore 的百分比）
 score: 80
 
-# 也可以是对象，包含红线逻辑
+# 也可以是对象，包含红线逻辑、自定义策略和模糊阈值
 score:
-  value: 80
-  critical: true  # 必须项（红线）：如果此项不通过，即便总分及格，passed 也会设为 false
+  value: 80           # 相对权重或百分比
+  critical: true      # 必须项（红线）：如果此项不通过，即便总分及格，passed 也会设为 false。
+  strategy: 'weighted' # (可选) 该节点的子节点的评分策略（例如，'weighted' 加权求和，'max' 取最大值）。
+  threshold: 0.75     # (可选) 用于模糊匹配。分值 >= 阈值才被视为“通过”。
 ```
+
+- **`strategy`**: (可选 `string`) 定义该节点的 `allocatedScore` 如何分配给其子节点 (`distribute` 方法)，以及它们的 `earnedScore` 如何聚合 (`aggregate` 方法)。
+  -   **`weighted` (对象、数组、$and 的默认策略)**：按子节点的 `value` 比例分配分值，并对它们的 `earnedScore` 进行求和。
+  -   **`max` ($or、$contains 的默认策略)**：平均分配分值给子节点（或根据它们的 `value`），并取其中最高的 `earnedScore`。
+- **`threshold`**: (可选 `number`，介于 0 到 1 之间) 适用于叶子验证节点（例如，自定义算子或返回分值的字符串比较）。如果该项的 `score` 低于此 `threshold`，即使它贡献了部分分值，也会被视为验证失败。
 
 #### 2.4 $expect：评分包装算子
 
-`$expect` 是一个透明的容器，专门用于在任何地方注入评分元数据：
+`$expect` 是一个透明的容器，专门用于在任何地方注入评分元数据、标题和策略配置：
 
 ```yaml
 output:
   $and:
     - $expect: /春天/
-      score: { value: 80, critical: true }
-      title: "季节核心词"
+      score: { value: 80, critical: true, strategy: 'weighted' }
+      title: "核心关键词存在"
     - $expect: /花/
       score: 20
+      threshold: 0.5 # 如果“花”的匹配置信度低于 50%，则失败。
 ```
 
 #### 2.5 $diff：差异分值化
@@ -250,7 +258,7 @@ expect:
       - value: "修饰词"
         added: true
         score: 10
-    permissive: true # 宽容模式：忽略未声明的变化，仅根据白名单项评分
+    permissive: true # 宽容模式：仅根据白名单项评分，忽略未声明的其它变化。
 ```
 
 #### 2.6 日志反馈
@@ -263,7 +271,7 @@ expect:
 
 ### 3. 自定义验证操作符 (Custom Operators)
 
-当声明式校验或简单的自定义函数不足以满足需求时，你可以通过 `operators` 定义可复用的验证逻辑。
+当声明式校验或简单的自定义函数不足以满足需求时，你可以通过 `operators` 定义可复用的验证逻辑。自定义操作符现在已完全集成到评分系统中，支持返回置信度分数。
 
 #### 3.1 定义与引用
 
@@ -311,13 +319,13 @@ operators:
       $checkCode: { strict: true, lang: 'ts' }
 ```
 
-#### 3.2 操作符函数签名
+#### 3.2 操作符函数签名与 `ValidationResult`
 
-系统支持两种签名模式。建议使用 **简化模式** 以获得最佳的开发体验。
+系统支持两种签名模式。建议使用 **简化模式** 以获得最佳的开发体验，并且现在完全支持返回详细的 `ValidationResult` 对象。
 
 ##### 简化模式 (推荐)
 
-适用于大多数业务逻辑校验。
+适用于大多数业务逻辑校验。可返回布尔值、字符串、数字（0-1置信度）或 `{ score, message, pass }` 对象。
 
 ```javascript
 /**
@@ -328,13 +336,25 @@ operators:
  *                   - $validate: 递归校验方法 (act, exp) => Promise<Failures[]>
  *                   - $options: 从 $value 结构中拆解出的辅助参数 (见下文)
  *                   - 其它 fixture 顶层属性
+ * @returns {boolean | string | number | {score: number, message?: string, pass?: boolean}}
+ *          - `true`: 完全通过，得分 1.0。
+ *          - `false` 或 `string`: 完全失败，得分 0.0。`string` 用作失败消息。
+ *          - `number` (0.0-1.0): 部分通过，带有置信度分数。如果 `score < ctx.threshold`，则视为失败。
+ *          - `{ score: number, message?: string, pass?: boolean }`: 详细结果。
+ *            - `score`: 置信度 (0.0-1.0)。
+ *            - `message`: 自定义失败消息。
+ *            - `pass`: 显式声明通过/失败，会覆盖阈值逻辑。
  */
 export async function checkCode(actual, expected, fixture) {
-  // 提示：expected 参数已支持变量替换，如：$checkCode: { name: "{{targetName}}" }
-  if (expected.strict && actual.includes('eval')) {
-    return "不允许使用 eval"; // 返回字符串代表失败原因
+  // 示例 1: 简单通过/失败
+  if (actual.includes('eval')) {
+    return "不允许使用 eval"; // 失败并带消息
   }
-  return true; // 返回 true 代表通过
+  // 示例 2: 置信度分数
+  const confidence = actual.includes(expected.keyword) ? 0.8 : 0.2;
+  return confidence; // 返回 0.8 或 0.2
+  // 示例 3: 带有阈值覆盖的详细结果
+  // return { score: 0.6, pass: true, message: "部分匹配但显式允许" };
 }
 ```
 
@@ -343,10 +363,16 @@ export async function checkCode(actual, expected, fixture) {
 如果你需要直接操作验证失败列表或进行复杂的路径控制。当函数接收 4 个参数时自动触发。
 
 ```javascript
-export async function myOp(actual, expected, ctx, validateMatch) {
+import { ValidationContext, ValidateMatchFn } from '@isdk/ai-test-runner';
+
+export async function myOp(actual, expected, ctx: ValidationContext, validateMatch: ValidateMatchFn) {
+  // 直接使用 ctx.addFailure() 添加失败
+  // 可以使用 utils 中的 processValidationResult() 来根据内部逻辑更新分数和失败信息。
+  // 示例:
   if (actual !== expected) {
     ctx.addFailure({ message: '不匹配', expected, actual });
   }
+  ctx.earnedScore += ctx.allocatedScore; // 或者根据子验证结果计算
   return ctx.failures;
 }
 ```
@@ -387,11 +413,10 @@ export function checkCode(actual, expected, fixture) {
 
 ```javascript
 export async function $eachMatch(actualArray, pattern, fixture) {
-  for (const item of actualArray) {
-    const failures = await fixture.$validate(item, pattern);
-    if (failures.length > 0) return `项 ${item} 不匹配模式`;
-  }
-  return true;
+  // 使用 fixture.$validate，它返回一个 AIValidationFailure 数组
+  const failures = await fixture.$validate(actualArray[0], pattern);
+  if (failures.length > 0) return `第一项不匹配模式`;
+  return 1.0; // 返回置信度分数
 }
 ```
 

@@ -2,12 +2,13 @@ import { pathToFileURL } from 'node:url'
 import { join, isAbsolute } from 'node:path'
 import { camelCase } from 'lodash-es'
 import { ValidationOperatorHandler, ValidationContext } from './types.js'
+import { processValidationResult } from './utils.js'
 
 export type CustomOperatorHandler = (
   actual: any,
   expected: any,
   fixture: any
-) => Promise<boolean | string> | boolean | string
+) => Promise<any> | any
 
 /**
  * Wraps a custom operator handler to match the internal ValidationOperatorHandler signature.
@@ -37,16 +38,7 @@ export function wrapCustomOperator(
     fixture.$options = options
 
     const result = await handler(actual, expected, fixture)
-    if (result !== true) {
-      ctx.addFailure({
-        message:
-          typeof result === 'string'
-            ? result
-            : 'Custom operator validation failed',
-        expected,
-        actual,
-      })
-    }
+    processValidationResult(result, expected, actual, ctx)
     return ctx.failures
   }
 }

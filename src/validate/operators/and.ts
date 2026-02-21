@@ -1,6 +1,7 @@
 import { AIValidationFailure } from '../../types.js'
 import { ValidationContext, ValidateMatchFn } from '../types.js'
 import { calculateNormalizedWeights } from '../utils.js'
+import { getStrategy } from '../strategies.js'
 
 /**
  * Validates that a value matches ALL specified expectations.
@@ -22,22 +23,24 @@ export async function validateAnd(
 
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
-      ? typeof item.score === 'number'
-        ? item.score
-        : (item.score.value ?? 1)
+      ? item.score
       : null
   )
-  const weights = calculateNormalizedWeights(
-    explicitWeights,
-    expectedList.length,
-    { unassignedWeight: ctx.unassignedWeight }
-  )
+
+  const strategy = ctx.strategy || getStrategy('weighted')
+  const weights = strategy.distribute(explicitWeights, expectedList.length, {
+    unassignedWeight: ctx.unassignedWeight,
+    maxScore: ctx.maxScore,
+  })
+  const subContexts: ValidationContext[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
     const subCtx = ctx.createSubContext(`$and[${i}]`)
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     await validateMatch(actual, expectedList[i], subCtx)
-    ctx.earnedScore += subCtx.earnedScore
+    subContexts.push(subCtx)
   }
+  strategy.aggregate(ctx, subContexts)
+
   return ctx.failures
 }

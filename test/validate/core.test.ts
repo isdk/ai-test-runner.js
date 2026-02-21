@@ -153,7 +153,7 @@ describe('validate/core', () => {
     it('should fail if function returns false or error message', async () => {
       const failures = await validateMatch(10, (val: number) => val < 5 || 'too big')
       expect(failures).toHaveLength(1)
-      expect(failures[0].message).toBe('Custom function validation failed: too big')
+      expect(failures[0].message).toContain('too big')
     })
 
     it('should handle async custom functions', async () => {

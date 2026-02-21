@@ -154,6 +154,34 @@ export type AIScoreConfig =
       value: number
       /** If true, this item must pass for the overall test to pass, regardless of the score(red-line). */
       critical?: boolean
+      /** The strategy used to calculate the score for this item's children. */
+      strategy?: string
+      /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
+      threshold?: number
+      /** Additional options for the strategy. */
+      [key: string]: any
+    }
+
+/**
+ * The result returned by a validation operator or function.
+ * - `boolean`: true -> pass (100%), false -> fail (0%).
+ * - `string`: fail (0%) with message.
+ * - `number`: pass with confidence score (0-1).
+ * - `object`: detailed result with score and optional message.
+ */
+export type ValidationResult =
+  | boolean
+  | string
+  | number
+  | {
+      /** The confidence score (0.0 - 1.0). */
+      score: number
+      /** Optional failure message. */
+      message?: string
+      /** Whether the validation is considered passed. Default depends on threshold. */
+      pass?: boolean
+      /** Additional metadata. */
+      [key: string]: any
     }
 
 /**

@@ -6,12 +6,17 @@ import {
   ValidationContext,
   ValidateMatchFn,
 } from './types.js'
-import { isStrict, calculateNormalizedWeights } from './utils.js'
+import {
+  isStrict,
+  calculateNormalizedWeights,
+  processValidationResult,
+} from './utils.js'
 import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'
 import { OPERATORS } from './operators.js'
 import { validateStringDiff } from './diff.js'
 import { YamlTypeJsonSchema } from '../yaml-types/index.js'
+import { getStrategy } from './strategies.js'
 
 /**
  * Metadata keys that are treated as scoring/documentation parameters.
@@ -37,9 +42,16 @@ export async function validateMatch(
 /**
  * Internal helper to extract weight and critical flag from a node.
  */
-function getScoreConfig(item: any): { weight: number; critical: boolean } {
+function getScoreConfig(item: any): {
+  weight: number
+  critical: boolean
+  strategy?: string
+  threshold?: number
+} {
   let weight = 1
   let critical = false
+  let strategy: string | undefined
+  let threshold: number | undefined
 
   if (item && typeof item === 'object' && item.score !== undefined) {
     const s = item.score
@@ -48,10 +60,12 @@ function getScoreConfig(item: any): { weight: number; critical: boolean } {
     } else if (typeof s === 'object' && s !== null) {
       weight = s.value ?? 1
       critical = !!s.critical
+      strategy = s.strategy
+      threshold = s.threshold
     }
   }
 
-  return { weight, critical }
+  return { weight, critical, strategy, threshold }
 }
 
 /**
@@ -216,38 +230,28 @@ async function _validateMatch(
 
       const explicitWeights = expected.map((item) => {
         if (item && typeof item === 'object' && item.score !== undefined) {
-          const s = item.score
-          return typeof s === 'number' ? s : (s.value ?? 1)
+          return item.score
         }
         return null
       })
-      const weights = calculateNormalizedWeights(
-        explicitWeights,
-        expected.length,
-        { unassignedWeight: ctx.unassignedWeight }
-      )
+      const strategy = ctx.strategy || getStrategy('weighted')
+      const weights = strategy.distribute(explicitWeights, expected.length, {
+        unassignedWeight: ctx.unassignedWeight,
+        maxScore: ctx.maxScore,
+      })
 
+      const subContexts: ValidationContext[] = []
       for (let i = 0; i < expected.length; i++) {
         const subCtx = ctx.createSubContext(`[${i}]`)
         subCtx.allocatedScore = weights[i] * ctx.allocatedScore
         await _validateMatch(actual[i], expected[i], subCtx)
-        ctx.earnedScore += subCtx.earnedScore
+        subContexts.push(subCtx)
       }
+      strategy.aggregate(ctx, subContexts)
     }
   } else if (vType === 'function') {
     const result = await expected(actual, input)
-    const expectedName = expected.name
-      ? expected.name + '()'
-      : expected.toString()
-    if (result === true) {
-      ctx.earnedScore = ctx.allocatedScore
-    } else {
-      ctx.addFailure({
-        message: `Custom function validation failed: ${result}`,
-        expected: expectedName,
-        actual,
-      })
-    }
+    processValidationResult(result, expected, actual, ctx)
   } else if (
     expected instanceof YamlTypeJsonSchema ||
     (!ctx.disableHeuristicSchema && isJsonSchema(expected))
@@ -282,16 +286,17 @@ async function _validateMatch(
       const explicitWeights = allKeys.map((k) => {
         const item = expected[k]
         if (item && typeof item === 'object' && item.score !== undefined) {
-          const s = item.score
-          return typeof s === 'number' ? s : (s.value ?? 1)
+          return item.score
         }
         return null
       })
-      const weights = calculateNormalizedWeights(
-        explicitWeights,
-        allKeys.length,
-        { unassignedWeight: ctx.unassignedWeight }
-      )
+
+      const strategy = ctx.strategy || getStrategy('weighted')
+      const weights = strategy.distribute(explicitWeights, allKeys.length, {
+        unassignedWeight: ctx.unassignedWeight,
+        maxScore: ctx.maxScore,
+      })
+      const subContexts: ValidationContext[] = []
 
       for (let i = 0; i < allKeys.length; i++) {
         const k = allKeys[i]
@@ -320,8 +325,9 @@ async function _validateMatch(
         const subCtx = ctx.createSubContext(matchedKey || k, { isKeyPresent })
         subCtx.allocatedScore = weights[i] * ctx.allocatedScore
         await _validateMatch(actualValue, v, subCtx)
-        ctx.earnedScore += subCtx.earnedScore
+        subContexts.push(subCtx)
       }
+      strategy.aggregate(ctx, subContexts)
 
       if (isStrict('object', ctx)) {
         const actualKeys = Object.keys(actual)

@@ -1,6 +1,7 @@
 import { AIValidationFailure } from '../../types.js'
 import { ValidationContext, ValidateMatchFn } from '../types.js'
 import { calculateNormalizedWeights } from '../utils.js'
+import { getStrategy } from '../strategies.js'
 
 /**
  * Validates that a value matches at least ONE of the specified expectations.
@@ -21,21 +22,20 @@ export async function validateOr(
   }
 
   const allFailures: AIValidationFailure[][] = []
-  let maxBranchEarnedScore = 0
   let matchedAny = false
 
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
-      ? typeof item.score === 'number'
-        ? item.score
-        : (item.score.value ?? 1)
+      ? item.score
       : null
   )
-  const weights = calculateNormalizedWeights(
-    explicitWeights,
-    expectedList.length,
-    { unassignedWeight: ctx.unassignedWeight, independentScale: true }
-  )
+
+  const strategy = ctx.strategy || getStrategy('max')
+  const weights = strategy.distribute(explicitWeights, expectedList.length, {
+    unassignedWeight: ctx.unassignedWeight,
+    maxScore: ctx.maxScore,
+  })
+  const subContexts: ValidationContext[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
     const branchFailures: AIValidationFailure[] = []
@@ -44,23 +44,21 @@ export async function validateOr(
     })
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     await validateMatch(actual, expectedList[i], subCtx)
+    subContexts.push(subCtx)
 
     if (branchFailures.length === 0) {
       matchedAny = true
-      if (subCtx.earnedScore > maxBranchEarnedScore)
-        maxBranchEarnedScore = subCtx.earnedScore
       if (!ctx.scoring) {
         ctx.earnedScore = ctx.allocatedScore
         return []
       }
     } else {
-      if (subCtx.earnedScore > maxBranchEarnedScore)
-        maxBranchEarnedScore = subCtx.earnedScore
       allFailures.push(branchFailures)
     }
   }
 
-  ctx.earnedScore = maxBranchEarnedScore
+  strategy.aggregate(ctx, subContexts)
+
   if (matchedAny) {
     return []
   }

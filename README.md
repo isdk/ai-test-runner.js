@@ -189,54 +189,62 @@ The template system not only supports string replacement but also allows direct 
 
 ### 2. Scoring Strategy
 
-In non-deterministic AI scenarios, a simple Passed/Failed result is often too arbitrary. `ai-test-runner` introduces a sophisticated scoring system to quantify LLM output quality.
+In non-deterministic AI scenarios, a simple Passed/Failed result is often too arbitrary. `ai-test-runner` introduces a sophisticated scoring system to quantify LLM output quality, supporting flexible strategies and fuzzy matching.
 
 #### 2.1 Core Configuration
 
 Enable scoring in a fixture or globally:
 
 - **`scoring`**: `true | false | 'auto'`. Enables scoring mode.
-- **`maxScore`**: (Default `100`) The maximum possible score for the test.
+- **`maxScore`**: (Default `100`) The maximum possible score for the test. This value is also used as the base for percentage-based weight distribution if no explicit `unassignedWeight` is provided.
 - **`passScore`**: (Default equals `maxScore`) The minimum score required for the test to be considered "passed" (`passed: true`).
-- **`unassignedWeight`**: (Optional) Default relative weight for items without an explicit `score`. If omitted, the system intelligently distributes weight based on the scale of explicit scores.
+- **`unassignedWeight`**: (Optional) Default relative weight for items without an explicit `score`. If omitted, the system intelligently distributes weight based on the scale of explicit scores, typically using `maxScore` as a baseline for percentage allocation.
 
-#### 2.2 Hierarchical Relative Weighting
+#### 2.2 Hierarchical Relative Weighting & Strategies
 
-The system uses a **"top-down distribution, bottom-up aggregation"** model.
+The system uses a **"top-down distribution, bottom-up aggregation"** model. Scores are distributed to child validation nodes (e.g., properties in an object, elements in an array, conditions in `$and` / `$or`) and then aggregated back to the parent. The exact distribution and aggregation logic are controlled by **Scoring Strategies**.
 
-- **Weight Normalization**: Within each level (object properties, array elements, logic operator children), peer items compete for a share of the parent's score. The system ensures total relative weight sums to 100%.
-- **Adaptive Scale**: You can use percentages (`0~1`) or integer points (`0~100`); the system automatically scales them proportionally.
-- **Dynamic Allocation**: If some items have scores and others don't, unassigned items split the remaining weight. If the score is fully allocated, unassigned items receive a tiny "token" weight to ensure they still impact the total if they fail.
+- **Weight Normalization**: Within each level, peer items compete for a share of the parent's `allocatedScore`.
+- **Adaptive Scale**: You can use percentages (`0~1`) or integer points (`0~maxScore`); the system automatically scales them proportionally.
+- **Dynamic Allocation**: If some items have scores and others don't, unassigned items split the remaining weight based on the chosen strategy and `unassignedWeight`.
 
-#### 2.3 Score Metadata (`score`)
+#### 2.3 `score` Metadata & Custom Strategies
 
-Attach a score to any validation node (string, regex, operator, field) via `$expect` or directly in operator properties:
+Attach score metadata to any validation node (string, regex, operator, field) via `$expect` or directly in operator properties. The `score` property now supports specifying a `strategy` and `threshold`.
 
 ```yaml
-# Short-hand number (relative weight)
+# Short-hand number (relative weight or percentage of maxScore)
 score: 80
 
-# Detailed object with "Red-Line" logic
+# Detailed object with "Red-Line" logic, custom strategy, and fuzzy threshold
 score:
-  value: 80
-  critical: true  # Mandatory: if this fails, 'passed' becomes false regardless of the total score.
+  value: 80           # Relative weight or percentage
+  critical: true      # Mandatory: if this fails, 'passed' becomes false regardless of total score.
+  strategy: 'weighted' # (Optional) Scoring strategy for this node's children (e.g., 'weighted', 'max').
+  threshold: 0.75     # (Optional) For fuzzy matching. Score >= threshold to be considered 'passed'.
 ```
 
-#### 2.4 $expect: The Scoring Wrapper
+- **`strategy`**: (Optional `string`) Defines how this node's allocated score is distributed among its children (`distribute` method) and how their `earnedScore`s are combined (`aggregate` method).
+  -   **`weighted` (Default for objects, arrays, `$and`)**: Distributes score proportionally to children's `value`s and sums their `earnedScore`s.
+  -   **`max` (Default for `$or`, `$contains`)**: Distributes equal score to children (or based on their `value`s) and takes the highest `earnedScore` among them.
+- **`threshold`**: (Optional `number` between 0 and 1) Applicable for leaf validation nodes (like custom operators or string comparisons that return a score). If the `score` for that specific item is less than this `threshold`, it will be considered a validation failure, even if it contributes a partial score.
 
-`$expect` is a transparent operator used to wrap any validation with scoring metadata:
+#### 2.4 `$expect`: The Scoring Wrapper
+
+`$expect` is a transparent operator used to wrap any validation with scoring metadata, titles, and strategy configuration:
 
 ```yaml
 output:
   $and:
     - $expect: /Spring/
-      score: { value: 80, critical: true }
-      title: "Core keyword"
+      score: { value: 80, critical: true, strategy: 'weighted' }
+      title: "Core keyword presence"
     - $expect: /Flower/
       score: 20
+      threshold: 0.5 # If /Flower/ matches with less than 50% confidence, it fails.
 ```
 
-#### 2.5 $diff: Per-item Scoring
+#### 2.5 `$diff`: Per-item Scoring
 
 For long-form text or complex JSON, you can score individual whitelist items:
 
@@ -258,12 +266,12 @@ expect:
 The resulting `logItem` includes:
 
 - **`score`**: The final calculated quantitative score.
-- **`passScore`**: The threshold for passing.
+- **`passScore`**: The threshold for passing the entire fixture.
 - **`failedCritical`**: A list of mandatory items that failed, explaining why a high-scoring test might still be marked as `passed: false`.
 
 ### 3. Custom Validation Operators
 
-When declarative matching or simple custom functions aren't enough, you can define reusable validation logic via `operators`.
+When declarative matching or simple custom functions aren't enough, you can define reusable validation logic via `operators`. Custom operators are now fully integrated with the scoring system, allowing them to return confidence scores.
 
 #### 3.1 Definition & Reference
 
@@ -311,13 +319,13 @@ operators:
       $checkCode: { strict: true, lang: 'ts' }
 ```
 
-#### 3.2 Operator Function Signature
+#### 3.2 Operator Function Signature and `ValidationResult`
 
-The system supports two signature modes. The **Simplified Mode** is recommended for the best developer experience.
+The system supports two signature modes for custom operators. The **Simplified Mode** is recommended for the best developer experience, and now fully supports returning detailed `ValidationResult` objects.
 
 ##### Simplified Mode (Recommended)
 
-Suitable for most business logic validations.
+Suitable for most business logic validations. Can return boolean, string, number (0-1 confidence), or a `{ score, message, pass }` object.
 
 ```javascript
 /**
@@ -328,13 +336,25 @@ Suitable for most business logic validations.
  *                   - $validate: Recursive validation method (act, exp) => Promise<Failures[]>
  *                   - $options: Auxiliary parameters extracted from the $value structure (see below)
  *                   - Other top-level properties of the fixture
+ * @returns {boolean | string | number | {score: number, message?: string, pass?: boolean}}
+ *          - `true`: Full pass, score 1.0.
+ *          - `false` or `string`: Full failure, score 0.0. `string` is used as the failure message.
+ *          - `number` (0.0-1.0): Partial pass with a confidence score. If `score < ctx.threshold`, it's a failure.
+ *          - `{ score: number, message?: string, pass?: boolean }`: Detailed result.
+ *            - `score`: Confidence (0.0-1.0).
+ *            - `message`: Custom failure message.
+ *            - `pass`: Explicitly declare pass/fail, overriding threshold logic.
  */
 export async function checkCode(actual, expected, fixture) {
-  // Tip: The 'expected' parameter supports variable substitution, e.g., $checkCode: { name: "{{targetName}}" }
-  if (expected.strict && actual.includes('eval')) {
-    return "eval is not allowed"; // Return a string representing the failure reason
+  // Example 1: Simple pass/fail
+  if (actual.includes('eval')) {
+    return "eval is not allowed"; // Failure with message
   }
-  return true; // Return true to indicate success
+  // Example 2: Confidence score
+  const confidence = actual.includes(expected.keyword) ? 0.8 : 0.2;
+  return confidence; // Returns 0.8 or 0.2
+  // Example 3: Detailed result with threshold override
+  // return { score: 0.6, pass: true, message: "Partial match but explicitly allowed" };
 }
 ```
 
@@ -343,15 +363,21 @@ export async function checkCode(actual, expected, fixture) {
 If you need to directly manipulate the failure list or perform complex path control. Automatically triggered when the function receives 4 arguments.
 
 ```javascript
-export async function myOp(actual, expected, ctx, validateMatch) {
+import { ValidationContext, ValidateMatchFn } from '@isdk/ai-test-runner';
+
+export async function myOp(actual, expected, ctx: ValidationContext, validateMatch: ValidateMatchFn) {
+  // Use ctx.addFailure() directly to add failures
+  // Use processValidationResult() from utils to update scores and failures based on internal logic.
+  // Example:
   if (actual !== expected) {
     ctx.addFailure({ message: 'mismatch', expected, actual });
   }
+  ctx.earnedScore += ctx.allocatedScore; // Or calculate based on sub-validations
   return ctx.failures;
 }
 ```
 
-#### 3.3 The $value Convention: Separating Target and Options
+#### 3.3 The `$value` Convention: Separating Target and Options
 
 To unify operator interfaces, ai-test-runner introduces the `$value` convention. It allows you to pass a main "validation target" along with multiple auxiliary "configuration options".
 
@@ -381,17 +407,16 @@ export function checkCode(actual, expected, fixture) {
 }
 ```
 
-#### 3.4 Recursive Validation & $validate
+#### 3.4 Recursive Validation & `$validate`
 
 You can call `fixture.$validate` within a custom operator to reuse existing validation logic (including regex, Schema, or other operators).
 
 ```javascript
 export async function $eachMatch(actualArray, pattern, fixture) {
-  for (const item of actualArray) {
-    const failures = await fixture.$validate(item, pattern);
-    if (failures.length > 0) return `Item ${item} does not match pattern`;
-  }
-  return true;
+  // Use fixture.$validate, which returns an array of AIValidationFailure
+  const failures = await fixture.$validate(actualArray[0], pattern);
+  if (failures.length > 0) return `First item does not match pattern`;
+  return 1.0; // Return confidence score
 }
 ```
 

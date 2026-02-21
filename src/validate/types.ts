@@ -38,6 +38,10 @@ export interface MatchValueOptions {
   isCriticalBranch?: boolean
   /** Accumulator for failures in critical items. */
   failedCritical?: AIValidationFailure[]
+  /** The scoring strategy to use. */
+  strategy?: ScoringStrategy
+  /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
+  threshold?: number
 }
 
 /**
@@ -81,6 +85,10 @@ export class ValidationContext {
   isCriticalBranch: boolean
   /** Accumulator for failures in 'critical' items. */
   failedCritical: AIValidationFailure[]
+  /** The scoring strategy to use. */
+  strategy?: ScoringStrategy
+  /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
+  threshold?: number
 
   /**
    * Creates a new validation context.
@@ -104,6 +112,8 @@ export class ValidationContext {
     this.allocatedScore = options.allocatedScore ?? this.maxScore
     this.isCriticalBranch = !!options.isCriticalBranch
     this.failedCritical = options.failedCritical || []
+    this.strategy = options.strategy
+    this.threshold = options.threshold
   }
 
   /**
@@ -156,9 +166,40 @@ export class ValidationContext {
       allocatedScore: this.allocatedScore,
       isCriticalBranch: this.isCriticalBranch,
       failedCritical: this.failedCritical,
+      strategy: this.strategy,
+      threshold: this.threshold,
       ...options,
     })
   }
+}
+
+/**
+ * Interface for a scoring strategy.
+ * Defines how scores are distributed to children and aggregated back to the parent.
+ */
+export interface ScoringStrategy {
+  /**
+   * Calculates the weights for a list of items.
+   * @param items - The items to distribute score to.
+   * @param totalCount - The total number of items.
+   * @param options - Contextual options.
+   * @returns An array of normalized weights (0.0 - 1.0) summing to 1.0 (for weighted) or more (for independent).
+   */
+  distribute(
+    items: (AIScoreConfig | null)[],
+    totalCount: number,
+    options?: { unassignedWeight?: number; maxScore?: number }
+  ): number[]
+
+  /**
+   * Aggregates the results from child contexts into the parent context.
+   * @param parentCtx - The parent context.
+   * @param childrenCtxs - The child contexts that have completed validation.
+   */
+  aggregate(
+    parentCtx: ValidationContext,
+    childrenCtxs: ValidationContext[]
+  ): void
 }
 
 /**
