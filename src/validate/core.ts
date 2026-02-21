@@ -1,7 +1,7 @@
 import { isRegExp, toRegExp } from '@isdk/ai-tool'
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
 import { AIValidationFailure } from '../types.js'
-import { MatchValueOptions, ValidationContext } from './types.js'
+import { MatchValueOptions, ValidationContext, ValidateMatchFn } from './types.js'
 import { isStrict, calculateNormalizedWeights } from './utils.js'
 import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'

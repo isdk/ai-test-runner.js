@@ -162,15 +162,20 @@ export class ValidationContext {
 }
 
 /**
+ * Signature for the core match validation function used recursively by operators.
+ */
+export type ValidateMatchFn = (
+  actual: any,
+  expected: any,
+  ctx: ValidationContext
+) => Promise<AIValidationFailure[]>
+
+/**
  * Function signature for handling custom validation operators (e.g., $contains).
  */
 export type ValidationOperatorHandler = (
   actual: any,
   expected: any,
   ctx: ValidationContext,
-  validateMatch: (
-    actual: any,
-    expected: any,
-    ctx: ValidationContext
-  ) => Promise<AIValidationFailure[]>
+  validateMatch: ValidateMatchFn
 ) => Promise<AIValidationFailure[]>
