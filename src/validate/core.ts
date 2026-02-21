@@ -1,7 +1,11 @@
 import { isRegExp, toRegExp } from '@isdk/ai-tool'
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
 import { AIValidationFailure } from '../types.js'
-import { MatchValueOptions, ValidationContext, ValidateMatchFn } from './types.js'
+import {
+  MatchValueOptions,
+  ValidationContext,
+  ValidateMatchFn,
+} from './types.js'
 import { isStrict, calculateNormalizedWeights } from './utils.js'
 import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'
@@ -76,7 +80,12 @@ async function _validateMatch(
   }
 
   // 1. Scoring Wrapper & Operator Detection
-  if (vType === 'object' && expected !== null && !(expected instanceof RegExp) && !(expected instanceof YamlTypeJsonSchema)) {
+  if (
+    vType === 'object' &&
+    expected !== null &&
+    !(expected instanceof RegExp) &&
+    !(expected instanceof YamlTypeJsonSchema)
+  ) {
     const keys = Object.keys(expected)
     let operator: string | undefined
     let operatorHandler: any
@@ -96,18 +105,30 @@ async function _validateMatch(
     }
 
     if (operator) {
-      const otherKeys = keys.filter(k => k !== operator && !metaKeys.includes(k))
-      if (keys.length === 1 || operator === '$expect' || otherKeys.length === 0) {
+      const otherKeys = keys.filter(
+        (k) => k !== operator && !metaKeys.includes(k)
+      )
+      if (
+        keys.length === 1 ||
+        operator === '$expect' ||
+        otherKeys.length === 0
+      ) {
         const scoreCfg = getScoreConfig(expected)
         const isCritical = scoreCfg.critical
 
-        const opCtx = ctx.createSubContext('', { isCriticalBranch: ctx.isCriticalBranch || isCritical })
+        const opCtx = ctx.createSubContext('', {
+          isCriticalBranch: ctx.isCriticalBranch || isCritical,
+        })
 
         let val = expected[operator]
-        const isBuiltIn = !!OPERATORS[operator] && operatorHandler === OPERATORS[operator]
+        const isBuiltIn =
+          !!OPERATORS[operator] && operatorHandler === OPERATORS[operator]
         val = await formatObject(cloneDeep(val), { data, input })
 
-        const needsArray = isBuiltIn && !['$not', '$schema', '$and', '$or', '$exists', '$expect', '$diff'].includes(operator)
+        const needsArray =
+          operatorHandler.expects === 'array' ||
+          (Array.isArray(operatorHandler.expects) &&
+            operatorHandler.expects.includes('array'))
         if (needsArray && !Array.isArray(actual)) {
           opCtx.addFailure({
             message: `Operator ${operator} requires an array, but got ${typeof actual}`,
@@ -119,7 +140,11 @@ async function _validateMatch(
         }
 
         ctx.earnedScore += opCtx.earnedScore
-        if (ctx.scoring && opCtx.earnedScore === 0 && opCtx.failures.length === initialFailureCount) {
+        if (
+          ctx.scoring &&
+          opCtx.earnedScore === 0 &&
+          opCtx.failures.length === initialFailureCount
+        ) {
           ctx.earnedScore = ctx.allocatedScore
         }
         return ctx.failures
@@ -134,7 +159,8 @@ async function _validateMatch(
       input,
       templateFormat: data?.templateFormat,
     })
-    const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual)
+    const actualStr =
+      typeof actual === 'string' ? actual : JSON.stringify(actual)
     if (regEx.test(actualStr)) {
       ctx.earnedScore = ctx.allocatedScore
     } else {
@@ -147,9 +173,14 @@ async function _validateMatch(
     }
   } else if (vType === 'string') {
     const hasDiffReq = !!input?.diff
-    const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual)
+    const actualStr =
+      typeof actual === 'string' ? actual : JSON.stringify(actual)
 
-    if (!hasDiffReq && typeof actual === 'string' && actualStr.includes(expected.trim())) {
+    if (
+      !hasDiffReq &&
+      typeof actual === 'string' &&
+      actualStr.includes(expected.trim())
+    ) {
       ctx.earnedScore = ctx.allocatedScore
     } else if (typeof actual === 'string') {
       const failuresBefore = ctx.failures.length
@@ -157,7 +188,11 @@ async function _validateMatch(
 
       await validateStringDiff(actual, expected, ctx)
 
-      if (!hasDiffReq && ctx.failures.length === failuresBefore && ctx.earnedScore === earnedBefore) {
+      if (
+        !hasDiffReq &&
+        ctx.failures.length === failuresBefore &&
+        ctx.earnedScore === earnedBefore
+      ) {
         ctx.earnedScore = ctx.allocatedScore
       }
     } else {
@@ -165,7 +200,11 @@ async function _validateMatch(
     }
   } else if (Array.isArray(expected)) {
     if (!Array.isArray(actual)) {
-      ctx.addFailure({ message: 'Type mismatch: expected Array', expected, actual })
+      ctx.addFailure({
+        message: 'Type mismatch: expected Array',
+        expected,
+        actual,
+      })
     } else {
       if (isStrict('array', ctx) && actual.length !== expected.length) {
         ctx.addFailure({
@@ -175,14 +214,18 @@ async function _validateMatch(
         })
       }
 
-      const explicitWeights = expected.map(item => {
+      const explicitWeights = expected.map((item) => {
         if (item && typeof item === 'object' && item.score !== undefined) {
           const s = item.score
           return typeof s === 'number' ? s : (s.value ?? 1)
         }
         return null
       })
-      const weights = calculateNormalizedWeights(explicitWeights, expected.length, { unassignedWeight: ctx.unassignedWeight })
+      const weights = calculateNormalizedWeights(
+        explicitWeights,
+        expected.length,
+        { unassignedWeight: ctx.unassignedWeight }
+      )
 
       for (let i = 0; i < expected.length; i++) {
         const subCtx = ctx.createSubContext(`[${i}]`)
@@ -193,13 +236,22 @@ async function _validateMatch(
     }
   } else if (vType === 'function') {
     const result = await expected(actual, input)
-    const expectedName = expected.name ? expected.name + '()' : expected.toString()
+    const expectedName = expected.name
+      ? expected.name + '()'
+      : expected.toString()
     if (result === true) {
       ctx.earnedScore = ctx.allocatedScore
     } else {
-      ctx.addFailure({ message: `Custom function validation failed: ${result}`, expected: expectedName, actual })
+      ctx.addFailure({
+        message: `Custom function validation failed: ${result}`,
+        expected: expectedName,
+        actual,
+      })
     }
-  } else if (expected instanceof YamlTypeJsonSchema || (!ctx.disableHeuristicSchema && isJsonSchema(expected))) {
+  } else if (
+    expected instanceof YamlTypeJsonSchema ||
+    (!ctx.disableHeuristicSchema && isJsonSchema(expected))
+  ) {
     if (!(expected instanceof YamlTypeJsonSchema)) {
       expected = await formatObject(cloneDeep(expected), { data, input })
     }
@@ -211,14 +263,23 @@ async function _validateMatch(
   } else if (vType === 'object') {
     if (expected === null) {
       if (actual === null) ctx.earnedScore = ctx.allocatedScore
-      else ctx.addFailure({ message: 'Value equality check failed', expected: null, actual })
+      else
+        ctx.addFailure({
+          message: 'Value equality check failed',
+          expected: null,
+          actual,
+        })
     } else if (actual === null || typeof actual !== 'object') {
-      ctx.addFailure({ message: 'Value equality check failed', expected, actual })
+      ctx.addFailure({
+        message: 'Value equality check failed',
+        expected,
+        actual,
+      })
     } else {
-      const allKeys = Object.keys(expected).filter(k => !metaKeys.includes(k))
+      const allKeys = Object.keys(expected).filter((k) => !metaKeys.includes(k))
       const matchedActualKeys = new Set<string>()
 
-      const explicitWeights = allKeys.map(k => {
+      const explicitWeights = allKeys.map((k) => {
         const item = expected[k]
         if (item && typeof item === 'object' && item.score !== undefined) {
           const s = item.score
@@ -226,7 +287,11 @@ async function _validateMatch(
         }
         return null
       })
-      const weights = calculateNormalizedWeights(explicitWeights, allKeys.length, { unassignedWeight: ctx.unassignedWeight })
+      const weights = calculateNormalizedWeights(
+        explicitWeights,
+        allKeys.length,
+        { unassignedWeight: ctx.unassignedWeight }
+      )
 
       for (let i = 0; i < allKeys.length; i++) {
         const k = allKeys[i]
@@ -263,7 +328,10 @@ async function _validateMatch(
         for (const ak of actualKeys) {
           if (!matchedActualKeys.has(ak)) {
             const subCtx = ctx.createSubContext(ak)
-            subCtx.addFailure({ message: 'Extra key in actual object (strict mode)', actual: actual[ak] })
+            subCtx.addFailure({
+              message: 'Extra key in actual object (strict mode)',
+              actual: actual[ak],
+            })
           }
         }
       }
@@ -272,7 +340,11 @@ async function _validateMatch(
     if (actual === expected) {
       ctx.earnedScore = ctx.allocatedScore
     } else {
-      ctx.addFailure({ message: 'Value equality check failed', expected, actual })
+      ctx.addFailure({
+        message: 'Value equality check failed',
+        expected,
+        actual,
+      })
     }
   }
 

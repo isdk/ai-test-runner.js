@@ -109,8 +109,8 @@ Powerful assertions for complex validation scenarios, including logical, collect
 **Specialized Operators:**
 
 - **`$expect`**: A transparent wrapper used to attach scoring metadata (weight, critical) and titles to any validation node. [See Scoring Strategy](#2-scoring-strategy).
-- **`$diff`**: Forces semantic diff analysis with specific strategies or whitelists. [See Semantic Diff Validation](#4-semantic-diff-validation).
-- **`$schema`**: Explicitly validates a value against a JSON Schema. [See JSON Schema Validation](#3-json-schema-validation).
+- **`$diff`**: Forces semantic diff analysis with specific strategies or whitelists. [See Semantic Diff Validation](#6-semantic-diff-validation).
+- **`$schema`**: Explicitly validates a value against a JSON Schema. [See JSON Schema Validation](#5-json-schema-validation).
 
 **Example: Using Logical and Existence Operators**
 
@@ -265,7 +265,7 @@ The resulting `logItem` includes:
 
 When declarative matching or simple custom functions aren't enough, you can define reusable validation logic via `operators`.
 
-#### 2.1 Definition & Reference
+#### 3.1 Definition & Reference
 
 Custom operators can be defined in the YAML Front-matter (file-level) or within a single test case (item-level).
 
@@ -311,7 +311,7 @@ operators:
       $checkCode: { strict: true, lang: 'ts' }
 ```
 
-#### 2.2 Operator Function Signature
+#### 3.2 Operator Function Signature
 
 The system supports two signature modes. The **Simplified Mode** is recommended for the best developer experience.
 
@@ -351,7 +351,7 @@ export async function myOp(actual, expected, ctx, validateMatch) {
 }
 ```
 
-#### 2.3 The $value Convention: Separating Target and Options
+#### 3.3 The $value Convention: Separating Target and Options
 
 To unify operator interfaces, ai-test-runner introduces the `$value` convention. It allows you to pass a main "validation target" along with multiple auxiliary "configuration options".
 
@@ -381,7 +381,7 @@ export function checkCode(actual, expected, fixture) {
 }
 ```
 
-#### 2.4 Recursive Validation & $validate
+#### 3.4 Recursive Validation & $validate
 
 You can call `fixture.$validate` within a custom operator to reuse existing validation logic (including regex, Schema, or other operators).
 
@@ -395,21 +395,58 @@ export async function $eachMatch(actualArray, pattern, fixture) {
 }
 ```
 
-#### 2.4 Configuration Options
+#### 3.5 Operator Input Type Declaration (`expects` property)
+
+To enhance type checking accuracy and avoid redundant basic type validations within operators, an operator can declare its expected `actual` (actual value) type by attaching an `expects` property to its function.
+
+If the `actual` type does not match the operator's declared expectation, the core validation engine will throw an error before the operator executes, providing a clear error message like `Operator $myOp requires an array, but got string`.
+
+The `expects` property can be a string or an array of strings:
+
+- **String Form**: `operatorFunction.expects = 'array'`
+  This indicates that the operator expects `actual` to be an array.
+- **String Array Form**: `operatorFunction.expects = ['array', 'object']`
+  This indicates that the operator expects `actual` to be either an array or an object. Currently, the core engine strictly enforces the `'array'` type. If the `expects` array includes `'array'` and `actual` is not an array, an error will be triggered.
+
+Note: Currently only `array` type is enforced for checking.
+
+**Example: Declaring an Operator Expects Array Input**
+
+```typescript
+// in myCustomOperator.ts
+export async function $myArrayOperator(actual, expected, ctx, validateMatch) {
+  // ... core logic of the operator, confident that actual is an array
+}
+$myArrayOperator.expects = 'array'; // Declare this operator expects an array as input
+```
+
+Alternatively, if the operator is custom and registered in the `operators` option:
+
+```yaml
+# Define custom operator in YAML
+operators:
+  $myArrayOperator: "js://./myCustomOperator.js#$myArrayOperator" # Assuming this file exports $myArrayOperator with expects property set
+```
+
+**Impact on Built-in Operators:**
+
+Built-in operators like `$contains`, `$all`, and `$sequence` now also explicitly declare their expectation for array input via the `expects = 'array'` property. When the `actual` value is not an array, the core validation engine will report an error prematurely.
+
+#### 3.6 Configuration Options
 
 - **`allowOperatorOverride`**: (Default `false`) Whether to allow custom operators to override built-in ones (e.g., `$contains`).
 - **`baseDir`**: The base directory used to resolve local relative paths.
 
-### 3. AI Tool Testing
+### 4. AI Tool Testing
 
 Simplified solutions for Agents and tool call scenarios. **Note: The executor must return standard `messages` for these tests to function.**
 
-#### 2.1 Tool Configuration & Drivers
+#### 4.1 Tool Configuration & Drivers
 
 - **`tools`**: Specifies the list of tools available to the AI. Supports `boolean | string | Record | Array`.
 - **`toolTester`**: The script ID responsible for driving the test (defaults to `'toolTester'`).
 
-#### 2.2 `tools: true` Automatic Binding
+#### 4.2 `tools: true` Automatic Binding
 
 When testing a tool script itself, you don't need to repeat its ID.
 
@@ -426,21 +463,21 @@ tools: true  # Automatically uses weather.ai.yaml as the available tool
     tools: [{ name: 'weather', args: { city: 'Shanghai' } }]
 ```
 
-#### 2.3 `expect.tools` Syntactic Sugar
+#### 4.3 `expect.tools` Syntactic Sugar
 
 No need to manually parse `messages`; the engine automatically extracts all tool calls initiated by the `assistant` for matching.
 
-### 3. JSON Schema Validation
+### 5. JSON Schema Validation
 
 The most rigorous way to validate structured output.
 
-#### 3.1 Heuristic Recognition
+#### 5.1 Heuristic Recognition
 
 By default, heuristic recognition is enabled. If an object has a `type` property with a value of `string`, `number`, `integer`, `boolean`, `object`, or `array`, it is automatically treated as a JSON Schema.
 
 To use `type` as a standard business data field, set `disableHeuristicSchema: true`.
 
-#### 3.2 Explicit Validation
+#### 5.2 Explicit Validation
 
 Using the `$schema` operator is recommended:
 
@@ -454,17 +491,17 @@ expect:
           age: { type: number, minimum: 18 }
 ```
 
-### 4. Semantic Diff Validation
+### 6. Semantic Diff Validation
 
 Solves the "technically correct but slightly different" output problem from LLMs. ai-test-runner features a powerful diff engine that intelligently analyzes output changes.
 
-#### 4.1 Built-in Semantic Feedback
+#### 6.1 Built-in Semantic Feedback
 
 By design, **all string comparisons in the engine automatically leverage the diff engine upon failure.**
 
 Even if you don't explicitly use the `$diff` operator, if a string match (including those inside `$expect`) fails a simple inclusion check, the engine automatically performs a structured diff. This ensures that every validation failure provides high-signal feedback, showing exactly which characters, words, or JSON fields differ, rather than a generic "mismatch" message.
 
-#### 4.2 Smart Diff Strategy (`auto`)
+#### 6.2 Smart Diff Strategy (`auto`)
 
 By default (or via `diff: 'auto'` or `diff: true`), the engine uses heuristic detection:
 
@@ -473,7 +510,7 @@ By default (or via `diff: 'auto'` or `diff: true`), the engine uses heuristic de
 - **Long Text**: Switches to word-by-word diff (`words`).
 - **Short Strings**: Uses precise character-by-character diff (`chars`).
 
-#### 4.2 Supported Diff Types
+#### 6.2 Supported Diff Types
 
 You can explicitly set the `type` to force a specific algorithm:
 
@@ -496,7 +533,7 @@ expect:
         added: true
 ```
 
-#### 4.3 Permissive Mode (`diffPermissive`)
+#### 6.3 Permissive Mode (`diffPermissive`)
 
 Setting `diffPermissive: true` or using `diff: { permissive: true }` in expectations disables the strict whitelist. The engine will ignore all undeclared changes and only verify that `required: true` items changed as expected.
 

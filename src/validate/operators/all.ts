@@ -12,8 +12,18 @@ export async function validateAll(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
-  const explicitWeights = expectedList.map(item => (item && typeof item === 'object' && item.score !== undefined) ? (typeof item.score === 'number' ? item.score : (item.score.value ?? 1)) : null)
-  const weights = calculateNormalizedWeights(explicitWeights, expectedList.length, { unassignedWeight: ctx.unassignedWeight })
+  const explicitWeights = expectedList.map((item) =>
+    item && typeof item === 'object' && item.score !== undefined
+      ? typeof item.score === 'number'
+        ? item.score
+        : (item.score.value ?? 1)
+      : null
+  )
+  const weights = calculateNormalizedWeights(
+    explicitWeights,
+    expectedList.length,
+    { unassignedWeight: ctx.unassignedWeight }
+  )
 
   for (let i = 0; i < expectedList.length; i++) {
     const subCtx = ctx.createSubContext('')
@@ -27,3 +37,5 @@ export async function validateAll(
   }
   return ctx.failures
 }
+
+validateAll.expects = 'array'

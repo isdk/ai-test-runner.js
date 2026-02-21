@@ -240,7 +240,8 @@ export function findDiffItem(
       else if (value !== null && value !== undefined) {
         if (isRegExp(value)) {
           if (!toRegExp(value).test(item.value)) result = undefined
-        } else if (value !== item.value && value !== item.value.trim()) result = undefined
+        } else if (value !== item.value && value !== item.value.trim())
+          result = undefined
       } else if (val !== undefined) {
         if (JSON.stringify(val) !== JSON.stringify(item.val)) result = undefined
       }
@@ -250,8 +251,17 @@ export function findDiffItem(
 
       if (isRegExp(value)) {
         const regEx = toRegExp(value)
-        if (!regEx.test(itemValue) && !regEx.test(itemValueNoNL) && !regEx.test(itemValue.trim())) result = undefined
-      } else if (itemValue !== value && itemValueNoNL !== value && itemValue.trim() !== (typeof value === 'string' ? value.trim() : value)) {
+        if (
+          !regEx.test(itemValue) &&
+          !regEx.test(itemValueNoNL) &&
+          !regEx.test(itemValue.trim())
+        )
+          result = undefined
+      } else if (
+        itemValue !== value &&
+        itemValueNoNL !== value &&
+        itemValue.trim() !== (typeof value === 'string' ? value.trim() : value)
+      ) {
         result = undefined
       }
     }
@@ -273,7 +283,11 @@ export async function validateStringDiff(
   const { input } = ctx
   let diffOptions: AIDiffOptions = options || {}
   let expectedDiff = diffOptions.items || input?.diff
-  let diffPermissive = diffOptions.permissive ?? ctx.diffPermissive ?? input?.diffPermissive ?? input?.input?.diffPermissive
+  let diffPermissive =
+    diffOptions.permissive ??
+    ctx.diffPermissive ??
+    input?.diffPermissive ??
+    input?.input?.diffPermissive
 
   if (expectedDiff === true) {
     diffOptions.type = diffOptions.type || 'auto'
@@ -286,7 +300,10 @@ export async function validateStringDiff(
         diffPermissive = diffPermissive ?? diffOptions.permissive
         expectedDiff = diffOptions.items
       }
-    } else if (typeof expectedDiff === 'string' && expectedDiff !== 'function') {
+    } else if (
+      typeof expectedDiff === 'string' &&
+      expectedDiff !== 'function'
+    ) {
       diffOptions.type = diffOptions.type || (expectedDiff as AIDiffType)
       expectedDiff = undefined
     }
@@ -302,23 +319,33 @@ export async function validateStringDiff(
 
     const successfulItems = diff.filter((d) => {
       let matchedIdx = -1
-      const matched = (formattedExpectedDiff as AIDiffItem[]).some((ed, idx) => {
-        const m = findDiffItem([ed], d, ctx)
-        if (m) { matchedIdx = idx; return true }
-        return false
-      })
+      const matched = (formattedExpectedDiff as AIDiffItem[]).some(
+        (ed, idx) => {
+          const m = findDiffItem([ed], d, ctx)
+          if (m) {
+            matchedIdx = idx
+            return true
+          }
+          return false
+        }
+      )
       if (matched) matchedExpectedIndices.add(matchedIdx)
       return matched
     })
 
     const strictDiff = isStrict('diff', ctx)
-    const allExpectedMatched = matchedExpectedIndices.size === expectedDiff.length
-    const missingRequiredItems = (expectedDiff as AIDiffItem[]).filter((ed, idx) => ed.required === true && !matchedExpectedIndices.has(idx))
-    const hasUnverified = diff.some((d) => (d.added || d.removed) && !successfulItems.includes(d))
+    const allExpectedMatched =
+      matchedExpectedIndices.size === expectedDiff.length
+    const missingRequiredItems = (expectedDiff as AIDiffItem[]).filter(
+      (ed, idx) => ed.required === true && !matchedExpectedIndices.has(idx)
+    )
+    const hasUnverified = diff.some(
+      (d) => (d.added || d.removed) && !successfulItems.includes(d)
+    )
 
     if (ctx.scoring) {
       const includeStrictness = !diffPermissive || strictDiff
-      const explicitWeights = (expectedDiff as AIDiffItem[]).map(item => {
+      const explicitWeights = (expectedDiff as AIDiffItem[]).map((item) => {
         if (item && item.score !== undefined) {
           const s = item.score
           return typeof s === 'number' ? s : (s.value ?? 1)
@@ -327,8 +354,12 @@ export async function validateStringDiff(
       })
 
       const totalPeerCount = expectedDiff.length + (includeStrictness ? 1 : 0)
-      const weightPool = includeStrictness ? [...explicitWeights, null] : explicitWeights
-      const weights = calculateNormalizedWeights(weightPool, totalPeerCount, { unassignedWeight: ctx.unassignedWeight })
+      const weightPool = includeStrictness
+        ? [...explicitWeights, null]
+        : explicitWeights
+      const weights = calculateNormalizedWeights(weightPool, totalPeerCount, {
+        unassignedWeight: ctx.unassignedWeight,
+      })
 
       let earnedFraction = 0
       for (let i = 0; i < expectedDiff.length; i++) {
@@ -342,30 +373,54 @@ export async function validateStringDiff(
 
     let failed = false
     const reasons: string[] = []
-    const getDiffDesc = (item: AIDiffItem) => item.value || (item.path ? (item.val !== undefined ? `${item.path}: ${JSON.stringify(item.val)}` : item.path) : 'unknown')
+    const getDiffDesc = (item: AIDiffItem) =>
+      item.value ||
+      (item.path
+        ? item.val !== undefined
+          ? `${item.path}: ${JSON.stringify(item.val)}`
+          : item.path
+        : 'unknown')
 
     if (strictDiff) {
-      if (hasUnverified) { failed = true; reasons.push('unverified changes') }
-      if (!allExpectedMatched) { failed = true; reasons.push('not all expected diff items were found (strict mode)') }
+      if (hasUnverified) {
+        failed = true
+        reasons.push('unverified changes')
+      }
+      if (!allExpectedMatched) {
+        failed = true
+        reasons.push('not all expected diff items were found (strict mode)')
+      }
     } else {
-      if (!diffPermissive && hasUnverified) { failed = true; reasons.push('unverified changes') }
+      if (!diffPermissive && hasUnverified) {
+        failed = true
+        reasons.push('unverified changes')
+      }
       if (missingRequiredItems.length > 0) {
         failed = true
-        reasons.push(`missing required diff items: ${missingRequiredItems.map((item) => `${item.added ? '+' : '-'}"${getDiffDesc(item)}"`).join(', ')}`)
+        reasons.push(
+          `missing required diff items: ${missingRequiredItems.map((item) => `${item.added ? '+' : '-'}"${getDiffDesc(item)}"`).join(', ')}`
+        )
       }
     }
 
     if (failed) {
-      ctx.addFailure(
-        { message: `String mismatch with diff: ${reasons.join('; ')}`, expected, actual, diff }
-      )
+      ctx.addFailure({
+        message: `String mismatch with diff: ${reasons.join('; ')}`,
+        expected,
+        actual,
+        diff,
+      })
       diff = undefined
     } else diff = undefined
   } else if (typeof expectedDiff === 'function') {
     const successfulItems = await expectedDiff(actual, input, diff)
     if (successfulItems.length < diff.length) {
-      successfulItems.forEach((d: any) => { d.verified = true })
-      if (diff.filter((d) => !d.verified && (d.added || d.removed)).length === 0) {
+      successfulItems.forEach((d: any) => {
+        d.verified = true
+      })
+      if (
+        diff.filter((d) => !d.verified && (d.added || d.removed)).length === 0
+      ) {
         if (ctx.scoring) ctx.earnedScore = ctx.allocatedScore
         diff = undefined
       }
@@ -376,7 +431,12 @@ export async function validateStringDiff(
   }
 
   if (diff && diff.some((d) => d.added || d.removed)) {
-    ctx.addFailure({ message: 'String mismatch with diff', expected, actual, diff })
+    ctx.addFailure({
+      message: 'String mismatch with diff',
+      expected,
+      actual,
+      diff,
+    })
   } else if (!expectedDiff && !diff && ctx.scoring) {
     ctx.earnedScore = ctx.allocatedScore
   }

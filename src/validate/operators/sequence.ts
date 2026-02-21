@@ -11,8 +11,18 @@ export async function validateSequence(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
-  const explicitWeights = expectedList.map(item => (item && typeof item === 'object' && item.score !== undefined) ? (typeof item.score === 'number' ? item.score : (item.score.value ?? 1)) : null)
-  const weights = calculateNormalizedWeights(explicitWeights, expectedList.length, { unassignedWeight: ctx.unassignedWeight })
+  const explicitWeights = expectedList.map((item) =>
+    item && typeof item === 'object' && item.score !== undefined
+      ? typeof item.score === 'number'
+        ? item.score
+        : (item.score.value ?? 1)
+      : null
+  )
+  const weights = calculateNormalizedWeights(
+    explicitWeights,
+    expectedList.length,
+    { unassignedWeight: ctx.unassignedWeight }
+  )
 
   let actualIdx = 0
   for (let i = 0; i < expectedList.length; i++) {
@@ -54,3 +64,5 @@ export async function validateSequence(
   }
   return ctx.failures
 }
+
+validateSequence.expects = 'array'

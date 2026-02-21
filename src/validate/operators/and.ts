@@ -12,12 +12,26 @@ export async function validateAnd(
   validateMatch: ValidateMatchFn
 ): Promise<AIValidationFailure[]> {
   if (!Array.isArray(expectedList)) {
-    ctx.addFailure({ message: '$and operator requires an array of expectations', expected: expectedList, actual })
+    ctx.addFailure({
+      message: '$and operator requires an array of expectations',
+      expected: expectedList,
+      actual,
+    })
     return ctx.failures
   }
 
-  const explicitWeights = expectedList.map(item => (item && typeof item === 'object' && item.score !== undefined) ? (typeof item.score === 'number' ? item.score : (item.score.value ?? 1)) : null)
-  const weights = calculateNormalizedWeights(explicitWeights, expectedList.length, { unassignedWeight: ctx.unassignedWeight })
+  const explicitWeights = expectedList.map((item) =>
+    item && typeof item === 'object' && item.score !== undefined
+      ? typeof item.score === 'number'
+        ? item.score
+        : (item.score.value ?? 1)
+      : null
+  )
+  const weights = calculateNormalizedWeights(
+    explicitWeights,
+    expectedList.length,
+    { unassignedWeight: ctx.unassignedWeight }
+  )
 
   for (let i = 0; i < expectedList.length; i++) {
     const subCtx = ctx.createSubContext(`$and[${i}]`)

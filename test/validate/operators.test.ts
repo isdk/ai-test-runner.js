@@ -82,8 +82,89 @@ describe('validate/operators', () => {
   it('should fail if operator is used on non-array actual', async () => {
     const failures = await validateMatch({ a: 1 }, { $contains: 1 })
     expect(failures).toHaveLength(1)
-    expect(failures[0].message).toContain('requires an array')
+    expect(failures[0].message).toContain('$contains requires an array')
   })
+
+  // --- New tests for updated 'expects' logic ---
+  describe('operator requires array actual', () => {
+    // Dummy operator for testing expects as array
+    const dummyArrayExpectsOperator: ValidationOperatorHandler & { expects?: string[] | string } = async (actual, expected, ctx, validateMatch) => {
+      // This operator expects an array and will simply pass if actual is an array
+      if (Array.isArray(actual)) {
+        ctx.earnedScore = ctx.allocatedScore;
+      } else {
+        ctx.addFailure({
+          message: 'Dummy operator internal failure: expected array',
+          expected: 'array',
+          actual: typeof actual
+        });
+      }
+      return ctx.failures;
+    };
+    dummyArrayExpectsOperator.expects = ['array']; // Explicitly set expects as an array, covering the new core.ts logic
+
+    const dummyStringExpectsOperator: ValidationOperatorHandler & { expects?: string[] | string } = async (actual, expected, ctx, validateMatch) => {
+      if (typeof actual === 'string') {
+        ctx.earnedScore = ctx.allocatedScore;
+      } else {
+        ctx.addFailure({
+          message: 'Dummy operator internal failure: expected string',
+          expected: 'string',
+          actual: typeof actual
+        });
+      }
+      return ctx.failures;
+    };
+    dummyStringExpectsOperator.expects = 'string'; // Explicitly set expects as a string
+
+
+    it('should fail with correct message when $all is used on non-array actual', async () => {
+      const failures = await validateMatch({ a: 1 }, { $all: [1] });
+      expect(failures).toHaveLength(1);
+      expect(failures[0].message).toContain('$all requires an array');
+    });
+
+    it('should fail with correct message when $sequence is used on non-array actual', async () => {
+      const failures = await validateMatch({ a: 1 }, { $sequence: [1] });
+      expect(failures).toHaveLength(1);
+      expect(failures[0].message).toContain('$sequence requires an array');
+    });
+
+    it('should pass if custom operator with expects = ["array"] is used on array actual', async () => {
+      const failures = await validateMatch([1, 2, 3], { $customArrayOp: 'any' }, {
+        operators: {
+          $customArrayOp: dummyArrayExpectsOperator
+        }
+      });
+      expect(failures).toHaveLength(0);
+    });
+
+    it('should fail if custom operator with expects = ["array"] is used on non-array actual', async () => {
+      const failures = await validateMatch({ a: 1 }, { $customArrayOp: 'any' }, {
+        operators: {
+          $customArrayOp: dummyArrayExpectsOperator
+        }
+      });
+      expect(failures).toHaveLength(1);
+      // The message comes from core.ts's 'needsArray' check
+      expect(failures[0].message).toContain('$customArrayOp requires an array');
+    });
+
+    // Test that the 'requires an array' check is NOT triggered if 'expects' is not related to 'array'
+    it('should NOT fail with "requires an array" message if custom operator expects string and gets non-string', async () => {
+      const failures = await validateMatch([1, 2], { $customStringOp: 'world' }, {
+        operators: {
+          $customStringOp: dummyStringExpectsOperator
+        }
+      });
+      expect(failures).toHaveLength(1);
+      // The failure message should come from the dummy operator's internal check, not core.ts's 'requires an array'
+      expect(failures[0].message).toContain('Dummy operator internal failure: expected string');
+      expect(failures[0].message).not.toContain('requires an array');
+    });
+  });
+  // --- End new tests ---
+
 
   describe('$schema', () => {
     it('should validate using $schema operator', async () => {

@@ -15,7 +15,11 @@ export async function validateDiff(
   let expectedValue: any
   let diffOptions: AIDiffOptions | undefined
 
-  if (typeof expected === 'object' && expected !== null && !Array.isArray(expected)) {
+  if (
+    typeof expected === 'object' &&
+    expected !== null &&
+    !Array.isArray(expected)
+  ) {
     expectedValue = expected.value ?? expected.expected
     diffOptions = expected as AIDiffOptions
   } else {
@@ -24,7 +28,11 @@ export async function validateDiff(
 
   if (typeof actual !== 'string') {
     ctx.earnedScore = 0
-    ctx.addFailure({ message: 'Value mismatch: expected string for $diff', expected: expectedValue, actual })
+    ctx.addFailure({
+      message: 'Value mismatch: expected string for $diff',
+      expected: expectedValue,
+      actual,
+    })
   } else {
     await validateStringDiff(actual, expectedValue, ctx, diffOptions)
   }

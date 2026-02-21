@@ -109,8 +109,8 @@ const result = await runner.run('my-script-id', fixtures);
 **特化操作符：**
 
 - **`$expect`**: 透明容器，专门用于为任何验证节点注入评分元数据（权重、红线）或标题。[详见评分策略](#2-评分策略-scoring-strategy)。
-- **`$diff`**: 强制使用特定策略或白名单进行语义化差分对比。[详见语义化差异匹配](#4-语义化差异匹配-diff)。
-- **`$schema`**: 显式使用 JSON Schema 校验。 [详见 JSON Schema 验证](#3-json-schema-验证)。
+- **`$diff`**: 强制使用特定策略或白名单进行语义化差分对比。[详见语义化差异匹配](#6-语义化差异匹配-diff)。
+- **`$schema`**: 显式使用 JSON Schema 校验。 [详见 JSON Schema 验证](#5-json-schema-验证)。
 
 **示例：使用逻辑与存在性操作符**
 
@@ -265,7 +265,7 @@ expect:
 
 当声明式校验或简单的自定义函数不足以满足需求时，你可以通过 `operators` 定义可复用的验证逻辑。
 
-#### 2.1 定义与引用
+#### 3.1 定义与引用
 
 自定义操作符可以在 YAML 的 Front-matter（文件级）或单个测试用例（用例级）中定义。
 
@@ -311,7 +311,7 @@ operators:
       $checkCode: { strict: true, lang: 'ts' }
 ```
 
-#### 2.2 操作符函数签名
+#### 3.2 操作符函数签名
 
 系统支持两种签名模式。建议使用 **简化模式** 以获得最佳的开发体验。
 
@@ -351,7 +351,7 @@ export async function myOp(actual, expected, ctx, validateMatch) {
 }
 ```
 
-#### 2.3 $value 约定：分离主值与参数
+#### 3.3 $value 约定：分离主值与参数
 
 为了让操作符接口更统一，ai-test-runner 引入了 `$value` 约定。它允许你同时传递一个“主校验目标”和多个“辅助配置参数”。
 
@@ -381,7 +381,7 @@ export function checkCode(actual, expected, fixture) {
 }
 ```
 
-#### 2.4 递归校验与 $validate
+#### 3.4 递归校验与 $validate
 
 你可以在自定义操作符中调用 `fixture.$validate` 来复用已有的验证逻辑（包括正则、Schema 或其它操作符）。
 
@@ -395,21 +395,58 @@ export async function $eachMatch(actualArray, pattern, fixture) {
 }
 ```
 
-#### 2.4 配置项
+#### 3.5 操作符输入类型声明 (`expects` 属性)
+
+为了提高类型检查的准确性，并避免在算子内部重复进行基础类型校验，算子可以通过在其函数上附加一个 `expects` 属性来声明它所期望的 `actual` (实际值) 类型。
+
+如果 `actual` 的类型与算子声明的期望类型不符，核心验证引擎将在算子执行前抛出错误，并提供明确的错误信息，例如 `Operator $myOp requires an array, but got string`。
+
+`expects` 属性可以是一个字符串或一个字符串数组：
+
+- **字符串形式**: `operatorFunction.expects = 'array'`
+  这表示算子期望 `actual` 必须是一个数组。
+- **字符串数组形式**: `operatorFunction.expects = ['array', 'object']`
+  这表示算子期望 `actual` 必须是数组或对象。目前，核心引擎仅针对 `array` 类型进行强制检查。如果 `expects` 数组中包含 `'array'`，且 `actual` 不是数组，则会触发错误。
+
+注: 目前只对 `array` 类型进行强制检查。
+
+**示例：声明算子期望数组输入**
+
+```typescript
+// in myCustomOperator.ts
+export async function $myArrayOperator(actual, expected, ctx, validateMatch) {
+  // ... 算子的核心逻辑，此时可以确信 actual 是一个数组
+}
+$myArrayOperator.expects = 'array'; // 声明此算子期望一个数组作为输入
+```
+
+或者，如果算子是自定义的并注册在 `operators` 选项中：
+
+```yaml
+# 在 YAML 中定义自定义算子
+operators:
+  $myArrayOperator: "js://./myCustomOperator.js#$myArrayOperator" # 假设该文件导出了 $myArrayOperator 并设置了 expects 属性
+```
+
+**对内置算子的影响:**
+
+`$contains`, `$all`, `$sequence` 等内置算子现在也通过 `expects = 'array'` 属性明确声明了它们期望数组输入。当 `actual` 值不是数组时，核心验证引擎会提前报告错误。
+
+#### 3.6 配置项
 
 - **`allowOperatorOverride`**: (默认 `false`) 是否允许自定义操作符覆盖内置操作符（如 `$contains`）。
 - **`baseDir`**: 用于解析本地相对路径的基准目录。
 
-### 3. AI 工具测试 (AI Tool Testing)
+### 4. AI 工具测试 (AI Tool Testing)
 
 针对 Agent 调用工具的场景，提供极简的配置方式。**注意：执行器必须返回标准的 `messages` 列表才能进行此项测试。**
 
-#### 2.1 工具配置与驱动
+#### 4.1 工具配置与驱动
 
 - **`tools`**: 指定 AI 可以使用的工具列表。支持 `boolean | string | Record | Array`。
 - **`toolTester`**: 负责驱动测试的脚本 ID（默认为 `'toolTester'`）。它通常是一个能理解工具调用并执行的 Agent 脚本。
 
-#### 2.2 `tools: true` 自动绑定
+#### 4.2 `tools: true` 自动绑定
 
 当测试一个工具脚本本身时，无需重复书写工具 ID。
 
@@ -426,21 +463,21 @@ tools: true  # 自动将 weather.ai.yaml 设为可用工具
     tools: [{ name: 'weather', args: { city: 'Shanghai' } }]
 ```
 
-#### 2.3 `expect.tools` 语法糖
+#### 4.3 `expect.tools` 语法糖
 
 无需手动解析 `messages` 链路，引擎会自动提取所有 `assistant` 发起的工具调用进行匹配。
 
-### 3. JSON Schema 验证
+### 5. JSON Schema 验证
 
 对于结构化输出，JSON Schema 是最严谨的校验方式。
 
-#### 3.1 启发式识别 (Heuristic Recognition)
+#### 5.1 启发式识别 (Heuristic Recognition)
 
 默认情况下，Runner 开启了启发式识别。如果一个对象具有 `type` 属性，且其值为 `string`, `number`, `integer`, `boolean`, `object`, `array` 之一，它会被自动识别为 JSON Schema。
 
 如果你希望某个字段仅仅是包含 `type` 属性的普通业务数据，请设置 `disableHeuristicSchema: true`。
 
-#### 3.2 显式校验
+#### 5.2 显式校验
 
 推荐使用 `$schema` 操作符：
 
@@ -454,17 +491,17 @@ expect:
           age: { type: number, minimum: 18 }
 ```
 
-### 4. 语义化差异匹配 (Diff)
+### 6. 语义化差异匹配 (Diff)
 
 解决 LLM 输出“对但不完全一样”的问题。ai-test-runner 提供了强大的差异匹配引擎，能够智能地分析输出变化。
 
-#### 4.1 内置语义化失败反馈 (Semantic Feedback)
+#### 6.1 内置语义化失败反馈 (Semantic Feedback)
 
 在设计上，**引擎中所有的字符串比对在失败时都会自动调用 Diff 引擎。**
 
 即使你没有显式使用 `$diff` 操作符，如果字符串匹配（包括 `$expect` 内部的匹配）在简单的“包含性检查”中失败，引擎会自动执行结构化差分比对。这确保了每一次验证失败都能提供“高信噪比”的反馈——它会清晰地在日志中展示具体是哪些字符、单词或 JSON 字段发生了偏差，而非仅仅给出一个“不匹配”的模糊提示。
 
-#### 4.2 智能 Diff 策略 (`auto`)
+#### 6.2 智能 Diff 策略 (`auto`)
 
 系统默认（或通过 `diff: 'auto'` / `diff: true`）使用智能探测逻辑：
 
@@ -473,7 +510,7 @@ expect:
 - **长文本**: 自动使用按词对比 (`words`)。
 - **短字符串**: 使用精确的按字符对比 (`chars`)。
 
-#### 4.2 支持的策略类型
+#### 6.2 支持的策略类型
 
 你可以显式指定 `type` 来强制使用特定算法：
 
@@ -496,7 +533,7 @@ expect:
         added: true
 ```
 
-#### 4.3 宽容模式 (`diffPermissive`)
+#### 6.3 宽容模式 (`diffPermissive`)
 
 设置 `diffPermissive: true` 或在预期中使用 `diff: { permissive: true }` 可以关闭严格白名单。此时引擎会忽略所有未声明的变更，仅验证 `required: true` 的项是否按预期发生了变化。
 

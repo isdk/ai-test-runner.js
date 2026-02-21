@@ -11,7 +11,11 @@ import {
   AITestRunnerOptions,
   AITestFixture,
 } from './types.js'
-import { formatObject, validateMatch, ValidationContext } from './validate/index.js'
+import {
+  formatObject,
+  validateMatch,
+  ValidationContext,
+} from './validate/index.js'
 import { loadOperators } from './validate/loader.js'
 import { YamlTypeJsonSchema } from './yaml-types/index.js'
 
@@ -278,13 +282,13 @@ export class AITestRunner extends EventEmitter {
         passScore,
         failedCritical,
       } = await this.validateFixture(
-          fixture,
-          fixtureConfig,
-          templateData,
-          execResult,
-          options,
-          globalOperators
-        )
+        fixture,
+        fixtureConfig,
+        templateData,
+        execResult,
+        options,
+        globalOperators
+      )
 
       let passed = failures.length === 0
       if (score !== undefined) {
@@ -503,7 +507,8 @@ export class AITestRunner extends EventEmitter {
     if (output !== undefined) validationBlocks++
     if (expect) validationBlocks++
 
-    const allocatedPerBlock = validationBlocks > 0 ? maxScore / validationBlocks : maxScore
+    const allocatedPerBlock =
+      validationBlocks > 0 ? maxScore / validationBlocks : maxScore
     const failedCritical: any[] = []
     let totalEarnedScore = 0
 
@@ -523,7 +528,11 @@ export class AITestRunner extends EventEmitter {
     }
 
     // Let's refactor to use a single shared context if possible, or at least track earnedScore.
-    const runValidation = async (actual: any, expected: any, weight: number) => {
+    const runValidation = async (
+      actual: any,
+      expected: any,
+      weight: number
+    ) => {
       const ctx = new ValidationContext({
         ...commonCtxOptions,
         allocatedScore: weight,

@@ -41,3 +41,5 @@ export async function validateContains(
   })
   return ctx.failures
 }
+
+validateContains.expects = 'array'

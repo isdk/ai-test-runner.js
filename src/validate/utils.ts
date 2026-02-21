@@ -37,7 +37,8 @@ export function calculateNormalizedWeights(
     }
   }
 
-  const unassignedCount = totalCount - explicitWeights.filter((w) => w !== null).length
+  const unassignedCount =
+    totalCount - explicitWeights.filter((w) => w !== null).length
 
   if (options.independentScale) {
     const scale = maxExplicit > 1 ? Math.max(100, maxExplicit) : 1.0
@@ -70,7 +71,9 @@ export function calculateNormalizedWeights(
     }
   }
 
-  const finalWeights = explicitWeights.map((w) => w === null ? (defaultWeight ?? 1) : w)
+  const finalWeights = explicitWeights.map((w) =>
+    w === null ? (defaultWeight ?? 1) : w
+  )
   const totalWeight = finalWeights.reduce((a: number, b) => a + (b || 0), 0)
   return finalWeights.map((w) => (totalWeight > 0 ? (w || 0) / totalWeight : 0))
 }

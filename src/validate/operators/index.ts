@@ -1,4 +1,8 @@
-import { ValidationOperatorHandler, ValidateMatchFn, ValidationContext } from '../types.js'
+import {
+  ValidationOperatorHandler,
+  ValidateMatchFn,
+  ValidationContext,
+} from '../types.js'
 import { validateAnd } from './and.js'
 import { validateOr } from './or.js'
 import { validateContains } from './contains.js'
