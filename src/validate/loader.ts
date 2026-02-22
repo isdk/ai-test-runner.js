@@ -3,12 +3,13 @@ import { join, isAbsolute } from 'node:path'
 import { camelCase } from 'lodash-es'
 import { ValidationOperatorHandler, ValidationContext } from './types.js'
 import { processValidationResult } from './utils.js'
+import { ValidationResult } from '../types.js'
 
 export type CustomOperatorHandler = (
   actual: any,
   expected: any,
   fixture: any
-) => Promise<any> | any
+) => Promise<ValidationResult> | ValidationResult
 
 /**
  * Wraps a custom operator handler to match the internal ValidationOperatorHandler signature.
