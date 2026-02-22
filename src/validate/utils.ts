@@ -27,7 +27,7 @@ export function isStrict(
  * @returns true if passed (according to result/threshold), false otherwise.
  */
 export function processValidationResult(
-  result: any, // Use any to be safe with incoming data
+  result: ValidationResult,
   expected: any,
   actual: any,
   ctx: ValidationContext
