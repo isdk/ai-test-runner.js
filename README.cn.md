@@ -196,9 +196,11 @@ expect: {
 你可以在 Fixture 或全局配置中开启评分：
 
 - **`scoring`**: `true | false | 'auto'`。开启评分模式。
-- **`maxScore`**: (默认 `100`) 本次测试的总分上限。该值也作为百分比权重分配的基准，如果未提供明确的 `unassignedWeight`。
+- **`maxScore`**: (默认 `100`) 本次测试的总分上限。该值也作为百分比权重分配的基准。
 - **`passScore`**: (默认等于 `maxScore`) 判定测试通过（`passed: true`）所需的最低分值。
-- **`unassignedWeight`**: (可选) 为没有显式设置 `score` 的验证项指定默认相对权重。如果不设置，系统会根据显式分值的量级自动智能分配，通常使用 `maxScore` 作为百分比分配的基准。
+- **`unassignedWeight`**: (可选) `totalUnassignedWeight` 的别名。为没有显式设置 `score` 的验证项指定默认相对预算。
+- **`totalUnassignedWeight`**: (可选，默认 `0.1`) 为所有未定义项预留的总预算。系统确保未定义项平分这一预算，避免权重被稀释。
+- **`autoConfidence`**: (可选，默认 `true`) 自动将 0 到 1 之间的权重视为置信度。使用 `'force'` 可跳过启发式，强制视为置信度。
 
 #### 2.2 分层相对权重与策略
 
@@ -333,17 +335,14 @@ operators:
  * @param expected - YAML 中传给该操作符的参数 (如 { strict: true })
  * @param fixture  - 当前测试上下文，包含：
  *                   - $data: 已渲染的完整模板数据
- *                   - $validate: 递归校验方法 (act, exp) => Promise<Failures[]>
+ *                   - $validate: 递归校验方法 (act, exp) => Promise<MatchResult>
  *                   - $options: 从 $value 结构中拆解出的辅助参数 (见下文)
  *                   - 其它 fixture 顶层属性
- * @returns {boolean | string | number | {score: number, message?: string, pass?: boolean}}
+ * @returns {boolean | string | number | MatchResult}
  *          - `true`: 完全通过，得分 1.0。
  *          - `false` 或 `string`: 完全失败，得分 0.0。`string` 用作失败消息。
- *          - `number` (0.0-1.0): 部分通过，带有置信度分数。如果 `score < ctx.threshold`，则视为失败。
- *          - `{ score: number, message?: string, pass?: boolean }`: 详细结果。
- *            - `score`: 置信度 (0.0-1.0)。
- *            - `message`: 自定义失败消息。
- *            - `pass`: 显式声明通过/失败，会覆盖阈值逻辑。
+ *          - `number` (0.0-1.0): 部分通过，带有置信度分数。
+ *          - `MatchResult` 对象: 详细结果。
  */
 export async function checkCode(actual, expected, fixture) {
   // 示例 1: 简单通过/失败
@@ -353,27 +352,28 @@ export async function checkCode(actual, expected, fixture) {
   // 示例 2: 置信度分数
   const confidence = actual.includes(expected.keyword) ? 0.8 : 0.2;
   return confidence; // 返回 0.8 或 0.2
-  // 示例 3: 带有阈值覆盖的详细结果
-  // return { score: 0.6, pass: true, message: "部分匹配但显式允许" };
+  // 示例 3: 使用 $validate 进行递归校验
+  const { pass, score } = await fixture.$validate(actual, expected.schema);
+  return { score, pass, message: "Schema 校验失败" };
 }
 ```
 
 ##### 标准模式 (底层)
 
-如果你需要直接操作验证失败列表或进行复杂的路径控制。当函数接收 4 个参数时自动触发。
+如果你需要完全控制验证流程。在此模式下，函数必须是一个纯函数，且必须返回一个 `MatchResult` 对象。
 
 ```javascript
-import { ValidationContext, ValidateMatchFn } from '@isdk/ai-test-runner';
+import { ValidationContext, MatchResult } from '@isdk/ai-test-runner';
 
-export async function myOp(actual, expected, ctx: ValidationContext, validateMatch: ValidateMatchFn) {
-  // 直接使用 ctx.addFailure() 添加失败
-  // 可以使用 utils 中的 processValidationResult() 来根据内部逻辑更新分数和失败信息。
-  // 示例:
-  if (actual !== expected) {
-    ctx.addFailure({ message: '不匹配', expected, actual });
-  }
-  ctx.earnedScore += ctx.allocatedScore; // 或者根据子验证结果计算
-  return ctx.failures;
+export async function myOp(actual, expected, ctx: ValidationContext, validate: (act, exp, ctx) => Promise<MatchResult>): Promise<MatchResult> {
+  // 使用传入的 'validate' 函数进行递归调用。
+  // 返回 MatchResult 对象。不允许直接修改 ctx。
+  const result = await validate(actual, expected, ctx);
+  return {
+    score: result.score * 0.5, // 应用自定义的分数逻辑
+    pass: result.pass,
+    failures: result.failures
+  };
 }
 ```
 
@@ -413,9 +413,9 @@ export function checkCode(actual, expected, fixture) {
 
 ```javascript
 export async function $eachMatch(actualArray, pattern, fixture) {
-  // 使用 fixture.$validate，它返回一个 AIValidationFailure 数组
-  const failures = await fixture.$validate(actualArray[0], pattern);
-  if (failures.length > 0) return `第一项不匹配模式`;
+  // 使用 fixture.$validate，它返回一个 MatchResult 对象
+  const { pass, failures } = await fixture.$validate(actualArray[0], pattern);
+  if (!pass) return failures[0].message;
   return 1.0; // 返回置信度分数
 }
 ```

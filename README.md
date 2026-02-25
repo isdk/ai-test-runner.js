@@ -196,9 +196,11 @@ In non-deterministic AI scenarios, a simple Passed/Failed result is often too ar
 Enable scoring in a fixture or globally:
 
 - **`scoring`**: `true | false | 'auto'`. Enables scoring mode.
-- **`maxScore`**: (Default `100`) The maximum possible score for the test. This value is also used as the base for percentage-based weight distribution if no explicit `unassignedWeight` is provided.
+- **`maxScore`**: (Default `100`) The maximum possible score for the test. This value is also used as the base for percentage-based weight distribution.
 - **`passScore`**: (Default equals `maxScore`) The minimum score required for the test to be considered "passed" (`passed: true`).
-- **`unassignedWeight`**: (Optional) Default relative weight for items without an explicit `score`. If omitted, the system intelligently distributes weight based on the scale of explicit scores, typically using `maxScore` as a baseline for percentage allocation.
+- **`unassignedWeight`**: (Optional) Alias for `totalUnassignedWeight`. Default relative budget for items without an explicit `score`.
+- **`totalUnassignedWeight`**: (Optional, default `0.1`) Total budget for all unassigned items. The system ensures unassigned items share this budget to avoid score dilution.
+- **`autoConfidence`**: (Optional, default `true`) Automatically treats weights between 0 and 1 as confidence scores. Use `'force'` to skip heuristic and always treat as confidence.
 
 #### 2.2 Hierarchical Relative Weighting & Strategies
 
@@ -333,17 +335,14 @@ Suitable for most business logic validations. Can return boolean, string, number
  * @param expected - Parameters passed to this operator in YAML (e.g., { strict: true })
  * @param fixture  - Current test context, including:
  *                   - $data: Fully rendered template data
- *                   - $validate: Recursive validation method (act, exp) => Promise<Failures[]>
+ *                   - $validate: Recursive validation method (act, exp) => Promise<MatchResult>
  *                   - $options: Auxiliary parameters extracted from the $value structure (see below)
  *                   - Other top-level properties of the fixture
- * @returns {boolean | string | number | {score: number, message?: string, pass?: boolean}}
+ * @returns {boolean | string | number | MatchResult}
  *          - `true`: Full pass, score 1.0.
  *          - `false` or `string`: Full failure, score 0.0. `string` is used as the failure message.
- *          - `number` (0.0-1.0): Partial pass with a confidence score. If `score < ctx.threshold`, it's a failure.
- *          - `{ score: number, message?: string, pass?: boolean }`: Detailed result.
- *            - `score`: Confidence (0.0-1.0).
- *            - `message`: Custom failure message.
- *            - `pass`: Explicitly declare pass/fail, overriding threshold logic.
+ *          - `number` (0.0-1.0): Partial pass with a confidence score.
+ *          - `MatchResult` object: Detailed result.
  */
 export async function checkCode(actual, expected, fixture) {
   // Example 1: Simple pass/fail
@@ -353,27 +352,28 @@ export async function checkCode(actual, expected, fixture) {
   // Example 2: Confidence score
   const confidence = actual.includes(expected.keyword) ? 0.8 : 0.2;
   return confidence; // Returns 0.8 or 0.2
-  // Example 3: Detailed result with threshold override
-  // return { score: 0.6, pass: true, message: "Partial match but explicitly allowed" };
+  // Example 3: Recursive validation using $validate
+  const { pass, score } = await fixture.$validate(actual, expected.schema);
+  return { score, pass, message: "Schema match failed" };
 }
 ```
 
 ##### Standard Mode (Low-level)
 
-If you need to directly manipulate the failure list or perform complex path control. Automatically triggered when the function receives 4 arguments.
+If you need full control over the validation flow. In this mode, the function must be a pure function returning a `MatchResult`.
 
 ```javascript
-import { ValidationContext, ValidateMatchFn } from '@isdk/ai-test-runner';
+import { ValidationContext, MatchResult } from '@isdk/ai-test-runner';
 
-export async function myOp(actual, expected, ctx: ValidationContext, validateMatch: ValidateMatchFn) {
-  // Use ctx.addFailure() directly to add failures
-  // Use processValidationResult() from utils to update scores and failures based on internal logic.
-  // Example:
-  if (actual !== expected) {
-    ctx.addFailure({ message: 'mismatch', expected, actual });
-  }
-  ctx.earnedScore += ctx.allocatedScore; // Or calculate based on sub-validations
-  return ctx.failures;
+export async function myOp(actual, expected, ctx: ValidationContext, validate: (act, exp, ctx) => Promise<MatchResult>): Promise<MatchResult> {
+  // Use the passed 'validate' function for recursive calls.
+  // Return a MatchResult object. No direct side effects on ctx.
+  const result = await validate(actual, expected, ctx);
+  return {
+    score: result.score * 0.5, // Apply some custom logic to the score
+    pass: result.pass,
+    failures: result.failures
+  };
 }
 ```
 
@@ -413,9 +413,9 @@ You can call `fixture.$validate` within a custom operator to reuse existing vali
 
 ```javascript
 export async function $eachMatch(actualArray, pattern, fixture) {
-  // Use fixture.$validate, which returns an array of AIValidationFailure
-  const failures = await fixture.$validate(actualArray[0], pattern);
-  if (failures.length > 0) return `First item does not match pattern`;
+  // Use fixture.$validate, which returns a MatchResult object
+  const { pass, failures } = await fixture.$validate(actualArray[0], pattern);
+  if (!pass) return failures[0].message;
   return 1.0; // Return confidence score
 }
 ```
