@@ -159,3 +159,33 @@
 1.  **逻辑自洽**：彻底消除了 80 分与 0.1 置信度在同一个数组里加和的数学错误。
 2.  **语义清晰**：参数命名（`totalUnassignedWeight`, `normalize`, `autoConfidence`）更符合业务直觉。
 3.  **健壮性**：`diff` 验证不再意外污染总分，且支持在失败时保留部分匹配分，提高了 AI 评估的灵活性。
+
+---
+
+# Phase 5: Final Polish & Path Transparency (2026-02-25 Late Night)
+
+## 核心目标：路径追踪优化与算子接口定型
+修复逻辑算子导致的路径过深问题，统一自定义算子的递归调用接口，彻底移除生产代码中的副作用。
+
+## 主要变更点
+
+### 1. 算子路径透明化 (`src/validate/core.ts`)
+- **透明算子识别**：引入 `transparentOperators` 列表（包括 `$expect`, `$or`, `$not`, `$any`, `$schema`, `$exists`, `$diff`）。
+- **逻辑调整**：在 `validateOperator` 中，如果当前算子是“透明”的，则不向验证路径（`key`）中添加层级。这确保了错误报告能直观地定位到具体的数据属性。
+
+### 2. `$validate` 助手函数纯粹化 (`src/validate/loader.ts`)
+- **重命名与定型**：将 `wrapCustomOperator` 中的递归助手从 `validateMatch` 重命名为 `validate`。
+- **强制纯函数**：明确 `$validate` 返回 `MatchResult` 对象。算子作者现在必须通过解构返回对象来获取验证结果，彻底切断了算子内部递归产生的隐式副作用。
+
+### 3. 类型定义精简 (`src/validate/types.ts`)
+- **移除废弃属性**：从 `ValidationContext` 和 `MatchValueOptions` 中彻底移除了 `failures` 和 `addFailure()`，确保生产代码没有任何过时的可变状态。
+
+### 4. 测试集全面现代化
+- **批量重构**：更新了 `operators.test.ts`, `logic-operators.test.ts` 和 `custom-operators.test.ts`。
+- **API 切换**：全面停止在测试中使用 `validateMatch`，改用现代化的 `validate` 函数配合 `ValidationContext`。
+- **断言更新**：适配了 `maxStrategy` 的汇总报错逻辑以及 `$validate` 的返回值解构。
+
+## 达成效果
+1.  **真·纯函数架构**：整个验证流（从根节点到最深层的自定义算子）现在完全依赖返回值传递状态，架构极其稳健且易于并行化。
+2.  **优雅的报错**：路径透明化使得错误定位更准确，汇总报错逻辑使得 OR 分支失败时的诊断信息更具可读性。
+3.  **类型严谨**：彻底消除了 TypeScript 在处理验证结果时的类型模糊问题。
