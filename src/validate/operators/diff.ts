@@ -1,5 +1,5 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
+import { ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { validateStringDiff } from '../diff.js'
 import { AIDiffOptions } from '../../types.js'
 
@@ -11,7 +11,7 @@ export async function validateDiff(
   expected: any,
   ctx: ValidationContext,
   _validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   let expectedValue: any
   let diffOptions: AIDiffOptions | undefined
 
@@ -27,14 +27,20 @@ export async function validateDiff(
   }
 
   if (typeof actual !== 'string') {
-    ctx.earnedScore = 0
-    ctx.addFailure({
+    return {
+      score: 0,
+      pass: false,
       message: 'Value mismatch: expected string for $diff',
       expected: expectedValue,
       actual,
-    })
+    }
   } else {
-    await validateStringDiff(actual, expectedValue, ctx, diffOptions)
+    const diffResult = await validateStringDiff(
+      actual,
+      expectedValue,
+      ctx,
+      diffOptions
+    )
+    return diffResult
   }
-  return ctx.failures
 }

@@ -1,6 +1,6 @@
 import { YamlTypeJsonSchema } from '../yaml-types/index.js'
 import { AIValidationFailure } from '../types.js'
-import { ValidationContext } from './types.js'
+import { ValidationContext, MatchResult } from './types.js'
 
 /** Standard JSON Schema primitive types. */
 const JSON_SCHEMA_TYPES = new Set([
@@ -43,14 +43,15 @@ export function isJsonSchema(expected: any): boolean {
  * @param actual - The actual value to validate.
  * @param expected - The JSON Schema (object or YamlTypeJsonSchema instance).
  * @param ctx - The validation context.
- * @returns A promise resolving to the failure list from the context.
+ * @returns A promise resolving to the MatchResult.
  */
 export async function validateJsonSchema(
   actual: any,
   expected: any,
   ctx: ValidationContext
-): Promise<AIValidationFailure[]> {
+): Promise<MatchResult> {
   let schema: YamlTypeJsonSchema | undefined
+  const failures: AIValidationFailure[] = []
 
   if (expected instanceof YamlTypeJsonSchema) {
     schema = expected
@@ -66,12 +67,14 @@ export async function validateJsonSchema(
     const valid = YamlTypeJsonSchema.validate(schema, actual)
     if (!valid) {
       const errors = YamlTypeJsonSchema.getErrors(schema)!
-      ctx.addFailure({
+      failures.push({
+        key: ctx.key,
         message: 'JSON Schema validation failed',
         expected: errors,
         actual,
       })
+      return { score: 0, pass: false, failures }
     }
   }
-  return ctx.failures
+  return { score: 1, pass: true, failures }
 }

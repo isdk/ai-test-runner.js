@@ -1,5 +1,5 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
+import { ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 
 /**
  * Validates that an array contains at least one item matching the expectation.
@@ -9,37 +9,37 @@ export async function validateContains(
   expected: any,
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
-  let maxBranchEarnedScore = 0
+): Promise<ValidationResult> {
+  let maxBranchScore = 0
   let matchedAny = false
 
   for (const item of actual) {
     const subCtx = ctx.createSubContext('')
-    subCtx.failures = []
     subCtx.allocatedScore = ctx.allocatedScore
-    await validateMatch(item, expected, subCtx)
+    const result = (await validateMatch(item, expected, subCtx)) as MatchResult
 
-    if (subCtx.earnedScore > maxBranchEarnedScore) {
-      maxBranchEarnedScore = subCtx.earnedScore
+    const score = result.score
+    if (score > maxBranchScore) {
+      maxBranchScore = score
     }
 
-    if (subCtx.failures.length === 0) {
+    if (result.pass) {
       matchedAny = true
       if (!ctx.scoring) break
     }
   }
 
-  ctx.earnedScore = maxBranchEarnedScore
   if (matchedAny) {
-    return []
+    return { score: maxBranchScore, pass: true }
   }
 
-  ctx.addFailure({
+  return {
+    score: maxBranchScore,
+    pass: false,
     message: '$contains mismatch: item not found in array',
     expected,
     actual,
-  })
-  return ctx.failures
+  }
 }
 
 validateContains.expects = 'array'

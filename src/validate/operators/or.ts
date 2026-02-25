@@ -1,6 +1,5 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
-import { calculateNormalizedWeights } from '../utils.js'
+import { ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { getStrategy } from '../strategies.js'
 
 /**
@@ -11,18 +10,14 @@ export async function validateOr(
   expectedList: any[],
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   if (!Array.isArray(expectedList)) {
-    ctx.addFailure({
+    return {
+      score: 0,
+      pass: false,
       message: '$or operator requires an array of expectations',
-      expected: expectedList,
-      actual,
-    })
-    return ctx.failures
+    }
   }
-
-  const allFailures: AIValidationFailure[][] = []
-  let matchedAny = false
 
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
@@ -31,48 +26,19 @@ export async function validateOr(
   )
 
   const strategy = ctx.strategy || getStrategy('max')
-  const weights = strategy.distribute(explicitWeights, expectedList.length, {
-    unassignedWeight: ctx.unassignedWeight,
+  const weights = strategy.distribute(explicitWeights, {
+    totalUnassignedWeight: ctx.unassignedWeight,
     maxScore: ctx.maxScore,
   })
-  const subContexts: ValidationContext[] = []
+
+  const results: MatchResult[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
-    const branchFailures: AIValidationFailure[] = []
-    const subCtx = ctx.createSubContext(`$or[${i}]`, {
-      failures: branchFailures,
-    })
+    const subCtx = ctx.createSubContext(`[${i}]`)
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
-    await validateMatch(actual, expectedList[i], subCtx)
-    subContexts.push(subCtx)
-
-    if (branchFailures.length === 0) {
-      matchedAny = true
-      if (!ctx.scoring) {
-        ctx.earnedScore = ctx.allocatedScore
-        return []
-      }
-    } else {
-      allFailures.push(branchFailures)
-    }
+    const res = await validateMatch(actual, expectedList[i], subCtx)
+    results.push(res)
   }
 
-  strategy.aggregate(ctx, subContexts)
-
-  if (matchedAny) {
-    return []
-  }
-
-  const summary = allFailures
-    .map(
-      (failures, i) =>
-        `Branch ${i}: ${failures.map((f) => f.message).join('; ')}`
-    )
-    .join(' | ')
-  ctx.addFailure({
-    message: `$or mismatch: none of the conditions met. Details: ${summary}`,
-    expected: expectedList,
-    actual,
-  })
-  return ctx.failures
+  return strategy.aggregate(results, weights)
 }

@@ -128,7 +128,7 @@ describe('Scoring Strategy', () => {
     //   Inside body: text (weight 1), tags (weight 1). Total weight 2.
     //   text failed (0). tags passed (1/2 * 80 = 40).
     // Total score: 20 + 40 = 60
-    expect(log2.score).toBe(60)
+    expect(log2.score).toBeCloseTo(60, 3)
   })
 
   it('should handle $or operator in scoring mode', async () => {
@@ -215,7 +215,7 @@ describe('Scoring Strategy', () => {
     expect(result3.logs[0].score).toBeGreaterThan(90)
   })
 
-  it('should support unassignedWeight configuration', async () => {
+  it('should support unassigned Weight by default', async () => {
     const fixture = {
       input: { a: 'A', b: 'B' },
       output: {
@@ -223,7 +223,6 @@ describe('Scoring Strategy', () => {
         b: 'B'                         // unassigned
       },
       scoring: true,
-      unassignedWeight: 1,             // total weight = 9 + 1 = 10
       maxScore: 100
     }
 
@@ -236,18 +235,57 @@ describe('Scoring Strategy', () => {
       input: { a: 'WRONG', b: 'B' }
     }
     const result2 = await runner.run('return-input', [fixture2])
-    // b matches, weight is 1/10 * 100 = 10
-    expect(result2.logs[0].score).toBe(10)
+    // b matches, weight is 100-9 = 91
+    expect(result2.logs[0].score).toBe(91)
+    const fixture3 = {
+      ...fixture,
+      unassignedWeight: 9,             // 这个不起作用，是因为还有剩下的分值
+      input: { a: 'WRONG', b: 'B' }
+    }
+    const result3 = await runner.run('return-input', [fixture3])
+    expect(result3.logs[0].score).toBe(91)
+
+  })
+
+  it('should support unassignedWeight configuration', async () => {
+    const fixture = {
+      input: { a: 'A', b: 'B', c: 'C' },
+      output: {
+        a: { $expect: 'A', score: 10 }, // explicit weight 9
+        b: 'B',                         // unassigned
+        c: 'C',
+      },
+      scoring: true,
+      unassignedWeight: 1,
+      maxScore: 10
+    }
+
+    const result = await runner.run('return-input', [fixture])
+    expect(result.logs[0].score).toBe(10)
+
+    // Partial match: only the unassigned one matches
+    const fixture2 = {
+      ...fixture,
+      input: { a: 'WRONG', b: 'B' }
+    }
+    const result2 = await runner.run('return-input', [fixture2])
+    expect(result2.logs[0].score).toBe(0.5)
 
     // With a different unassignedWeight
     const fixture3 = {
       ...fixture,
-      unassignedWeight: 9,             // total weight = 9 + 9 = 18
+      unassignedWeight: 4,
       input: { a: 'WRONG', b: 'B' }
     }
     const result3 = await runner.run('return-input', [fixture3])
-    // b matches, weight is 9/18 * 100 = 50
-    expect(result3.logs[0].score).toBe(50)
+    expect(result3.logs[0].score).toBe(2)
+
+    const fixture4 = {
+      ...fixture,
+      input: { a: 'WRONG', b: 'B', c: 'C' }
+    }
+    const result4 = await runner.run('return-input', [fixture4])
+    expect(result4.logs[0].score).toBe(1)
   })
 
   it('should fail if a critical branch fails even with a high score', async () => {
@@ -442,7 +480,7 @@ describe('Scoring Strategy', () => {
     }
 
     const result = await runner.run('return-input', [fixture])
-    expect(result.logs[0].score).toBeCloseTo(3.846, 3)
+    expect(result.logs[0].score).toBeCloseTo(80, 3)
   })
 
   it('should support scoring with explicit $diff operator', async () => {

@@ -1,7 +1,8 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
-import { calculateNormalizedWeights } from '../utils.js'
+import { ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
+import { calculateNormalizedWeights, processValidationResult } from '../utils.js'
 import { validateContains } from './contains.js'
+import { getStrategy } from '../strategies.js'
 
 /**
  * Validates that an array contains ALL items specified in the expectation list.
@@ -11,7 +12,7 @@ export async function validateAll(
   expectedList: any[],
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
       ? typeof item.score === 'number'
@@ -19,23 +20,27 @@ export async function validateAll(
         : (item.score.value ?? 1)
       : null
   )
-  const weights = calculateNormalizedWeights(
-    explicitWeights,
-    expectedList.length,
-    { unassignedWeight: ctx.unassignedWeight }
-  )
+  
+  const strategy = ctx.strategy || getStrategy('weighted')
+  const weights = strategy.distribute(explicitWeights, {
+    totalUnassignedWeight: ctx.unassignedWeight,
+    maxScore: ctx.maxScore,
+  })
+
+  const results: MatchResult[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
-    const subCtx = ctx.createSubContext('')
-    subCtx.failures = []
+    const subCtx = ctx.createSubContext(`$all[${i}]`)
+    // Pass allocated score to sub-context so it can be used for logging or deep logic
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
-    await validateContains(actual, expectedList[i], subCtx, validateMatch)
-    if (subCtx.failures.length > 0) {
-      ctx.failures.push(...subCtx.failures)
-    }
-    ctx.earnedScore += subCtx.earnedScore
+    
+    const result = await validateContains(actual, expectedList[i], subCtx, validateMatch)
+    const matchResult = processValidationResult(result, expectedList[i], actual, subCtx)
+    
+    results.push(matchResult)
   }
-  return ctx.failures
+
+  return strategy.aggregate(results, weights)
 }
 
 validateAll.expects = 'array'

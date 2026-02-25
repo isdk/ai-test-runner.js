@@ -1,4 +1,4 @@
-import { AIValidationFailure } from '../../types.js'
+import { ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn } from '../types.js'
 
 /**
@@ -9,7 +9,6 @@ export async function validateExpect(
   expected: any,
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
-  await validateMatch(actual, expected, ctx)
-  return ctx.failures
+): Promise<ValidationResult> {
+  return await validateMatch(actual, expected, ctx)
 }

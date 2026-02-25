@@ -1,4 +1,4 @@
-import { AIValidationFailure } from '../../types.js'
+import { ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn } from '../types.js'
 import { validateJsonSchema } from '../schema.js'
 
@@ -10,11 +10,6 @@ export async function validateSchemaOperator(
   expected: any,
   ctx: ValidationContext,
   _validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
-  const initialFailures = ctx.failures.length
-  await validateJsonSchema(actual, expected, ctx)
-  if (ctx.failures.length === initialFailures) {
-    ctx.earnedScore = ctx.allocatedScore
-  }
-  return ctx.failures
+): Promise<ValidationResult> {
+  return await validateJsonSchema(actual, expected, ctx)
 }

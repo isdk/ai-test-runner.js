@@ -1,6 +1,5 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
-import { calculateNormalizedWeights } from '../utils.js'
+import { ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { getStrategy } from '../strategies.js'
 
 /**
@@ -11,14 +10,13 @@ export async function validateAnd(
   expectedList: any[],
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   if (!Array.isArray(expectedList)) {
-    ctx.addFailure({
+    return {
+      score: 0,
+      pass: false,
       message: '$and operator requires an array of expectations',
-      expected: expectedList,
-      actual,
-    })
-    return ctx.failures
+    }
   }
 
   const explicitWeights = expectedList.map((item) =>
@@ -28,19 +26,19 @@ export async function validateAnd(
   )
 
   const strategy = ctx.strategy || getStrategy('weighted')
-  const weights = strategy.distribute(explicitWeights, expectedList.length, {
-    unassignedWeight: ctx.unassignedWeight,
+  const weights = strategy.distribute(explicitWeights, {
+    totalUnassignedWeight: ctx.unassignedWeight,
     maxScore: ctx.maxScore,
   })
-  const subContexts: ValidationContext[] = []
+
+  const results: MatchResult[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
-    const subCtx = ctx.createSubContext(`$and[${i}]`)
+    const subCtx = ctx.createSubContext(`[${i}]`)
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
-    await validateMatch(actual, expectedList[i], subCtx)
-    subContexts.push(subCtx)
+    const res = await validateMatch(actual, expectedList[i], subCtx)
+    results.push(res)
   }
-  strategy.aggregate(ctx, subContexts)
 
-  return ctx.failures
+  return strategy.aggregate(results, weights)
 }

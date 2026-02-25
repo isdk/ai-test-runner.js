@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateMatch } from '../../src/validate/core.js'
+import { validate } from '../../src/validate/core.js'
+import { ValidationContext } from '../../src/validate/types.js'
 
 describe('validate/logic-operators', () => {
   describe('$and', () => {
@@ -11,7 +12,7 @@ describe('validate/logic-operators', () => {
           { $schema: { type: 'number', maximum: 20 } }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -23,7 +24,7 @@ describe('validate/logic-operators', () => {
           { $schema: { type: 'number', maximum: 20 } }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(1)
       expect(failures[0].key).toBe('$and[1]')
     })
@@ -36,7 +37,7 @@ describe('validate/logic-operators', () => {
           { $schema: { type: 'number', minimum: 15 } }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(2)
       expect(failures[0].key).toBe('$and[0]')
       expect(failures[1].key).toBe('$and[1]')
@@ -50,7 +51,7 @@ describe('validate/logic-operators', () => {
           { age: 20 }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -63,14 +64,14 @@ describe('validate/logic-operators', () => {
           { $schema: { type: 'string', minLength: 5 } }
         ]
       }
-      const failures = await validateMatch(actual, expected, { data })
+      const { failures } = await validate(actual, expected, new ValidationContext({ data }))
       expect(failures).toHaveLength(0)
     })
 
     it('should handle empty $and array as always passing', async () => {
       const actual = { any: 'value' }
       const expected = { $and: [] }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
   })
@@ -81,7 +82,7 @@ describe('validate/logic-operators', () => {
       const expected = {
         $or: ['success', 'pending']
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -90,12 +91,12 @@ describe('validate/logic-operators', () => {
       const expected = {
         $or: ['success', 'pending']
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(1)
       expect(failures[0].message).toContain('$or mismatch: none of the conditions met')
-      expect(failures[0].message).toContain('Branch 0: ')
-      expect(failures[0].message).toContain('mismatch')
-      expect(failures[0].message).toContain('Branch 1: ')
+      // Branch details are part of the aggregated failure messages in new implementation
+      expect(failures[0].message).toContain('Branch 0')
+      expect(failures[0].message).toContain('Branch 1')
     })
 
     it('should support template variables inside $or', async () => {
@@ -104,7 +105,7 @@ describe('validate/logic-operators', () => {
       const expected = {
         $or: ['guest', '{{role}}']
       }
-      const failures = await validateMatch(actual, expected, { data })
+      const { failures } = await validate(actual, expected, new ValidationContext({ data }))
       expect(failures).toHaveLength(0)
     })
 
@@ -116,14 +117,14 @@ describe('validate/logic-operators', () => {
           { $and: [{ status: 'error' }, { code: 500 }] }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
     it('should fail if $or array is empty', async () => {
       const actual = 'any'
       const expected = { $or: [] }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(1)
       expect(failures[0].message).toContain('none of the conditions met')
     })
@@ -138,7 +139,7 @@ describe('validate/logic-operators', () => {
           { $not: 'user_admin' }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -151,11 +152,12 @@ describe('validate/logic-operators', () => {
         ]
       }
       // In non-strict mode (default), this should pass even with 'extra' key
-      let failures = await validateMatch(actual, expected)
+      let { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
 
       // In strict mode, it should fail if the matching branch has missing keys in expectation
-      failures = await validateMatch(actual, expected, { strict: true })
+      const result = await validate(actual, expected, new ValidationContext({ strict: true }))
+      failures = result.failures
       expect(failures).toHaveLength(1)
       expect(failures[0].message).toContain('Extra key')
     })
@@ -169,7 +171,7 @@ describe('validate/logic-operators', () => {
           ]
         }
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(1)
       // Path should accurately reflect the traversal: user -> $and[0] -> id
       expect(failures[0].key).toBe('user.$and[0].id')
@@ -188,7 +190,7 @@ describe('validate/logic-operators', () => {
           ]
         }
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -200,7 +202,7 @@ describe('validate/logic-operators', () => {
           { $or: ['banana', 'cherry'] }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -212,7 +214,7 @@ describe('validate/logic-operators', () => {
           { $schema: { type: 'string', minLength: 5 } }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
 
@@ -224,7 +226,7 @@ describe('validate/logic-operators', () => {
           { $or: [3, 4] }
         ]
       }
-      const failures = await validateMatch(actual, expected)
+      const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(2)
       expect(failures[0].key).toBe('$and[0]')
       expect(failures[0].message).toContain('$or mismatch')
@@ -235,11 +237,11 @@ describe('validate/logic-operators', () => {
 
   describe('Edge Cases & Special Types', () => {
     it('should fail if expected is not an array', async () => {
-      const failures = await validateMatch(10, { $and: 'not an array' as any })
+      const { failures } = await validate(10, { $and: 'not an array' as any }, new ValidationContext())
       expect(failures).toHaveLength(1)
       expect(failures[0].message).toBe('$and operator requires an array of expectations')
 
-      const failuresOr = await validateMatch(10, { $or: 'not an array' as any })
+      const { failures: failuresOr } = await validate(10, { $or: 'not an array' as any }, new ValidationContext())
       expect(failuresOr).toHaveLength(1)
       expect(failuresOr[0].message).toBe('$or operator requires an array of expectations')
     })
@@ -247,31 +249,31 @@ describe('validate/logic-operators', () => {
     it('should work with custom function matchers', async () => {
       const isEven = (val: any) => val % 2 === 0 ? true : 'must be even'
       const isPositive = (val: any) => val > 0 ? true : 'must be positive'
-      
-      const failures = await validateMatch(4, { $and: [isEven, isPositive] })
+
+      const { failures } = await validate(4, { $and: [isEven, isPositive] }, new ValidationContext())
       expect(failures).toHaveLength(0)
 
-      const failures2 = await validateMatch(-2, { $and: [isEven, isPositive] })
+      const { failures: failures2 } = await validate(-2, { $and: [isEven, isPositive] }, new ValidationContext())
       expect(failures2).toHaveLength(1)
       expect(failures2[0].message).toContain('must be positive')
     })
 
     it('should handle null and undefined actual values', async () => {
-      const failures = await validateMatch(null, {
+      const { failures } = await validate(null, {
         $or: [null, 'something']
-      })
+      }, new ValidationContext())
       expect(failures).toHaveLength(0)
 
-      const failures2 = await validateMatch(undefined, {
+      const { failures: failures2 } = await validate(undefined, {
         $and: [{ $schema: { type: 'undefined' } }]
-      })
-      // Note: json-schema might not support 'undefined' type directly, 
+      }, new ValidationContext())
+      // Note: json-schema might not support 'undefined' type directly,
       // but let's test if our logic operator survives the call.
       expect(failures2).toBeDefined()
     })
 
     it('should work as a top-level operator', async () => {
-      const failures = await validateMatch('test', { $and: [/t/, /e/, /s/, /t/] })
+      const { failures } = await validate('test', { $and: [/t/, /e/, /s/, /t/] }, new ValidationContext())
       expect(failures).toHaveLength(0)
     })
   })

@@ -1,4 +1,4 @@
-import { AIValidationFailure } from '../../types.js'
+import { ValidationResult } from '../../types.js'
 import { ValidationContext } from '../types.js'
 
 /**
@@ -8,7 +8,7 @@ export async function validateExists(
   actual: any,
   expected: any,
   ctx: ValidationContext
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   let expectedExists: boolean
   let strict = false
 
@@ -47,10 +47,10 @@ export async function validateExists(
   }
 
   if (failed) {
-    ctx.earnedScore = 0
-    ctx.addFailure({
+    return {
+      score: 0,
+      pass: false,
       message,
-      expected: expectedExists,
       actual: strict
         ? isPresent
           ? 'present'
@@ -58,9 +58,8 @@ export async function validateExists(
         : isUndefined
           ? 'undefined'
           : 'defined',
-    })
-  } else {
-    ctx.earnedScore = ctx.allocatedScore
+    }
   }
-  return ctx.failures
+
+  return true
 }

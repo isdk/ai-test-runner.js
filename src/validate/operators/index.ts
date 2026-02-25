@@ -1,7 +1,5 @@
 import {
   ValidationOperatorHandler,
-  ValidateMatchFn,
-  ValidationContext,
 } from '../types.js'
 import { validateAnd } from './and.js'
 import { validateOr } from './or.js'
@@ -15,15 +13,7 @@ import { validateExpect } from './expect.js'
 import { validateDiff } from './diff.js'
 
 /** Map of supported collection validation operators. */
-export const OPERATORS: Record<
-  string,
-  (
-    actual: any,
-    expected: any,
-    ctx: ValidationContext,
-    validateMatch: ValidateMatchFn
-  ) => Promise<any[]>
-> = {
+export const OPERATORS: Record<string, ValidationOperatorHandler> = {
   $and: validateAnd,
   $or: validateOr,
   $contains: validateContains,

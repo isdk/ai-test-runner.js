@@ -141,6 +141,8 @@ export interface AIValidationFailure {
   actual?: any
   /** Detailed diff information if the failure occurred during a string comparison. */
   diff?: AIDiffItem[]
+  /** Indicates if this failure occurred in a critical validation path. */
+  critical?: boolean
 }
 
 /**

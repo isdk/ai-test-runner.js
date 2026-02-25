@@ -1,11 +1,9 @@
-import { AIValidationFailure, AIStrictOption, AIScoreConfig } from '../types.js'
+import { AIValidationFailure, AIStrictOption, AIScoreConfig, ValidationResult } from '../types.js'
 
 /**
  * Options for matching and validating values.
  */
 export interface MatchValueOptions {
-  /** Accumulator for validation failures. */
-  failures?: AIValidationFailure[]
   /** The current key or path being validated. */
   key?: string
   /** Data context for template formatting. */
@@ -36,21 +34,17 @@ export interface MatchValueOptions {
   allocatedScore?: number
   /** Whether the current validation branch is mandatory (Critical). */
   isCriticalBranch?: boolean
-  /** Accumulator for failures in critical items. */
-  failedCritical?: AIValidationFailure[]
   /** The scoring strategy to use. */
   strategy?: ScoringStrategy
   /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
   threshold?: number
+  autoConfidence?: boolean|'force'
 }
 
 /**
- * Manages the state and context of a validation process.
- * Tracks failures, current path, data context, and strictness settings.
+ * Manages the read-only configuration and context of a validation process.
  */
 export class ValidationContext {
-  /** Accumulator for validation failures discovered during the process. */
-  failures: AIValidationFailure[]
   /** The current hierarchical key or dot-separated path being validated. */
   key: string
   /** Data context used for template formatting and variable injection. */
@@ -79,23 +73,19 @@ export class ValidationContext {
   unassignedWeight?: number
   /** The score allocated to this validation node from its parent. */
   allocatedScore: number
-  /** The total score earned at this level (and its children). */
-  earnedScore: number = 0
   /** Whether the current validation branch is mandatory (critical). */
   isCriticalBranch: boolean
-  /** Accumulator for failures in 'critical' items. */
-  failedCritical: AIValidationFailure[]
   /** The scoring strategy to use. */
   strategy?: ScoringStrategy
   /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
   threshold?: number
+  autoConfidence?: boolean|'force'
 
   /**
    * Creates a new validation context.
    * @param options - Initial options for the context.
    */
   constructor(options: MatchValueOptions = {}) {
-    this.failures = options.failures || []
     this.key = options.key || ''
     this.data = options.data || {}
     this.input = options.input
@@ -111,29 +101,9 @@ export class ValidationContext {
     this.unassignedWeight = options.unassignedWeight
     this.allocatedScore = options.allocatedScore ?? this.maxScore
     this.isCriticalBranch = !!options.isCriticalBranch
-    this.failedCritical = options.failedCritical || []
     this.strategy = options.strategy
     this.threshold = options.threshold
-  }
-
-  /**
-   * Adds a validation failure to the current context.
-   * The current `key` from the context is automatically added to the failure if not provided.
-   * @param failure - Partial failure information to add.
-   * @param options - Additional options, e.g., if this failure is in a 'critical' item.
-   */
-  addFailure(
-    failure: Partial<AIValidationFailure>,
-    options: { critical?: boolean } = {}
-  ) {
-    const fullFailure = {
-      key: this.key,
-      ...failure,
-    }
-    this.failures.push(fullFailure)
-    if (options.critical || this.isCriticalBranch) {
-      this.failedCritical.push(fullFailure)
-    }
+    this.autoConfidence = options.autoConfidence
   }
 
   /**
@@ -157,7 +127,6 @@ export class ValidationContext {
     }
     return new ValidationContext({
       ...this,
-      failures: this.failures,
       key: newKey,
       scoring: this.scoring,
       maxScore: this.maxScore,
@@ -165,7 +134,6 @@ export class ValidationContext {
       unassignedWeight: this.unassignedWeight,
       allocatedScore: this.allocatedScore,
       isCriticalBranch: this.isCriticalBranch,
-      failedCritical: this.failedCritical,
       strategy: this.strategy,
       threshold: this.threshold,
       ...options,
@@ -181,25 +149,25 @@ export interface ScoringStrategy {
   /**
    * Calculates the weights for a list of items.
    * @param items - The items to distribute score to.
-   * @param totalCount - The total number of items.
    * @param options - Contextual options.
    * @returns An array of normalized weights (0.0 - 1.0) summing to 1.0 (for weighted) or more (for independent).
    */
   distribute(
     items: (AIScoreConfig | null)[],
-    totalCount: number,
-    options?: { unassignedWeight?: number; maxScore?: number }
+    options?: { totalUnassignedWeight?: number; maxScore?: number, autoConfidence?: boolean|'force' }
   ): number[]
 
   /**
-   * Aggregates the results from child contexts into the parent context.
-   * @param parentCtx - The parent context.
-   * @param childrenCtxs - The child contexts that have completed validation.
+   * Aggregates the results from child matches into a single result.
+   * @param results - The results from child validations.
+   * @param weights - The weights corresponding to each child.
+   * @param options - Additional aggregation options.
    */
   aggregate(
-    parentCtx: ValidationContext,
-    childrenCtxs: ValidationContext[]
-  ): void
+    results: MatchResult[],
+    weights: number[],
+    options?: any
+  ): MatchResult
 }
 
 /**
@@ -209,7 +177,19 @@ export type ValidateMatchFn = (
   actual: any,
   expected: any,
   ctx: ValidationContext
-) => Promise<AIValidationFailure[]>
+) => Promise<MatchResult>
+
+/**
+ * Result of a validation match operation.
+ */
+export interface MatchResult {
+  /** The normalized confidence score (0.0 - 1.0). */
+  score: number
+  /** Whether the validation passed. */
+  pass: boolean
+  /** List of failures encountered during matching. */
+  failures: AIValidationFailure[]
+}
 
 /**
  * Function signature for handling custom validation operators (e.g., $contains).
@@ -219,4 +199,4 @@ export type ValidationOperatorHandler = (
   expected: any,
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-) => Promise<AIValidationFailure[]>
+) => Promise<ValidationResult> | ValidationResult

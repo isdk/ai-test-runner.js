@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { loadOperators } from '../../src/validate/loader.js'
-import { ValidationContext } from '../../src/validate/types.js'
-import { validateMatch } from '../../src/validate/core.js'
+import { ValidationContext, MatchResult } from '../../src/validate/types.js'
+import { validate } from '../../src/validate/core.js'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -61,16 +61,22 @@ describe('validate/custom-operators', () => {
       const actual = 'John Doe'
       const expected = { firstName: 'John', lastName: 'Doe' }
 
-      const failures = await checkNameOp(actual, expected, ctx, async () => [])
-      expect(failures).toHaveLength(0)
+      // Custom operator after wrapCustomOperator returns MatchResult
+      const result = (await checkNameOp(actual, expected, ctx, async () => {
+        return { score: 1, pass: true, failures: [] }
+      })) as MatchResult
+      expect(result.failures).toHaveLength(0)
+      expect(result.pass).toBe(true)
 
       const badExpected = { firstName: 'Jane' }
-      const badFailures = await checkNameOp(actual, badExpected, ctx, async () => [])
-      expect(badFailures.length).toBeGreaterThan(0)
-      expect(badFailures[0].message).toContain('Name check failed')
+      const badResult = (await checkNameOp(actual, badExpected, ctx, async () => {
+        return { score: 0, pass: false, failures: [] }
+      })) as MatchResult
+      expect(badResult.failures.length).toBeGreaterThan(0)
+      expect(badResult.failures[0].message).toContain('Name check failed')
     })
 
-    it('should work with validateMatch in a nested structure', async () => {
+    it('should work with validate in a nested structure', async () => {
       const operators = [`js://./custom-ops.js#checkName`]
       const loaded = await loadOperators(operators, baseDir)
 
@@ -87,7 +93,7 @@ describe('validate/custom-operators', () => {
         }
       }
 
-      const failures = await validateMatch(actual, expected, { operators: loaded })
+      const { failures } = await validate(actual, expected, new ValidationContext({ operators: loaded }))
       expect(failures).toHaveLength(0)
     })
 
@@ -100,10 +106,10 @@ describe('validate/custom-operators', () => {
         $checkName: { firstName: '{{userFirstName}}', lastName: 'Doe' }
       }
 
-      const failures = await validateMatch(actual, expected, {
+      const { failures } = await validate(actual, expected, new ValidationContext({
         operators: loaded,
         data: { userFirstName: 'John' }
-      })
+      }))
       expect(failures).toHaveLength(0)
     })
 
@@ -119,7 +125,7 @@ describe('validate/custom-operators', () => {
         }
       }
 
-      const failures = await validateMatch(actual, expected, { operators: loaded })
+      const { failures } = await validate(actual, expected, new ValidationContext({ operators: loaded }))
       expect(failures).toHaveLength(0)
 
       const badExpected = {
@@ -128,7 +134,7 @@ describe('validate/custom-operators', () => {
           minLength: 20
         }
       }
-      const badFailures = await validateMatch(actual, badExpected, { operators: loaded })
+      const { failures: badFailures } = await validate(actual, badExpected, new ValidationContext({ operators: loaded }))
       expect(badFailures.length).toBeGreaterThan(0)
       expect(badFailures[0].message).toContain('minLength')
     })
@@ -192,25 +198,37 @@ describe('validate/custom-operators', () => {
       })
 
       it('should access input data through fixture', async () => {
-        const operators = [(act:any, exp:any, fixture:any) => {
-          return act === fixture.targetName
-        }]
+        const operators = [
+          (act: any, exp: any, fixture: any) => {
+            return act === fixture.targetName
+          },
+        ]
         const loaded = await loadOperators(operators)
 
-        const result = await validateMatch('Alice', { $op0: true }, {
-          operators: loaded,
-          input: { targetName: 'Alice' }
-        })
-        expect(result).toHaveLength(0)
+        const { failures } = await validate(
+          'Alice',
+          { $op0: true },
+          new ValidationContext({
+            operators: loaded,
+            input: { targetName: 'Alice' },
+          })
+        )
+        expect(failures).toHaveLength(0)
       })
 
       it('should have undefined $options when $value convention is not used', async () => {
-        const operators = [(act:any, exp:any, fixture:any) => {
-          return fixture.$options === undefined
-        }]
+        const operators = [
+          (act: any, exp: any, fixture: any) => {
+            return fixture.$options === undefined
+          },
+        ]
         const loaded = await loadOperators(operators)
-        const result = await validateMatch('test', { $op0: 'some-val' }, { operators: loaded })
-        expect(result).toHaveLength(0)
+        const { failures } = await validate(
+          'test',
+          { $op0: 'some-val' },
+          new ValidationContext({ operators: loaded })
+        )
+        expect(failures).toHaveLength(0)
       })
     })
   })

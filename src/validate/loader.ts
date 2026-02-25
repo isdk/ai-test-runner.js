@@ -17,13 +17,13 @@ export type CustomOperatorHandler = (
 export function wrapCustomOperator(
   handler: CustomOperatorHandler
 ): ValidationOperatorHandler {
-  return async (actual, expected, ctx, validateMatch) => {
+  return async (actual, expected, ctx, validate) => {
     const fixture: any = {
       ...(ctx.input && typeof ctx.input === 'object'
         ? ctx.input
         : { input: ctx.input }),
       $data: ctx.data,
-      $validate: (act: any, exp: any) => validateMatch(act, exp, ctx),
+      $validate: (act: any, exp: any) => validate(act, exp, ctx),
     }
 
     let options: any
@@ -39,8 +39,7 @@ export function wrapCustomOperator(
     fixture.$options = options
 
     const result = await handler(actual, expected, fixture)
-    processValidationResult(result, expected, actual, ctx)
-    return ctx.failures
+    return processValidationResult(result, expected, actual, ctx)
   }
 }
 

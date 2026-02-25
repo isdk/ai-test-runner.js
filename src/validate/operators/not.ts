@@ -1,5 +1,5 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
+import { ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 
 /**
  * Validates that a value does NOT match the specified expectation.
@@ -9,20 +9,24 @@ export async function validateNot(
   expected: any,
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   const subCtx = ctx.createSubContext('')
-  subCtx.failures = []
   subCtx.allocatedScore = ctx.allocatedScore
-  await validateMatch(actual, expected, subCtx)
-  if (subCtx.failures.length === 0) {
-    ctx.earnedScore = 0
-    ctx.addFailure({
+  const result = await validateMatch(actual, expected, subCtx)
+
+  if (result.pass) {
+    return {
+      score: 0,
+      pass: false,
       message: '$not mismatch: value matches expectation but should not',
       expected,
       actual,
-    })
+    }
   } else {
-    ctx.earnedScore = ctx.allocatedScore
+    return {
+      score: 1.0,
+      pass: true,
+      failures: [],
+    }
   }
-  return ctx.failures
 }

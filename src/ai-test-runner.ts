@@ -13,7 +13,7 @@ import {
 } from './types.js'
 import {
   formatObject,
-  validateMatch,
+  validate,
   ValidationContext,
 } from './validate/index.js'
 import { loadOperators } from './validate/loader.js'
@@ -524,10 +524,10 @@ export class AITestRunner extends EventEmitter {
       passScore,
       unassignedWeight,
       allocatedScore: allocatedPerBlock,
-      failedCritical,
+      // failedCritical, // We don't pass failedCritical array anymore
     }
 
-    // Let's refactor to use a single shared context if possible, or at least track earnedScore.
+    // Updated validate helper using pure function logic
     const runValidation = async (
       actual: any,
       expected: any,
@@ -537,9 +537,20 @@ export class AITestRunner extends EventEmitter {
         ...commonCtxOptions,
         allocatedScore: weight,
       })
-      const result = await validateMatch(actual, expected, ctx)
-      totalEarnedScore += ctx.earnedScore
-      if (result) failures.push(...result)
+      const result = await validate(actual, expected, ctx)
+      
+      // Accumulate score
+      totalEarnedScore += (result.score * weight)
+      
+      if (!result.pass) {
+        failures.push(...result.failures)
+        
+        // Check for critical failures in the result
+        const criticalFailures = result.failures.filter(f => f.critical)
+        if (criticalFailures.length > 0) {
+          failedCritical.push(...criticalFailures)
+        }
+      }
       return ctx
     }
 

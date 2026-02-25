@@ -1,5 +1,5 @@
-import { AIValidationFailure } from '../../types.js'
-import { ValidationContext, ValidateMatchFn } from '../types.js'
+import { AIValidationFailure, ValidationResult } from '../../types.js'
+import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { calculateNormalizedWeights } from '../utils.js'
 
 /**
@@ -10,7 +10,7 @@ export async function validateSequence(
   expectedList: any[],
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-): Promise<AIValidationFailure[]> {
+): Promise<ValidationResult> {
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
       ? typeof item.score === 'number'
@@ -18,51 +18,69 @@ export async function validateSequence(
         : (item.score.value ?? 1)
       : null
   )
-  const weights = calculateNormalizedWeights(
-    explicitWeights,
-    expectedList.length,
-    { unassignedWeight: ctx.unassignedWeight }
-  )
+  const weights = calculateNormalizedWeights(explicitWeights, {
+    totalUnassignedWeight: ctx.unassignedWeight,
+    maxScore: ctx.maxScore,
+    autoConfidence: ctx.autoConfidence,
+  })
 
+  let totalScore = 0
+  const allFailures: AIValidationFailure[] = []
   let actualIdx = 0
+  let pass = true
+
   for (let i = 0; i < expectedList.length; i++) {
     const expected = expectedList[i]
     const subAllocated = weights[i] * ctx.allocatedScore
     let found = false
-    let maxBranchEarnedScore = 0
+    let maxBranchScore = 0
+    let bestBranchFailures: AIValidationFailure[] = []
 
     let tempIdx = actualIdx
     while (tempIdx < actual.length) {
       const subCtx = ctx.createSubContext('')
-      subCtx.failures = []
       subCtx.allocatedScore = subAllocated
-      await validateMatch(actual[tempIdx], expected, subCtx)
+      const result = (await validateMatch(
+        actual[tempIdx],
+        expected,
+        subCtx
+      )) as MatchResult
 
-      if (subCtx.earnedScore > maxBranchEarnedScore) {
-        maxBranchEarnedScore = subCtx.earnedScore
+      if (result.score > maxBranchScore) {
+        maxBranchScore = result.score
+        bestBranchFailures = result.failures
       }
 
-      if (subCtx.failures.length === 0) {
+      if (result.pass) {
         found = true
         actualIdx = tempIdx + 1
-        if (!ctx.scoring) break
+        break
       }
       tempIdx++
     }
 
     if (found) {
-      ctx.earnedScore += subAllocated
+      totalScore += subAllocated
     } else {
-      ctx.earnedScore += maxBranchEarnedScore
-      ctx.addFailure({
-        message: `$sequence mismatch: item at index ${i} not found in sequence after previous matches`,
-        expected,
-        actual,
-      })
-      return ctx.failures
+      totalScore += maxBranchScore * subAllocated
+      pass = false
+      allFailures.push(
+        ...bestBranchFailures,
+        {
+          key: ctx.key,
+          message: `$sequence mismatch: item at index ${i} not found in sequence after previous matches`,
+          expected,
+          actual,
+        }
+      )
     }
   }
-  return ctx.failures
+
+  return {
+    score: totalScore / ctx.allocatedScore,
+    pass,
+    failures: allFailures,
+  }
 }
 
 validateSequence.expects = 'array'

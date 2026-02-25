@@ -15,9 +15,16 @@ import {
   AIDiffOptions,
   AIDiffType,
 } from '../types.js'
-import { ValidationContext } from './types.js'
+import { ValidationContext, MatchResult } from './types.js'
 import { isStrict, calculateNormalizedWeights } from './utils.js'
 import { formatTemplate } from './template.js'
+
+/**
+ * Checks if a diff list contains any additions or removals.
+ */
+export function hasDiffChanges(diff: AIDiffItem[]): boolean {
+  return diff.some((d) => d.added || d.removed)
+}
 
 function isJsonLike(str: string): boolean {
   const s = str.trim()
@@ -273,14 +280,24 @@ export function findDiffItem(
 
 /**
  * Validates a string mismatch using structured diff analysis.
+ *
+ * The score reflects the confidence based on matched diff items. Even if the validation
+ * fails (pass: false) due to strict mode or unverified changes, the score will still
+ * represent the sum of weights of successfully matched items.
+ *
+ * If no explicit diff items are provided, a mismatch results in score 0.
  */
 export async function validateStringDiff(
   actual: string,
   expected: string,
   ctx: ValidationContext,
   options?: AIDiffOptions
-): Promise<AIValidationFailure[]> {
+): Promise<MatchResult> {
   const { input } = ctx
+  const failures: AIValidationFailure[] = []
+  let score = 1.0
+  let pass = true
+
   let diffOptions: AIDiffOptions = options || {}
   let expectedDiff = diffOptions.items || input?.diff
   let diffPermissive =
@@ -294,7 +311,7 @@ export async function validateStringDiff(
     expectedDiff = undefined
   } else if (expectedDiff && !Array.isArray(expectedDiff)) {
     if (typeof expectedDiff === 'object') {
-      if ('items' in expectedDiff || 'type' in expectedDiff) {
+      if ('items' in (expectedDiff as any) || 'type' in (expectedDiff as any)) {
         const nestedOptions = expectedDiff as AIDiffOptions
         diffOptions = { ...diffOptions, ...nestedOptions }
         diffPermissive = diffPermissive ?? diffOptions.permissive
@@ -311,9 +328,11 @@ export async function validateStringDiff(
 
   if (!expectedDiff && !diffOptions.type) diffOptions.type = 'auto'
 
-  let diff: AIDiffItem[] | undefined = getDiff(expected, actual, diffOptions)
+  const diff: AIDiffItem[] = getDiff(expected, actual, diffOptions)
+  const hasChanges = hasDiffChanges(diff)
 
   if (Array.isArray(expectedDiff)) {
+    // 1. Complex Scoring: Based on explicit diff items
     const formattedExpectedDiff = await formatDiffList(expectedDiff, ctx)
     const matchedExpectedIndices = new Set<number>()
 
@@ -353,12 +372,11 @@ export async function validateStringDiff(
         return null
       })
 
-      const totalPeerCount = expectedDiff.length + (includeStrictness ? 1 : 0)
       const weightPool = includeStrictness
         ? [...explicitWeights, null]
         : explicitWeights
-      const weights = calculateNormalizedWeights(weightPool, totalPeerCount, {
-        unassignedWeight: ctx.unassignedWeight,
+      const weights = calculateNormalizedWeights(weightPool, {
+        totalUnassignedWeight: ctx.unassignedWeight,
       })
 
       let earnedFraction = 0
@@ -368,7 +386,7 @@ export async function validateStringDiff(
       if (includeStrictness && !hasUnverified) {
         earnedFraction += weights[weights.length - 1]
       }
-      ctx.earnedScore = earnedFraction * ctx.allocatedScore
+      score = earnedFraction
     }
 
     let failed = false
@@ -404,15 +422,17 @@ export async function validateStringDiff(
     }
 
     if (failed) {
-      ctx.addFailure({
+      pass = false
+      failures.push({
+        key: ctx.key,
         message: `String mismatch with diff: ${reasons.join('; ')}`,
         expected,
         actual,
         diff,
       })
-      diff = undefined
-    } else diff = undefined
+    }
   } else if (typeof expectedDiff === 'function') {
+    // 2. Custom Validator Function
     const successfulItems = await expectedDiff(actual, input, diff)
     if (successfulItems.length < diff.length) {
       successfulItems.forEach((d: any) => {
@@ -421,25 +441,36 @@ export async function validateStringDiff(
       if (
         diff.filter((d) => !d.verified && (d.added || d.removed)).length === 0
       ) {
-        if (ctx.scoring) ctx.earnedScore = ctx.allocatedScore
-        diff = undefined
+        if (ctx.scoring) score = 1
+      } else {
+        pass = false
+        score = 0
+        failures.push({
+          key: ctx.key,
+          message: 'String mismatch with diff (custom verification failed)',
+          expected,
+          actual,
+          diff,
+        })
       }
     } else {
-      if (ctx.scoring) ctx.earnedScore = ctx.allocatedScore
-      diff = undefined
+      if (ctx.scoring) score = 1
     }
-  }
-
-  if (diff && diff.some((d) => d.added || d.removed)) {
-    ctx.addFailure({
+  } else if (hasChanges) {
+    // 3. Simple String Mismatch: Binary Scoring (0 or 1)
+    pass = false
+    score = 0
+    failures.push({
+      key: ctx.key,
       message: 'String mismatch with diff',
       expected,
       actual,
       diff,
     })
-  } else if (!expectedDiff && !diff && ctx.scoring) {
-    ctx.earnedScore = ctx.allocatedScore
+  } else if (ctx.scoring) {
+    // 4. Perfect Match
+    score = 1
   }
 
-  return ctx.failures
+  return { score, pass, failures }
 }

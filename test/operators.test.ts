@@ -92,7 +92,7 @@ describe('AITestRunner Operators', () => {
 
     const result = await runner.run('test-script', fixtures)
     expect(result.failedCount).toBe(1)
-    expect(result.logs[0].failures![0].key).toBe('output.user.profile.bio')
+    expect(result.logs[0].failures![0].key).toBe('output.user.profile.bio.$longEnough')
   })
 
   it('should use custom operators from options', async () => {
@@ -396,13 +396,21 @@ describe('AITestRunner Operators', () => {
       {
         input: ['apple', 'banana'],
         operators: {
-          $eachStartsWith: async (actual: any[], expected: string, fixture: any) => {
+          $eachStartsWith: async (
+            actual: any[],
+            expected: string,
+            fixture: any
+          ) => {
             for (const item of actual) {
-              const failures = await fixture.$validate(item, new RegExp(`^${expected}`))
-              if (failures.length > 0) return `Item ${item} does not start with ${expected}`
+              const { failures } = await fixture.$validate(
+                item,
+                new RegExp(`^${expected}`)
+              )
+              if (failures.length > 0)
+                return `Item ${item} does not start with ${expected}`
             }
             return true
-          }
+          },
         },
         expect: {
           output: { $eachStartsWith: 'a' }
@@ -434,9 +442,9 @@ describe('AITestRunner Operators', () => {
     writeFileSync(stdOpPath,  `
       export function stdOp(actual, expected, ctx, validateMatch) {
         if (actual !== expected) {
-          ctx.addFailure({ message: 'std mismatch', actual, expected })
+          return 'std mismatch'
         }
-        return ctx.failures
+        return true
       }
     `)
 
