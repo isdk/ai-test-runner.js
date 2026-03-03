@@ -73,19 +73,18 @@ async function runTestFile(fixturePath: string) {
 /**
  * @param {any} actual - AI 生成的实际输出
  * @param {any} expected - YAML 中传给操作符的参数
- * @param {object} fixture - 增强上下文
- * @param {object} fixture.$data - 已经过模板渲染的完整数据
- * @param {function} fixture.$validate - 递归校验方法 (act, exp) => Promise<Failures[]>
+ * @param {object} ctx - 校验上下文 (ValidationContext)
+ * @param {function} validate - 递归校验方法 (act, exp, subCtx) => Promise<MatchResult>
  */
-export async function myCheck(actual, expected, fixture) {
-  // 1. 业务逻辑校验
+export async function myCheck(actual, expected, ctx, validate) {
+  // 1. 业务逻辑校验 (返回布尔值、置信度数字、错误消息或结果对象)
   if (expected.strict && actual.includes('eval')) return "Security Error: eval detected";
 
-  // 2. 递归调用
-  const failures = await fixture.$validate(actual, /expected-pattern/);
-  if (failures.length > 0) return failures[0].message;
+  // 2. 递归调用 (validate 现在是纯函数，返回 MatchResult)
+  const result = await validate(actual, /expected-pattern/, ctx.createSubContext('pattern'));
+  if (!result.pass) return result.failures[0].message;
 
-  return true; // 通过
+  return true; // 通过 (等同于 { score: 1.0, pass: true })
 }
 ```
 
@@ -93,9 +92,9 @@ export async function myCheck(actual, expected, fixture) {
 
 ## 4. 最佳实践与注意事项
 
-### 4.1 异步处理
+### 4.1 异步处理与纯函数
 
-所有自定义操作符的加载和执行都是**异步**的。如果你在上层自行调用了验证方法，请务必使用 `await`。
+所有自定义操作符的加载和执行都是**异步**的。重构后的核心验证函数 `validate` 是**纯函数**，它不会修改 `ctx`，而是通过返回 `MatchResult` 来传达结果。
 
 ### 4.2 错误预检查
 

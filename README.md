@@ -227,8 +227,8 @@ score:
 ```
 
 - **`strategy`**: (Optional `string`) Defines how this node's allocated score is distributed among its children (`distribute` method) and how their `earnedScore`s are combined (`aggregate` method).
-  -   **`weighted` (Default for objects, arrays, `$and`)**: Distributes score proportionally to children's `value`s and sums their `earnedScore`s.
-  -   **`max` (Default for `$or`, `$contains`)**: Distributes equal score to children (or based on their `value`s) and takes the highest `earnedScore` among them.
+  - **`weighted` (Default for objects, arrays, `$and`)**: Distributes score proportionally to children's `value`s and sums their `earnedScore`s.
+  - **`max` (Default for `$or`, `$contains`)**: Distributes equal score to children (or based on their `value`s) and takes the highest `earnedScore` among them.
 - **`threshold`**: (Optional `number` between 0 and 1) Applicable for leaf validation nodes (like custom operators or string comparisons that return a score). If the `score` for that specific item is less than this `threshold`, it will be considered a validation failure, even if it contributes a partial score.
 
 #### 2.4 `$expect`: The Scoring Wrapper
@@ -363,14 +363,19 @@ export async function checkCode(actual, expected, fixture) {
 If you need full control over the validation flow. In this mode, the function must be a pure function returning a `MatchResult`.
 
 ```javascript
-import { ValidationContext, MatchResult } from '@isdk/ai-test-runner';
+/**
+ * @param actual   - The actual output from the AI
+ * @param expected - Parameters passed to this operator in YAML
+ * @param ctx      - ValidationContext (Configuration and path)
+ * @param validate - Recursive validation function (act, exp, ctx) => Promise<MatchResult>
+ */
+export async function myOp(actual, expected, ctx, validate) {
+  // 1. Recursive call (validate is now a pure function)
+  const result = await validate(actual, expected, ctx.createSubContext('sub'));
 
-export async function myOp(actual, expected, ctx: ValidationContext, validate: (act, exp, ctx) => Promise<MatchResult>): Promise<MatchResult> {
-  // Use the passed 'validate' function for recursive calls.
-  // Return a MatchResult object. No direct side effects on ctx.
-  const result = await validate(actual, expected, ctx);
+  // 2. Return a MatchResult object. No direct side effects on ctx.
   return {
-    score: result.score * 0.5, // Apply some custom logic to the score
+    score: result.score * 0.5, // Apply custom logic
     pass: result.pass,
     failures: result.failures
   };

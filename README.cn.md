@@ -227,8 +227,8 @@ score:
 ```
 
 - **`strategy`**: (可选 `string`) 定义该节点的 `allocatedScore` 如何分配给其子节点 (`distribute` 方法)，以及它们的 `earnedScore` 如何聚合 (`aggregate` 方法)。
-  -   **`weighted` (对象、数组、$and 的默认策略)**：按子节点的 `value` 比例分配分值，并对它们的 `earnedScore` 进行求和。
-  -   **`max` ($or、$contains 的默认策略)**：平均分配分值给子节点（或根据它们的 `value`），并取其中最高的 `earnedScore`。
+  - **`weighted` (对象、数组、$and 的默认策略)**：按子节点的 `value` 比例分配分值，并对它们的 `earnedScore` 进行求和。
+  - **`max` ($or、$contains 的默认策略)**：平均分配分值给子节点（或根据它们的 `value`），并取其中最高的 `earnedScore`。
 - **`threshold`**: (可选 `number`，介于 0 到 1 之间) 适用于叶子验证节点（例如，自定义算子或返回分值的字符串比较）。如果该项的 `score` 低于此 `threshold`，即使它贡献了部分分值，也会被视为验证失败。
 
 #### 2.4 $expect：评分包装算子
@@ -363,14 +363,19 @@ export async function checkCode(actual, expected, fixture) {
 如果你需要完全控制验证流程。在此模式下，函数必须是一个纯函数，且必须返回一个 `MatchResult` 对象。
 
 ```javascript
-import { ValidationContext, MatchResult } from '@isdk/ai-test-runner';
+/**
+ * @param actual   - AI 的实际输出
+ * @param expected - YAML 中传给该操作符的参数
+ * @param ctx      - 校验上下文 (只读配置与路径)
+ * @param validate - 递归校验函数 (act, exp, ctx) => Promise<MatchResult>
+ */
+export async function myOp(actual, expected, ctx, validate) {
+  // 1. 递归调用 (validate 现在是纯函数)
+  const result = await validate(actual, expected, ctx.createSubContext('sub'));
 
-export async function myOp(actual, expected, ctx: ValidationContext, validate: (act, exp, ctx) => Promise<MatchResult>): Promise<MatchResult> {
-  // 使用传入的 'validate' 函数进行递归调用。
-  // 返回 MatchResult 对象。不允许直接修改 ctx。
-  const result = await validate(actual, expected, ctx);
+  // 2. 返回 MatchResult 对象。不允许直接修改 ctx。
   return {
-    score: result.score * 0.5, // 应用自定义的分数逻辑
+    score: result.score * 0.5, // 应用自定义分数逻辑
     pass: result.pass,
     failures: result.failures
   };
