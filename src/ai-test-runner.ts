@@ -281,6 +281,7 @@ export class AITestRunner extends EventEmitter {
         maxScore,
         passScore,
         failedCritical,
+        scoreDetails,
       } = await this.validateFixture(
         fixture,
         fixtureConfig,
@@ -305,6 +306,7 @@ export class AITestRunner extends EventEmitter {
         ...result,
         passed,
         score,
+        scoreDetails,
         maxScore,
         passScore,
         failedCritical: failedCritical.length ? failedCritical : undefined,
@@ -452,6 +454,7 @@ export class AITestRunner extends EventEmitter {
     maxScore?: number
     passScore?: number
     failedCritical: any[]
+    scoreDetails?: any[]
   }> {
     const { userConfig = {} } = options
     const failures: any[] = []
@@ -511,6 +514,7 @@ export class AITestRunner extends EventEmitter {
       validationBlocks > 0 ? maxScore / validationBlocks : maxScore
     const failedCritical: any[] = []
     let totalEarnedScore = 0
+    const scoreDetails: any[] = []
 
     const commonCtxOptions = {
       data: templateData,
@@ -524,24 +528,35 @@ export class AITestRunner extends EventEmitter {
       passScore,
       unassignedWeight,
       allocatedScore: allocatedPerBlock,
-      // failedCritical, // We don't pass failedCritical array anymore
     }
 
     // Updated validate helper using pure function logic
     const runValidation = async (
       actual: any,
       expected: any,
-      weight: number
+      weight: number,
+      detailKey: string,
+      validationBaseKey: string = detailKey
     ) => {
       const ctx = new ValidationContext({
         ...commonCtxOptions,
         allocatedScore: weight,
+        key: validationBaseKey, 
       })
       const result = await validate(actual, expected, ctx)
       
       // Accumulate score
       totalEarnedScore += (result.score * weight)
       
+      scoreDetails.push({
+        key: detailKey,
+        score: result.score,
+        weight: weight,
+        pass: result.pass,
+        details: result.details,
+        failures: result.failures,
+      })
+
       if (!result.pass) {
         failures.push(...result.failures)
         
@@ -555,7 +570,7 @@ export class AITestRunner extends EventEmitter {
     }
 
     if (checkSchema !== false && expectedSchema && expectedSchema.type) {
-      await runValidation(execResult.output, expectedSchema, allocatedPerBlock)
+      await runValidation(execResult.output, expectedSchema, allocatedPerBlock, 'schema')
     }
 
     // 2. Output Matching
@@ -567,7 +582,7 @@ export class AITestRunner extends EventEmitter {
               data: templateData,
               input: fixture,
             })
-      await runValidation(execResult.output, formattedOutput, allocatedPerBlock)
+      await runValidation(execResult.output, formattedOutput, allocatedPerBlock, 'output', '')
     }
 
     // 3. Expect Trace Validation
@@ -578,7 +593,7 @@ export class AITestRunner extends EventEmitter {
         templateData,
         fixture
       )
-      await runValidation(execResult, expectedTrace, allocatedPerBlock)
+      await runValidation(execResult, expectedTrace, allocatedPerBlock, 'expect', '')
     }
 
     return {
@@ -588,6 +603,7 @@ export class AITestRunner extends EventEmitter {
       maxScore: scoring ? maxScore : undefined,
       passScore: scoring ? passScore : undefined,
       failedCritical,
+      scoreDetails: scoring ? scoreDetails : undefined,
     }
   }
 

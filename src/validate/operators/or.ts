@@ -4,6 +4,11 @@ import { getStrategy } from '../strategies.js'
 
 /**
  * Validates that a value matches at least ONE of the specified expectations.
+ * 
+ * @param actual - The value to validate.
+ * @param expectedList - Array of expectations.
+ * @param ctx - Validation context.
+ * @param validateMatch - Recursive validation function.
  */
 export async function validateOr(
   actual: any,
@@ -34,7 +39,13 @@ export async function validateOr(
   const results: MatchResult[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
-    const subCtx = ctx.createSubContext(`[${i}]`)
+    /**
+     * 【业务逻辑保留理由】
+     * 显式创建包含 $or[i] 的子上下文。
+     * 由于 $or 在核心引擎中被标记为透明（Transparent），它本身不会增加路径层级。
+     * 我们在这里手动增加索引，既能保证路径简洁，又能在报错时准确指出是哪一个分支失败。
+     */
+    const subCtx = ctx.createSubContext(`$or[${i}]`)
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     const res = await validateMatch(actual, expectedList[i], subCtx)
     results.push(res)

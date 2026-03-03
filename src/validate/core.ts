@@ -5,6 +5,7 @@ import {
   MatchValueOptions,
   ValidationContext,
   MatchResult,
+  MatchResultDetail,
 } from './types.js'
 import {
   isStrict,
@@ -20,7 +21,7 @@ import { getStrategy } from './strategies.js'
 /**
  * Metadata keys that are treated as scoring/documentation parameters.
  */
-const metaKeys = ['score', 'critical', 'title', 'description']
+const metaKeys = ['score', 'critical', 'title', 'description', 'dimension']
 
 /**
  * Validates that an actual value matches an expected value.
@@ -113,7 +114,6 @@ export async function validate(
 /**
  * Legacy wrapper for backward compatibility.
  * @deprecated Use validate() instead. validate() is a pure function that returns a MatchResult.
- * This wrapper applies the results to the context's failures for compatibility.
  */
 export async function validateMatch(
   actual: any,
@@ -142,25 +142,38 @@ function getScoreConfig(item: any): {
   critical: boolean
   strategy?: string
   threshold?: number
+  title?: string
+  dimension?: string
 } {
   let weight = 1
   let critical = false
   let strategy: string | undefined
   let threshold: number | undefined
+  let title: string | undefined
+  let dimension: string | undefined
 
-  if (item && typeof item === 'object' && item.score !== undefined) {
-    const s = item.score
-    if (typeof s === 'number') {
-      weight = s
-    } else if (typeof s === 'object' && s !== null) {
-      weight = s.value ?? 1
-      critical = !!s.critical
-      strategy = s.strategy
-      threshold = s.threshold
+  if (item && typeof item === 'object') {
+    title = item.title
+    dimension = item.dimension
+    if (item.score !== undefined) {
+      const s = item.score
+      if (typeof s === 'number') {
+        weight = s
+      } else if (typeof s === 'object' && s !== null) {
+        weight = s.value ?? 1
+        critical = !!s.critical
+        strategy = s.strategy
+        threshold = s.threshold
+        if (s.title) title = s.title
+        if (s.dimension) dimension = s.dimension
+      }
+    }
+    if (item.critical !== undefined) {
+      critical = !!item.critical
     }
   }
 
-  return { weight, critical, strategy, threshold }
+  return { weight, critical, strategy, threshold, title, dimension }
 }
 
 async function validateOperator(
@@ -173,10 +186,16 @@ async function validateOperator(
   const scoreCfg = getScoreConfig(expected)
   const isCritical = scoreCfg.critical
 
-  // Some operators are "transparent" and should not add themselves to the path
+  /**
+   * 【算子路径透明度保留逻辑】
+   * $and 和 $or 必须是透明的（不增加路径层级）。
+   * 这是为了避免路径出现 output.$and[0].$or 这种冗余（预期应为 output.$and[0]）。
+   * 具体的索引（如 $and[0]）由算子 Handler 内部显式添加。
+   */
   const transparentOperators = [
     '$expect',
     '$or',
+    '$and',
     '$not',
     '$any',
     '$schema',
@@ -187,6 +206,7 @@ async function validateOperator(
 
   const opCtx = ctx.createSubContext(isTransparent ? '' : operator, {
     isCriticalBranch: ctx.isCriticalBranch || isCritical,
+    threshold: scoreCfg.threshold ?? ctx.threshold,
   })
 
   let val = expected[operator]
@@ -214,15 +234,54 @@ async function validateOperator(
     actual,
     val,
     opCtx,
-    validate // Pass the validate function for recursion
+    validate
   )
 
-  return processValidationResult(
+  const res = processValidationResult(
     operatorResult,
     val,
     actual,
     opCtx
   )
+
+  const title = scoreCfg.title || (operatorResult && typeof operatorResult === 'object' ? operatorResult.title : undefined)
+  const dimension = scoreCfg.dimension || (operatorResult && typeof operatorResult === 'object' ? operatorResult.dimension : undefined)
+
+  if (title) {
+    res.failures.forEach(f => {
+      if (f.message === 'Validation failed') f.message = title
+    })
+  }
+
+  /**
+   * 【元数据补丁逻辑说明】
+   * 这里显式补全 MatchResult 的元数据。
+   * 如果返回的是一个聚合详情，原地修补它的第一个元素，避免层级加深。
+   */
+  res.title = title
+  res.dimension = dimension
+  res.critical = isCritical
+
+  if (title || dimension) {
+    if (res.details && res.details.length > 0) {
+      res.details.forEach(d => {
+        if (title) d.title = d.title || title
+        if (dimension) d.dimension = d.dimension || dimension
+        if (isCritical) d.critical = true
+      })
+    } else {
+      res.details = [{
+        key: opCtx.key,
+        score: res.score,
+        weight: 1.0,
+        pass: res.pass,
+        title,
+        dimension,
+        critical: isCritical,
+      }]
+    }
+  }
+  return res
 }
 
 async function validateRegExp(
@@ -286,6 +345,10 @@ async function validateString(
   }
 }
 
+/**
+ * Array Validation
+ * 核心逻辑：为数组中的每一项分配权重并递归校验。
+ */
 async function validateArray(
   actual: any,
   expected: any[],
@@ -293,35 +356,20 @@ async function validateArray(
 ): Promise<MatchResult> {
   if (!Array.isArray(actual)) {
     return processValidationResult(
-      {
-        score: 0,
-        pass: false,
-        message: 'Type mismatch: expected Array',
-      },
-      expected,
-      actual,
-      ctx
+      { score: 0, pass: false, message: 'Type mismatch: expected Array' },
+      expected, actual, ctx
     )
   }
 
   if (isStrict('array', ctx) && actual.length !== expected.length) {
     return processValidationResult(
-      {
-        score: 0, // Strict failure implies 0 score? Or just failed pass?
-        pass: false,
-        message: `Array length mismatch (strict mode): expected ${expected.length}, actual ${actual.length}`,
-      },
-      expected.length,
-      actual.length,
-      ctx
+      { score: 0, pass: false, message: `Array length mismatch (strict mode): expected ${expected.length}, actual ${actual.length}` },
+      expected.length, actual.length, ctx
     )
   }
 
   const explicitWeights = expected.map((item) => {
-    if (item && typeof item === 'object' && item.score !== undefined) {
-      return item.score
-    }
-    return null
+    return item && typeof item === 'object' && item.score !== undefined ? item.score : null
   })
   const strategy = ctx.strategy || getStrategy('weighted')
   const weights = strategy.distribute(explicitWeights, {
@@ -331,9 +379,40 @@ async function validateArray(
 
   const subResults: MatchResult[] = []
   for (let i = 0; i < expected.length; i++) {
-    const subCtx = ctx.createSubContext(`[${i}]`)
+    const scoreCfg = getScoreConfig(expected[i])
+    const subCtx = ctx.createSubContext(`[${i}]`, {
+      isCriticalBranch: ctx.isCriticalBranch || scoreCfg.critical
+    })
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     const subResult = await validate(actual[i], expected[i], subCtx)
+
+    /**
+     * 【详情回填逻辑说明】
+     * 数组校验本身是一层容器逻辑。
+     * 必须将计算出的 weight 和 metadata 修补回子项的详情中，否则 details 树将断层。
+     */
+    subResult.title = subResult.title || scoreCfg.title
+    subResult.dimension = subResult.dimension || scoreCfg.dimension
+    subResult.critical = subResult.critical || scoreCfg.critical
+
+    if (subResult.details && subResult.details.length > 0) {
+      subResult.details.forEach(d => {
+        if (!d.key) d.key = subCtx.key
+        d.title = d.title || scoreCfg.title
+        d.dimension = d.dimension || scoreCfg.dimension
+        if (scoreCfg.critical) d.critical = true
+      })
+    } else {
+      subResult.details = [{
+        key: subCtx.key,
+        score: subResult.score,
+        weight: 1.0,
+        pass: subResult.pass,
+        title: scoreCfg.title,
+        dimension: scoreCfg.dimension,
+        critical: scoreCfg.critical,
+      }]
+    }
     subResults.push(subResult)
   }
 
@@ -365,29 +444,19 @@ async function validateSchema(
   return validateJsonSchema(actual, expected, ctx)
 }
 
+/**
+ * Object Validation
+ * 核心逻辑：为对象的每个属性分配权重并递归校验。
+ */
 async function validateObject(
   actual: any,
   expected: any,
   ctx: ValidationContext
 ): Promise<MatchResult> {
   if (expected === null) {
-    if (actual === null) {
-      return { score: 1, pass: true, failures: [] }
-    } else {
-      return processValidationResult(
-        { score: 0, pass: false, message: 'Value equality check failed' },
-        null,
-        actual,
-        ctx
-      )
-    }
+    return actual === null ? { score: 1, pass: true, failures: [] } : processValidationResult({ score: 0, pass: false, message: 'Value equality check failed' }, null, actual, ctx)
   } else if (actual === null || typeof actual !== 'object') {
-     return processValidationResult(
-        { score: 0, pass: false, message: 'Value equality check failed' },
-        expected,
-        actual,
-        ctx
-      )
+     return processValidationResult({ score: 0, pass: false, message: 'Value equality check failed' }, expected, actual, ctx)
   }
 
   const allKeys = Object.keys(expected).filter((k) => !metaKeys.includes(k))
@@ -395,10 +464,7 @@ async function validateObject(
 
   const explicitWeights = allKeys.map((k) => {
     const item = expected[k]
-    if (item && typeof item === 'object' && item.score !== undefined) {
-      return item.score
-    }
-    return null
+    return (item && typeof item === 'object' && item.score !== undefined) ? item.score : null
   })
 
   const strategy = ctx.strategy || getStrategy('weighted')
@@ -433,33 +499,57 @@ async function validateObject(
       }
     }
 
-    const subCtx = ctx.createSubContext(matchedKey || k, { isKeyPresent })
+    const scoreCfg = getScoreConfig(v)
+    const subCtx = ctx.createSubContext(matchedKey || k, {
+      isKeyPresent,
+      isCriticalBranch: ctx.isCriticalBranch || scoreCfg.critical
+    })
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     const subResult = await validate(actualValue, v, subCtx)
+
+    /**
+     * 【详情回填逻辑说明】
+     * 对象属性校验是递归的核心点。
+     * 这里必须保证子项的 MatchResult.details[0] 拥有正确的 key (即当前属性名)
+     * 以及元数据，否则详情树会失去路径信息。
+     */
+    subResult.title = subResult.title || scoreCfg.title
+    subResult.dimension = subResult.dimension || scoreCfg.dimension
+    subResult.critical = subResult.critical || scoreCfg.critical
+
+    if (subResult.details && subResult.details.length > 0) {
+      subResult.details.forEach(d => {
+        if (!d.key) d.key = subCtx.key
+        d.title = d.title || scoreCfg.title
+        d.dimension = d.dimension || scoreCfg.dimension
+        if (scoreCfg.critical) d.critical = true
+      })
+    } else {
+      subResult.details = [{
+        key: subCtx.key,
+        score: subResult.score,
+        weight: 1.0,
+        pass: subResult.pass,
+        title: scoreCfg.title,
+        dimension: scoreCfg.dimension,
+        critical: scoreCfg.critical,
+      }]
+    }
     subResults.push(subResult)
   }
 
-  // Strict Mode Check for Extra Keys
+  // Strict mode check...
   if (isStrict('object', ctx)) {
     const actualKeys = Object.keys(actual)
     const extraFailures: MatchResult[] = []
-
     for (const ak of actualKeys) {
       if (!matchedActualKeys.has(ak)) {
-        const extraKeyFailure = processValidationResult(
-          {
-             score: 0,
-             pass: false,
-             message: 'Extra key in actual object (strict mode)',
-          },
-          undefined,
-          actual[ak],
-          ctx.createSubContext(ak)
-        )
-        extraFailures.push(extraKeyFailure)
+        extraFailures.push(processValidationResult(
+          { score: 0, pass: false, message: 'Extra key in actual object (strict mode)' },
+          undefined, actual[ak], ctx.createSubContext(ak)
+        ))
       }
     }
-
     if (extraFailures.length > 0) {
         const aggregated = strategy.aggregate(subResults, weights)
         return {
@@ -481,15 +571,6 @@ async function validatePrimitive(
   if (actual === expected) {
     return { score: 1, pass: true, failures: [] }
   } else {
-    return processValidationResult(
-      {
-        score: 0,
-        pass: false,
-        message: 'Value equality check failed',
-      },
-      expected,
-      actual,
-      ctx
-    )
+    return processValidationResult({ score: 0, pass: false }, expected, actual, ctx)
   }
 }

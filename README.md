@@ -210,40 +210,42 @@ The system uses a **"top-down distribution, bottom-up aggregation"** model. Scor
 - **Adaptive Scale**: You can use percentages (`0~1`) or integer points (`0~maxScore`); the system automatically scales them proportionally.
 - **Dynamic Allocation**: If some items have scores and others don't, unassigned items split the remaining weight based on the chosen strategy and `unassignedWeight`.
 
-#### 2.3 `score` Metadata & Custom Strategies
+#### 2.3 `score` Metadata & Dimensions
 
-Attach score metadata to any validation node (string, regex, operator, field) via `$expect` or directly in operator properties. The `score` property now supports specifying a `strategy` and `threshold`.
+Attach score metadata to any validation node (string, regex, operator, field) via `$expect` or directly in operator properties.
 
 ```yaml
 # Short-hand number (relative weight or percentage of maxScore)
 score: 80
 
-# Detailed object with "Red-Line" logic, custom strategy, and fuzzy threshold
+# Detailed object with "Red-Line" logic, negative scores (penalties), and dimensions
 score:
-  value: 80           # Relative weight or percentage
-  critical: true      # Mandatory: if this fails, 'passed' becomes false regardless of total score.
-  strategy: 'weighted' # (Optional) Scoring strategy for this node's children (e.g., 'weighted', 'max').
-  threshold: 0.75     # (Optional) For fuzzy matching. Score >= threshold to be considered 'passed'.
+  value: -20          # Negative value means a penalty: subtracted if matched
+  dimension: 'security' # Category for multi-dimensional reporting
+  critical: true      # Mandatory: if reward fails or penalty triggers, 'passed' becomes false
+  strategy: 'weighted' # (Optional) Scoring strategy for children
+  threshold: 0.75     # (Optional) Confidence threshold
 ```
 
-- **`strategy`**: (Optional `string`) Defines how this node's allocated score is distributed among its children (`distribute` method) and how their `earnedScore`s are combined (`aggregate` method).
-  - **`weighted` (Default for objects, arrays, `$and`)**: Distributes score proportionally to children's `value`s and sums their `earnedScore`s.
-  - **`max` (Default for `$or`, `$contains`)**: Distributes equal score to children (or based on their `value`s) and takes the highest `earnedScore` among them.
-- **`threshold`**: (Optional `number` between 0 and 1) Applicable for leaf validation nodes (like custom operators or string comparisons that return a score). If the `score` for that specific item is less than this `threshold`, it will be considered a validation failure, even if it contributes a partial score.
+- **`dimension`**: (Optional `string`) Assigns the item to a specific category (e.g., `accuracy`, `fluency`, `security`).
+- **Penalties**: Negative scores act as absolute deductions. They follow the same scaling rules as rewards (`< 1` as percentage, `>= 1` as absolute points).
 
 #### 2.4 `$expect`: The Scoring Wrapper
 
-`$expect` is a transparent operator used to wrap any validation with scoring metadata, titles, and strategy configuration:
+`$expect` is a transparent operator used to wrap any validation with scoring metadata, titles, and dimension configuration:
 
 ```yaml
 output:
   $and:
     - $expect: /Spring/
-      score: { value: 80, critical: true, strategy: 'weighted' }
-      title: "Core keyword presence"
+      score: { value: 80, dimension: 'accuracy', critical: true }
+      title: "Core keyword"
     - $expect: /Flower/
       score: 20
-      threshold: 0.5 # If /Flower/ matches with less than 50% confidence, it fails.
+      threshold: 0.5
+    - $expect: /SensitiveWord/
+      score: { value: -50, dimension: 'security' }
+      title: "Security deduction"
 ```
 
 #### 2.5 `$diff`: Per-item Scoring
@@ -268,8 +270,9 @@ expect:
 The resulting `logItem` includes:
 
 - **`score`**: The final calculated quantitative score.
+- **`scoreDetails`**: **(New)** A tree structure of scores, recording key, title, dimension, weight, and earned score for every item.
 - **`passScore`**: The threshold for passing the entire fixture.
-- **`failedCritical`**: A list of mandatory items that failed, explaining why a high-scoring test might still be marked as `passed: false`.
+- **`failedCritical`**: A list of mandatory items that failed (including triggered Critical penalties).
 
 ### 3. Custom Validation Operators
 
@@ -694,6 +697,10 @@ export interface AITestFixture {
   disableHeuristicSchema?: boolean;
   operators?: Record<string, any>; // Custom operators
   allowOperatorOverride?: boolean;
+  scoring?: boolean | 'auto'; // Enable scoring
+  maxScore?: number;          // Maximum possible score
+  passScore?: number;         // Passing threshold
+  unassignedWeight?: number;  // Default weight for unlabeled items
   only?: boolean;             // Run only this test
   skip?: boolean;             // Skip this test
   not?: boolean;              // Negate validation
@@ -709,12 +716,16 @@ Detailed result for each executed fixture.
 | :--- | :--- |
 | `title` | Fixture title |
 | `passed` | Whether all validations passed |
+| `score` | Final calculated score |
+| `scoreDetails` | **(New)** Detailed score breakdown (key, title, dimension, weight, score) |
+| `maxScore` | Maximum possible score |
+| `passScore` | Passing threshold |
+| `failedCritical` | List of mandatory (critical) validation failures |
 | `input` | Resolved input data |
 | `actual` | Actual output from AI |
 | `expected` | Expected output (formatted) |
 | `reason` | Extracted reasoning/explanation |
 | `expectedSchema` | Resolved JSON Schema |
-| `failedCritical` | List of mandatory (critical) validation failures |
 | `failures` | List of validation failures |
 | `error` | Technical execution error |
 | `duration` | Execution time (ms) |
@@ -734,6 +745,10 @@ Global configuration for the runner.
 | `userConfig` | Runtime config passed to the executor |
 | `strict` | Global strict mode setting |
 | `logVars` | **(New)** Control inclusion of `vars` in log: `true`, `false`, or `'error'` |
+| `scoring` | Global scoring toggle |
+| `maxScore` | Global default max score |
+| `passScore` | Global default passing threshold |
+| `unassignedWeight` | Global default weight for unlabeled items |
 
 ### 4. Event Lifecycle
 

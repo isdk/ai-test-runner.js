@@ -1,5 +1,5 @@
 import { AIScoreConfig } from '../types.js'
-import { ScoringStrategy, MatchResult } from './types.js'
+import { ScoringStrategy, MatchResult, MatchResultDetail } from './types.js'
 import { calculateNormalizedWeights } from './utils.js'
 
 function extractWeights(items: (AIScoreConfig | null)[]): (number | null)[] {
@@ -10,81 +10,138 @@ function extractWeights(items: (AIScoreConfig | null)[]): (number | null)[] {
   })
 }
 
+/**
+ * Weighted Sum Strategy (Default for $and and Object/Array)
+ * 
+ * 核心逻辑：
+ * 1. 分数累加：earnedScore = sum(child.score * child.weight)
+ * 2. 状态判定：allPassed = true iff (all rewards passed AND no critical penalties triggered)
+ */
 export const weightedSumStrategy: ScoringStrategy = {
   distribute(items, options) {
     return calculateNormalizedWeights(extractWeights(items), {
       ...options,
       normalize: true,
-      // totalUnassignedWeight: options?.totalUnassignedWeight,
-      // maxScore: options?.maxScore,
-      // autoConfidence: options?.autoConfidence,
     })
   },
   aggregate(results: MatchResult[], weights: number[]): MatchResult {
     let score = 0
     let allPassed = true
+    const details: MatchResultDetail[] = []
+    const allFailures: MatchResult['failures'] = []
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]
       const w = weights[i] || 0
       score += r.score * w
-      if (!r.pass) {
-        allPassed = false
+      
+      const isCritical = r.critical || r.failures.some(f => f.critical)
+      
+      if (w >= 0) {
+        // 奖励项逻辑：必须通过
+        if (!r.pass) allPassed = false
+      } else {
+        /**
+         * 【惩罚项特殊逻辑说明】
+         * 如果匹配成功（r.pass 为 true），意味着触发了扣分规则。
+         * 如果该项标记为 Critical，则这被视为一个致命错误，整体判定为不通过。
+         */
+        if (r.pass && isCritical) {
+          allPassed = false
+          /**
+           * 【业务逻辑保留理由】
+           * 惩罚项匹配成功时 r.failures 往往为空（因为它符合了正则/算子）。
+           * 我们必须手动生成一个 Virtual Failure 才能让 AITestRunner 知道哪个红线被触碰了。
+           */
+          allFailures.push({
+            key: (r.details && r.details.length === 1) ? r.details[0].key : '',
+            message: r.title || 'Critical penalty triggered',
+            actual: 'Matched',
+            expected: 'Should not match',
+            critical: true
+          })
+        }
       }
-    }
 
-    // In a weighted sum, if strict adherence is required (which is default for object properties),
-    // any failure means the whole object check failed.
-    // However, if we want fuzzy matching where score < 1 is still a pass...
-    // But r.pass is the decision of the child. If child says "I failed", then parent usually fails.
+      allFailures.push(...r.failures)
+
+      /**
+       * 【详情聚合保留逻辑】
+       * 尝试展平（Flatten）简单的层级以保持详情树的可读性。
+       * 优先从子节点继承 title 和 dimension。
+       */
+      const detail: MatchResultDetail = {
+        key: (r.details && r.details.length === 1) ? r.details[0].key : '', 
+        score: r.score,
+        weight: w,
+        pass: r.pass,
+        title: r.title || (r.details && r.details.length === 1 ? r.details[0].title : undefined),
+        dimension: r.dimension || (r.details && r.details.length === 1 ? r.details[0].dimension : undefined),
+        details: (r.details && r.details.length === 1 && r.details[0].key === '') ? r.details[0].details : r.details,
+      }
+      details.push(detail)
+    }
 
     return {
       score,
       pass: allPassed,
-      failures: results.flatMap((r) => r.failures),
+      failures: allFailures,
+      details,
     }
   },
 }
 
+/**
+ * Max Strategy (Default for $or, $any, $contains)
+ * 
+ * 核心逻辑：
+ * 1. 取最高分：earnedScore = max(child.score * child.weight)
+ * 2. 状态判定：passed = any(child.passed)
+ */
 export const maxStrategy: ScoringStrategy = {
   distribute(items, options) {
     return calculateNormalizedWeights(extractWeights(items), {
       ...options,
       normalize: false,
-      // totalUnassignedWeight: options?.totalUnassignedWeight,
-      // autoConfidence: options?.autoConfidence,
     })
   },
   aggregate(results: MatchResult[], weights: number[]): MatchResult {
     let maxScore = 0
     let anyPassed = false
     let bestResult: MatchResult | null = null
+    const details: MatchResultDetail[] = []
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]
-      if (r.pass) {
-        anyPassed = true
-      }
+      if (r.pass) anyPassed = true
+      
       const weightedScore = r.score * (weights[i] || 0)
       if (weightedScore >= maxScore) {
         maxScore = weightedScore
         bestResult = r
       }
+      
+      details.push({
+        key: (r.details && r.details.length === 1) ? r.details[0].key : '', 
+        score: r.score,
+        weight: weights[i] || 0,
+        pass: r.pass,
+        title: r.title || (r.details && r.details.length === 1 ? r.details[0].title : undefined),
+        dimension: r.dimension || (r.details && r.details.length === 1 ? r.details[0].dimension : undefined),
+        details: (r.details && r.details.length === 1 && r.details[0].key === '') ? r.details[0].details : r.details,
+      })
     }
-
-    // If any passed, we pass.
-    // If passed, we technically don't have failures, but maybe we want to report warnings?
-    // For now, if passed, clear failures.
 
     if (anyPassed) {
       return {
         score: maxScore,
         pass: true,
         failures: [],
+        details,
       }
     }
 
-    // If none passed, return a single summary failure to explain why none matched
+    // 全未通过时，生成汇总错误信息
     const failures: MatchResult['failures'] = [
       {
         message:
@@ -95,7 +152,6 @@ export const maxStrategy: ScoringStrategy = {
                 `  Branch ${i}: ${r.failures.map((f) => f.message).join('; ')}`
             )
             .join('\n'),
-        // No key here so it can be backfilled by the context key
         expected: results.map((r) => r.failures[0]?.expected),
         actual: results[0]?.failures[0]?.actual,
       },
@@ -105,6 +161,7 @@ export const maxStrategy: ScoringStrategy = {
       score: maxScore,
       pass: false,
       failures,
+      details,
     }
   },
 }
@@ -112,7 +169,6 @@ export const maxStrategy: ScoringStrategy = {
 export const strategies: Record<string, ScoringStrategy> = {
   weighted: weightedSumStrategy,
   max: maxStrategy,
-  // Alias for default behaviors
   and: weightedSumStrategy,
   or: maxStrategy,
 }

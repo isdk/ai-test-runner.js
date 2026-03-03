@@ -189,6 +189,36 @@ export interface MatchResult {
   pass: boolean
   /** List of failures encountered during matching. */
   failures: AIValidationFailure[]
+  /** Detailed scoring breakdown for sub-items. */
+  details?: MatchResultDetail[]
+  /** Optional title of the validation item. */
+  title?: string
+  /** Optional dimension/tag. */
+  dimension?: string
+  /** Whether this was a critical item. */
+  critical?: boolean
+}
+
+/**
+ * Detailed information about a single validation item's score.
+ */
+export interface MatchResultDetail {
+  /** The key/path of the item. */
+  key: string
+  /** The descriptive title. */
+  title?: string
+  /** The dimension/tag. */
+  dimension?: string
+  /** The earned score (0.0 - 1.0, relative to allocated weight). */
+  score: number
+  /** The allocated weight (normalized 0.0 - 1.0). */
+  weight: number
+  /** Whether this specific item passed. */
+  pass: boolean
+  /** Whether this item was a critical/red-line item. */
+  critical?: boolean
+  /** Recursive sub-details for nested objects/arrays. */
+  details?: MatchResultDetail[]
 }
 
 /**

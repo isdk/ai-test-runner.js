@@ -152,8 +152,10 @@ export interface AIValidationFailure {
 export type AIScoreConfig =
   | number
   | {
-      /** The relative weight or value of this item. */
+      /** The relative weight or value of this item. Positive for rewards, negative for penalties. */
       value: number
+      /** The dimension/tag this score belongs to (e.g. 'accuracy', 'security'). */
+      dimension?: string
       /** If true, this item must pass for the overall test to pass, regardless of the score(red-line). */
       critical?: boolean
       /** The strategy used to calculate the score for this item's children. */
@@ -182,6 +184,8 @@ export type ValidationResult =
       message?: string
       /** Whether the validation is considered passed. Default depends on threshold. */
       pass?: boolean
+      /** The dimension/tag this score belongs to. */
+      dimension?: string
       /** Additional metadata. */
       [key: string]: any
     }
@@ -196,6 +200,8 @@ export interface AITestLogItem {
   passed: boolean
   /** The final calculated score (0.0 to maxScore). */
   score?: number
+  /** Detailed breakdown of scores for each validation item. */
+  scoreDetails?: any[]
   /** The maximum possible score for this test. */
   maxScore?: number
   /** The minimum score required for the test to pass. */

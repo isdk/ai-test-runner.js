@@ -3,7 +3,7 @@ import {
   ValidationResult,
   AIValidationFailure,
 } from '../types.js'
-import { ValidationContext, MatchResult } from './types.js'
+import { ValidationContext, MatchResult, MatchResultDetail } from './types.js'
 
 /**
  * Checks if strict mode is enabled for a specific type.
@@ -26,6 +26,11 @@ export function isStrict(
  * Performs "auto-backfill" of missing keys and context information for failures.
  * This is a pure function that does NOT modify the context.
  *
+ * @param result - The raw result from an operator or function.
+ * @param expected - The expected value used for matching.
+ * @param actual - The actual value received.
+ * @param ctx - The current validation context.
+ * @param options - Additional normalization options.
  * @returns MatchResult containing score, pass status and normalized failures.
  */
 export function processValidationResult(
@@ -39,6 +44,10 @@ export function processValidationResult(
   let pass = false
   let failures: AIValidationFailure[] = []
   let message: string | undefined
+  let dimension: string | undefined
+  let details: MatchResultDetail[] | undefined
+  let title: string | undefined
+  let critical: boolean | undefined
 
   if (result === true) {
     score = 1.0
@@ -62,49 +71,54 @@ export function processValidationResult(
       pass = true
     }
   } else if (typeof result === 'object' && result !== null) {
-    // Handle object result
-    // Must contain at least 'score' or 'pass' to be valid
-    const hasScore = typeof (result as any).score === 'number'
-    const hasPass = (result as any).pass !== undefined
+    // 处理 MatchResult 或自定义对象结果
+    const resObj = result as any
+    const hasScore = typeof resObj.score === 'number'
+    const hasPass = resObj.pass !== undefined
 
-    if (!hasScore && !hasPass && !Array.isArray((result as any).failures)) {
+    if (!hasScore && !hasPass && !Array.isArray(resObj.failures)) {
        score = 0.0
        pass = false
        message = 'Invalid validation result: unrecognized object format'
     } else {
-      if (typeof (result as any).score === 'number') {
-        score = Math.max(0, Math.min(1, (result as any).score))
-      } else {
-        score = 0
-      }
-
-      if ((result as any).pass !== undefined) {
-        pass = !!(result as any).pass
+      score = typeof resObj.score === 'number' ? Math.max(0, Math.min(1, resObj.score)) : 0
+      if (resObj.pass !== undefined) {
+        pass = !!resObj.pass
       } else if (ctx.threshold !== undefined) {
         pass = score >= ctx.threshold
       } else {
-        // Default: passed if object has score but no explicit pass flag (soft score)
         pass = true
       }
 
-      message = (result as any).message
+      message = resObj.message
+      
+      /**
+       * 【业务逻辑保留理由】
+       * 即使在 pass: true 的情况下，也必须提取这些元数据。
+       * title, dimension 和 details 用于生成多维度的得分报告和详情树。
+       * 丢弃这些数据会导致顶层日志无法回溯评分细节。
+       */
+      dimension = resObj.dimension
+      title = resObj.title
+      critical = resObj.critical
+      if (Array.isArray(resObj.details)) {
+        details = resObj.details
+      }
+
       if (!pass && !message && ctx.threshold !== undefined) {
          message = `Score ${score.toFixed(2)} is below threshold ${ctx.threshold}`
       }
 
-      // Extract failures if present (using type assertion for safety)
-      if (Array.isArray((result as any).failures)) {
-        failures = (result as any).failures
+      if (Array.isArray(resObj.failures)) {
+        failures = resObj.failures
       }
     }
   } else {
-    // Unknown type
     score = 0.0
     pass = false
     message = 'Invalid validation result: unknown type'
   }
 
-  // If failed but no failures reported, create a default one
   if (!pass && failures.length === 0) {
     failures.push({
       key: options.key || ctx.key,
@@ -114,46 +128,47 @@ export function processValidationResult(
     })
   }
 
-  // Auto-backfill failures with context info
+  // 为所有失败项自动补全上下文信息
   const finalFailures = failures.map((f) => {
     const newFailure: AIValidationFailure = {
       ...f,
       key: f.key || options.key || ctx.key,
     }
-
     if (newFailure.expected === undefined) newFailure.expected = expected
     if (newFailure.actual === undefined) newFailure.actual = actual
-
-    // Mark as critical if the branch is critical
-    if (ctx.isCriticalBranch) {
-      newFailure.critical = true
-    }
-
+    
+    // 如果当前分支是红线分支（Critical），则标记所有失败为 Critical
+    if (ctx.isCriticalBranch || critical) newFailure.critical = true
     return newFailure
   })
 
-  return { score, pass, failures: finalFailures }
+  const res: MatchResult = { score, pass, failures: finalFailures, dimension, title, critical, details }
+  
+  /**
+   * 【业务逻辑保留理由】
+   * 如果有维度信息但没有详情树，创建一个单节点详情。
+   * 这是为了确保所有的“叶子”评分节点都能在最终报告的 details 中占有一席之地。
+   */
+  if (dimension && !details) {
+    res.details = [{ key: options.key || ctx.key, score, weight: 1.0, pass, dimension }]
+  }
+  return res
 }
 
 /**
  * Calculates normalized weights for a set of items, balancing explicit scores and unassigned items.
  *
- * This function handles two primary modes:
- * 1. Balanced (normalize: true): Ensures the sum of all weights equals 1.0. It provides a
- *    guaranteed budget (totalUnassignedWeight) for items without explicit scores.
- * 2. Independent (normalize: false): Maps each item to its individual confidence score (0.0-1.0)
- *    without requiring the total sum to be 1.0.
- *
- * @param explicitWeights - Array of scores or weights. Use null for unassigned items.
- * @param options - Configuration options.
- * @returns An array of weights (0.0-1.0) corresponding to the input items.
+ * 【核心评分逻辑说明】
+ * 1. 奖励项 (score > 0): 参与 Balanced 模式归一化，总和为 1.0。
+ * 2. 扣分项 (score < 0): 不参与 1.0 预算的竞争，仅根据 scale 转换为绝对权重。
+ * 3. 混合模式: 允许用户同时使用百分比 (0~1) 和绝对分值 (>=1)，系统根据 maxScore 自动适配。
  */
 export function calculateNormalizedWeights(
   explicitWeights: (number | null)[],
   options: {
     /** The total weight budget reserved for all unassigned (null) items. Defaults to 0.1. */
     totalUnassignedWeight?: number
-    /** Whether to normalize the total sum to 1.0. Defaults to true. */
+    /** Whether to normalize the total sum of positive items to 1.0. Defaults to true. */
     normalize?: boolean
     /** The maximum possible value for explicit weights, used for scaling. Defaults to 100. */
     maxScore?: number
@@ -170,56 +185,63 @@ export function calculateNormalizedWeights(
 
   const unassignedCount = explicitWeights.filter((w) => w === null).length
 
-  // 1. Unify scale: map explicit scores to 0-1 confidence
+  // 1. 统一量纲：根据 maxScore 将所有显式得分映射到 0-1 的置信度空间
   const maxExplicit = Math.max(
-    ...explicitWeights.filter((w): w is number => w !== null),
+    ...explicitWeights.filter((w): w is number => w !== null && w > 0),
     0
   )
   const scale = Math.max(maxScore, maxExplicit)
+  
+  // 调整未分配权重的量纲
   if (!((autoConfidence && totalUnassignedWeight >= 0 && totalUnassignedWeight < 1) || (autoConfidence === 'force'))) {
     totalUnassignedWeight = totalUnassignedWeight / scale
   }
 
   const explicitConfidences = explicitWeights.map((w) => {
     if (w === null) return null
-    // If autoConfidence is enabled, treat small values as already normalized.
-    if ((autoConfidence && w >= 0 && w < 1) || (autoConfidence === 'force')) return w
+    // 如果权重已经在 0-1 之间且开启了 autoConfidence，视为已归一化
+    if ((autoConfidence && Math.abs(w) >= 0 && Math.abs(w) < 1) || (autoConfidence === 'force')) return w
     return w / scale
   })
-  const explicitSum = explicitConfidences.reduce<number>((a, b) => a + (b || 0), 0)!
 
-  // 2. Independent Mode (normalize: false)
+  // 仅计算正数项的总和用于归一化预算分配
+  const positiveSum = explicitConfidences.reduce<number>((a, b) => a + (b !== null && b > 0 ? b : 0), 0)
+
+  // Independent 模式：每个项独立计算，互不干扰
   if (!normalize) {
     return explicitConfidences.map((w) => {
-      if (w != null) return w
+      if (w !== null) return w
       return unassignedCount > 0 ? totalUnassignedWeight / unassignedCount : 0
     })
   }
 
-  // 3. Balanced Mode (normalize: true)
+  // Balanced 模式：确保所有正权重项之和为 1.0
   let finalUnassignedTotal = 0
   let explicitFactor = 1
 
   if (unassignedCount > 0) {
-    if (explicitSum + totalUnassignedWeight <= 1.0) {
-      // Enough space: unassigned items take all remaining space
-      finalUnassignedTotal = 1.0 - explicitSum
+    if (positiveSum + totalUnassignedWeight <= 1.0) {
+      // 空间充足：未标注项平分剩余空间
+      finalUnassignedTotal = 1.0 - positiveSum
     } else {
-      // Space constraint: unassigned items get their guaranteed budget,
-      // and explicit items are proportionally compressed.
+      // 空间不足：确保未标注项的保底预算，压缩显式项
       finalUnassignedTotal = totalUnassignedWeight
       explicitFactor =
-        explicitSum > 0 ? (1.0 - totalUnassignedWeight) / explicitSum : 0
+        positiveSum > 0 ? (1.0 - totalUnassignedWeight) / positiveSum : 0
     }
   } else {
-    // No unassigned items: normalize explicit weights to sum to 1.0
-    explicitFactor = explicitSum > 0 ? 1.0 / explicitSum : 0
+    // 全显式：按比例缩放到总和为 1.0
+    explicitFactor = positiveSum > 0 ? 1.0 / positiveSum : 0
   }
 
-  const result = explicitConfidences.map((w) => {
-    if (w !== null) return w * explicitFactor
-    return finalUnassignedTotal / unassignedCount
+  return explicitConfidences.map((w) => {
+    if (w === null) return finalUnassignedTotal / unassignedCount
+    if (w >= 0) return w * explicitFactor
+    /**
+     * 【惩罚项保留逻辑】
+     * 惩罚项（负数）不参与正数项的比例瓜分。
+     * 直接返回归一化后的绝对负权重，确保 score: -20 在 maxScore: 100 时权重正好是 -0.2。
+     */
+    return w 
   })
-
-  return result
 }

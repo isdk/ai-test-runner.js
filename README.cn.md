@@ -210,40 +210,42 @@ expect: {
 - **自动适配量级**：你可以使用 `0~1` 的百分比，也可以使用 `0~maxScore` 的整数分值，系统会自动识别并进行比例缩放。
 - **动态分配**：如果某些项有分值而另一些没有，未标注项会根据所选策略和 `unassignedWeight` 分割剩余权重。
 
-#### 2.3 分值元数据 (`score`) 与自定义策略
+#### 2.3 分值元数据 (`score`) 与维度 (`dimension`)
 
-任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$expect` 或直接在算子属性中注入分值元数据。`score` 属性现在支持指定 `strategy` 和 `threshold`。
+任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$expect` 或直接在算子属性中注入分值元数据。
 
 ```yaml
-# score 可以是简写数字（代表相对权重或 maxScore 的百分比）
+# score 可以是简写数字（奖励分或权重）
 score: 80
 
-# 也可以是对象，包含红线逻辑、自定义策略和模糊阈值
+# 也可以是对象，支持负分（扣分）、维度标签和红线逻辑
 score:
-  value: 80           # 相对权重或百分比
-  critical: true      # 必须项（红线）：如果此项不通过，即便总分及格，passed 也会设为 false。
-  strategy: 'weighted' # (可选) 该节点的子节点的评分策略（例如，'weighted' 加权求和，'max' 取最大值）。
-  threshold: 0.75     # (可选) 用于模糊匹配。分值 >= 阈值才被视为“通过”。
+  value: -20          # 负数表示扣分：匹配成功时从总分减去
+  dimension: 'security' # 维度标签：用于生成多维度评估报告
+  critical: true      # 红线项：如果此项不通过（奖励项）或匹配成功（惩罚项），passed 设为 false
+  strategy: 'weighted' # (可选) 子节点的评分策略
+  threshold: 0.75     # (可选) 用于模糊匹配的置信度阈值
 ```
 
-- **`strategy`**: (可选 `string`) 定义该节点的 `allocatedScore` 如何分配给其子节点 (`distribute` 方法)，以及它们的 `earnedScore` 如何聚合 (`aggregate` 方法)。
-  - **`weighted` (对象、数组、$and 的默认策略)**：按子节点的 `value` 比例分配分值，并对它们的 `earnedScore` 进行求和。
-  - **`max` ($or、$contains 的默认策略)**：平均分配分值给子节点（或根据它们的 `value`），并取其中最高的 `earnedScore`。
-- **`threshold`**: (可选 `number`，介于 0 到 1 之间) 适用于叶子验证节点（例如，自定义算子或返回分值的字符串比较）。如果该项的 `score` 低于此 `threshold`，即使它贡献了部分分值，也会被视为验证失败。
+- **`dimension`**: (可选 `string`) 定义该项所属的维度（如 `accuracy`, `fluency`, `security`）。
+- **负分 (Penalties)**: 负值被视为绝对扣分偏移量。归一化规则与奖励项一致（`< 1` 为百分比，`>= 1` 为绝对分值）。
 
 #### 2.4 $expect：评分包装算子
 
-`$expect` 是一个透明的容器，专门用于在任何地方注入评分元数据、标题和策略配置：
+`$expect` 是一个透明的容器，专门用于在任何地方注入评分元数据、标题和维度配置：
 
 ```yaml
 output:
   $and:
     - $expect: /春天/
-      score: { value: 80, critical: true, strategy: 'weighted' }
-      title: "核心关键词存在"
+      score: { value: 80, dimension: 'accuracy', critical: true }
+      title: "核心关键词"
     - $expect: /花/
       score: 20
       threshold: 0.5 # 如果“花”的匹配置信度低于 50%，则失败。
+    - $expect: /敏感词/
+      score: { value: -50, dimension: 'security' }
+      title: "安全扣分"
 ```
 
 #### 2.5 $diff：差异分值化
@@ -267,9 +269,10 @@ expect:
 
 在执行结果的 `logItem` 中，你会看到：
 
-- **`score`**: 最终得出的量化分值。
+- **`score`**: 最终得出的量化总分。
+- **`scoreDetails`**: **(新)** 树状得分明细，记录了每一项的 key、标题、维度、权重及实际得分。
 - **`passScore`**: 及格线参考。
-- **`failedCritical`**: 如果测试因为触碰“红线”而失败，这里会列出具体导致失败的强制性验证项。
+- **`failedCritical`**: 如果测试因为触碰“红线”而失败（包括触发了 Critical 扣分项），这里会列出具体原因。
 
 ### 3. 自定义验证操作符 (Custom Operators)
 
@@ -281,7 +284,7 @@ expect:
 
 支持以下两种配置格式：
 
-- **对象形式 (显式命名)**: 通过键值对指定操作符名称。
+- **对象形式 (显式命名)**: 通过键 pair 指定操作符名称。
 
   ```yaml
   operators:
@@ -694,6 +697,10 @@ export interface AITestFixture {
   disableHeuristicSchema?: boolean;
   operators?: Record<string, any>; // 自定义操作符
   allowOperatorOverride?: boolean;
+  scoring?: boolean | 'auto'; // 是否启用评分
+  maxScore?: number;          // 最大分值
+  passScore?: number;         // 及格分值
+  unassignedWeight?: number;  // 未分配项的权重预算
   only?: boolean;             // 仅运行此测试
   skip?: boolean;             // 跳过此测试
   not?: boolean;              // 结果取反
@@ -709,6 +716,10 @@ export interface AITestFixture {
 | :--- | :--- |
 | `title` | 测试标题 |
 | `passed` | 校验是否通过 |
+| `score` | 最终计算总分 |
+| `scoreDetails` | **(新)** 详细得分树（key, title, dimension, weight, score） |
+| `maxScore` | 本次测试最大分值 |
+| `passScore` | 及格分值参考 |
 | `input` | 解析后的输入数据 |
 | `actual` | AI 的实际输出 |
 | `expected` | 预期的输出（格式化后） |
@@ -718,11 +729,11 @@ export interface AITestFixture {
 | `failures` | 校验失败详情列表 |
 | `error` | 执行过程中的技术错误 |
 | `duration` | 执行耗时 (ms) |
-| `script` | **(新)** 实际执行的脚本 ID 或源码 |
-| `actualTrace` | **(新)** 完整的交互历史 (messages) |
-| `expectedTrace` | **(新)** 解析后的 Trace 预期目标 |
-| `tools` | **(新)** 最终解析出的工具列表 |
-| `vars` | **(新)** 执行时最终解析出的模板变量集 |
+| `script` | 实际执行的脚本 ID 或源码 |
+| `actualTrace` | 完整的交互历史 (messages) |
+| `expectedTrace` | 解析后的 Trace 预期目标 |
+| `tools` | 最终解析出的工具列表 |
+| `vars` | 执行时最终解析出的模板变量集 |
 
 #### 3.3 `AITestRunnerOptions`
 
@@ -733,7 +744,10 @@ export interface AITestFixture {
 | `fixtureConfig` | 所有 Fixture 的默认值 (`Partial<AITestFixture>`) |
 | `userConfig` | 传递给执行器的运行时配置 |
 | `strict` | 全局严格模式设置 |
-| `logVars` | **(新)** 控制 vars 是否包含在日志中: `true`, `false`, 或 `'error'` |
+| `logVars` | 控制 vars 是否包含在日志中: `true`, `false`, 或 `'error'` |
+| `scoring` | 全局评分开关 |
+| `maxScore` | 全局默认最大分值 |
+| `passScore` | 全局默认及格分值 |
 
 ### 4. 事件生命周期
 
