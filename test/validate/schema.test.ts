@@ -103,7 +103,7 @@ describe('validate/schema', () => {
       const expected = {
         meta: { version: { type: 'number' } } // This would be recognized as schema by heuristic
       }
-      
+
       // When disabled, { type: 'number' } is treated as a plain object to match against { version: 1 }
       // It should fail because { type: 'number' } !== 1
       const failures = await validateMatch(actual, expected, { disableHeuristicSchema: true })

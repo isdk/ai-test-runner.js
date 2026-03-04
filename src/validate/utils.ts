@@ -157,12 +157,7 @@ export function processValidationResult(
 
 /**
  * Patches a MatchResult with metadata (title, dimension, critical) and ensures details are consistent.
- * This helper is used to backfill metadata from the expectation node into the validation result.
- *
- * @param res - The MatchResult to patch.
- * @param metadata - The metadata to apply.
- * @param key - The path/key for the result (used if creating new details).
- * @returns The patched MatchResult.
+ * This is the main orchestration function called at each recursive exit.
  */
 export function patchMatchResult(
   res: MatchResult,
@@ -173,41 +168,65 @@ export function patchMatchResult(
   },
   key?: string
 ): MatchResult {
-  const { title, dimension, critical } = metadata
+  applyMetadata(res, metadata)
+  return ensureDetailLayer(res, key)
+}
 
-  // 1. Update top-level metadata if not already set or if provided
+function applyMetadata(res: MatchResult, metadata: any) {
+  const { title, dimension, critical } = metadata
   if (title) res.title = res.title || title
   if (dimension) res.dimension = res.dimension || dimension
   if (critical !== undefined) res.critical = res.critical || critical
 
-  // 2. Update failure messages if they use the default placeholder
   if (title) {
     res.failures.forEach((f) => {
       if (f.message === 'Validation failed') f.message = title
     })
   }
 
-  // 3. Patch details tree
-  if (res.details && res.details.length > 0) {
+  if (res.details) {
     res.details.forEach((d) => {
-      if (!d.key && key) d.key = key
       if (title) d.title = d.title || title
       if (dimension) d.dimension = d.dimension || dimension
       if (critical) d.critical = true
     })
-  } else if (title || dimension || critical) {
-    // Create a virtual detail node if none exists but metadata is present
-    res.details = [
-      {
-        key: key || '',
-        score: res.score,
-        weight: 1.0,
-        pass: res.pass,
-        title: res.title,
-        dimension: res.dimension,
-        critical: res.critical,
-      },
-    ]
+  }
+}
+
+function ensureDetailLayer(res: MatchResult, key: string | undefined): MatchResult {
+  /**
+   * 【逻辑容器与身份代表契约】
+   * 1. 如果 key 为空（虚拟容器），则该层级不产生物理节点，直接透传子节点详情。
+   * 2. 如果 key 有值（物理层级），且第一个详情的 key 已经是我，说明身份已被代表，直接合并。
+   * 3. 否则，必须创建一个包装节点作为本层级的“身份代表”，以维持树的拓扑深度。
+   */
+  if (!key) return res
+
+  const hasDetails = res.details && res.details.length > 0
+  const firstDetailKey = hasDetails ? res.details![0].key : undefined
+
+  if (!hasDetails) {
+    res.details = [{
+      key,
+      score: res.score,
+      weight: 1.0,
+      pass: res.pass,
+      title: res.title,
+      dimension: res.dimension,
+      critical: res.critical,
+    }]
+  } else if (firstDetailKey !== key) {
+    const newDetail: MatchResultDetail = {
+      key,
+      score: res.score,
+      weight: 1.0,
+      pass: res.pass,
+      title: res.title,
+      dimension: res.dimension,
+      critical: res.critical,
+      details: res.details,
+    }
+    res.details = [newDetail]
   }
 
   return res

@@ -10,7 +10,12 @@ export async function validateNot(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
-  const subCtx = ctx.createSubContext('')
+  /**
+   * 【路径自动化】
+   * 由于 $not 只有一个子项且被标记为 transparent，
+   * createChildContext(0, 1) 将自动返回继承父路径的上下文。
+   */
+  const subCtx = ctx.createChildContext(0, 1)
   subCtx.allocatedScore = ctx.allocatedScore
   const result = await validateMatch(actual, expected, subCtx)
 

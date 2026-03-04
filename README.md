@@ -324,65 +324,66 @@ operators:
       $checkCode: { strict: true, lang: 'ts' }
 ```
 
-#### 3.2 Operator Function Signature and `ValidationResult`
+#### 3.2 Operator Classification & Development Modes
 
-The system supports two signature modes for custom operators. The **Simplified Mode** is recommended for the best developer experience, and now fully supports returning detailed `ValidationResult` objects.
+The system classifies operators into two categories based on their function, providing different development experiences:
 
-##### Simplified Mode (Recommended)
+##### 3.2.1 Atomic Assertion Operators
 
-Suitable for most business logic validations. Can return boolean, string, number (0-1 confidence), or a `{ score, message, pass }` object.
-
-```javascript
-/**
- * @param actual   - The actual output from the AI
- * @param expected - Parameters passed to this operator in YAML (e.g., { strict: true })
- * @param fixture  - Current test context, including:
- *                   - $data: Fully rendered template data
- *                   - $validate: Recursive validation method (act, exp) => Promise<MatchResult>
- *                   - $options: Auxiliary parameters extracted from the $value structure (see below)
- *                   - Other top-level properties of the fixture
- * @returns {boolean | string | number | MatchResult}
- *          - `true`: Full pass, score 1.0.
- *          - `false` or `string`: Full failure, score 0.0. `string` is used as the failure message.
- *          - `number` (0.0-1.0): Partial pass with a confidence score.
- *          - `MatchResult` object: Detailed result.
- */
-export async function checkCode(actual, expected, fixture) {
-  // Example 1: Simple pass/fail
-  if (actual.includes('eval')) {
-    return "eval is not allowed"; // Failure with message
-  }
-  // Example 2: Confidence score
-  const confidence = actual.includes(expected.keyword) ? 0.8 : 0.2;
-  return confidence; // Returns 0.8 or 0.2
-  // Example 3: Recursive validation using $validate
-  const { pass, score } = await fixture.$validate(actual, expected.schema);
-  return { score, pass, message: "Schema match failed" };
-}
-```
-
-##### Standard Mode (Low-level)
-
-If you need full control over the validation flow. In this mode, the function must be a pure function returning a `MatchResult`.
+Suitable for leaf nodes that directly validate the actual value (e.g., code linting, keyword detection). Supports extremely simplified return values.
 
 ```javascript
 /**
  * @param actual   - The actual output from the AI
  * @param expected - Parameters passed to this operator in YAML
- * @param ctx      - ValidationContext (Configuration and path)
- * @param validate - Recursive validation function (act, exp, ctx) => Promise<MatchResult>
+ * @param fixture  - Current test context
+ * @returns {boolean | string | number | MatchResult}
+ *          - `true/false`: Simple pass/fail.
+ *          - `string`: Failure with a specific error message.
+ *          - `number`: Returns 0-1 confidence score.
+ *          - `MatchResult` object: Advanced result with `details` (tree), `dimension`, etc.
  */
-export async function myOp(actual, expected, ctx, validate) {
-  // 1. Recursive call (validate is now a pure function)
-  const result = await validate(actual, expected, ctx.createSubContext('sub'));
-
-  // 2. Return a MatchResult object. No direct side effects on ctx.
-  return {
-    score: result.score * 0.5, // Apply custom logic
-    pass: result.pass,
-    failures: result.failures
-  };
+export async function checkCode(actual, expected, fixture) {
+  if (actual.includes('eval')) return "eval is not allowed";
+  const confidence = actual.includes(expected.keyword) ? 1.0 : 0.0;
+  return confidence;
 }
+
+// checkCode.virtual = true; // Default is virtual mode (true), core engine won't add a path level
+```
+
+##### 3.2.2 Logic Container Operators
+
+Suitable for containers that organize multiple sub-validations (e.g., custom `$and`, `$or`). These operators usually involve recursive calls, and by using `ValidationContext` helpers, you can achieve a truly KISS implementation.
+
+**Core Benefits:**
+
+- **Inherent Strategy (`strategy`)**: Operators can declare their default aggregation logic (e.g., `weighted` or `max`). This ensures consistency; the developer simply calls `ctx.aggregate`, and the system automatically handles strategy priority.
+- **Automatic Weight Distribution**: Use `ctx.distribute` to handle user-defined `score` weights automatically.
+- **Path Automation**: Use `ctx.createChildContext` to automatically handle path indices and variable templates.
+
+**Development Mode:**
+
+```javascript
+/**
+ * @param actual   - The actual output from the AI
+ * @param expected - List of expected sub-items
+ * @param ctx      - ValidationContext (weight distribution, aggregation, path helpers)
+ * @param validate - Recursive validation function
+ */
+export async function myContainer(actual, expectedList, ctx, validate) {
+  const weights = ctx.distribute(expectedList);
+  const results = [];
+  for (let i = 0; i < expectedList.length; i++) {
+    const subCtx = ctx.createChildContext(i, expectedList.length);
+    results.push(await validate(actual[i], expectedList[i], subCtx));
+  }
+  // The system automatically applies the strategy declared in myContainer.strategy
+  return ctx.aggregate(results, weights);
+}
+
+myContainer.virtual = true;
+myContainer.strategy = 'weighted'; // Locks to the weighted sum strategy
 ```
 
 #### 3.3 The `$value` Convention: Separating Target and Options
@@ -417,18 +418,19 @@ export function checkCode(actual, expected, fixture) {
 
 #### 3.4 Recursive Validation & `$validate`
 
-You can call `fixture.$validate` within a custom operator to reuse existing validation logic (including regex, Schema, or other operators).
+You can call `fixture.$validate` or the standard `validate` parameter within a custom operator to reuse existing validation logic.
 
-```javascript
-export async function $eachMatch(actualArray, pattern, fixture) {
-  // Use fixture.$validate, which returns a MatchResult object
-  const { pass, failures } = await fixture.$validate(actualArray[0], pattern);
-  if (!pass) return failures[0].message;
-  return 1.0; // Return confidence score
-}
-```
+#### 3.5 Virtual Path Strategy (`virtual` property)
 
-#### 3.5 Operator Input Type Declaration (`expects` property)
+Operators declare their path behavior in the detail tree via the `virtual` property. The system follows the **"Default Virtual"** principle:
+
+- **`true` (Default)**: **Virtual mode**. The core engine does not add a nesting level to the current path (penetration).
+  - **Single-element scenarios**: Fully transparent; children directly inherit the parent path (e.g., `output`).
+  - **Multi-element scenarios**: Automatically generates readable branches using templates (e.g., `$and[0]`).
+- **`false`**: **Physical mode**. Forces retention of the operator's physical level in the path (e.g., `output.$myOp`).
+- **`string`**: **Custom mode**. Supports path customization via templates (e.g., `$operator[$key]`).
+
+#### 3.6 Operator Input Type Declaration (`expects` property)
 
 To enhance type checking accuracy and avoid redundant basic type validations within operators, an operator can declare its expected `actual` (actual value) type by attaching an `expects` property to its function.
 

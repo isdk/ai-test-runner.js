@@ -10,6 +10,15 @@ export async function validateContains(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
+  if (!Array.isArray(actual)) {
+    return {
+      score: 0,
+      pass: false,
+      message: `$contains operator requires an array, but got ${typeof actual}`,
+      actual,
+    }
+  }
+
   let maxBranchScore = 0
   let matchedAny = false
 
@@ -41,5 +50,4 @@ export async function validateContains(
     actual,
   }
 }
-
-validateContains.expects = 'array'
+validateContains.strategy = 'max'

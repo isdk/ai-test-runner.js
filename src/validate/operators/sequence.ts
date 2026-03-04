@@ -11,6 +11,15 @@ export async function validateSequence(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
+  if (!Array.isArray(actual)) {
+    return {
+      score: 0,
+      pass: false,
+      message: `$sequence operator requires an array, but got ${typeof actual}`,
+      actual,
+    }
+  }
+
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
       ? typeof item.score === 'number'
@@ -18,11 +27,7 @@ export async function validateSequence(
         : (item.score.value ?? 1)
       : null
   )
-  const weights = calculateNormalizedWeights(explicitWeights, {
-    totalUnassignedWeight: ctx.unassignedWeight,
-    maxScore: ctx.maxScore,
-    autoConfidence: ctx.autoConfidence,
-  })
+  const weights = ctx.distribute(explicitWeights)
 
   let totalScore = 0
   const allFailures: AIValidationFailure[] = []
@@ -82,5 +87,3 @@ export async function validateSequence(
     failures: allFailures,
   }
 }
-
-validateSequence.expects = 'array'

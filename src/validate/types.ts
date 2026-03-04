@@ -42,7 +42,7 @@ export interface MatchValueOptions {
   autoConfidence?: boolean|'force'
   /** The name of the operator currently being executed. */
   currentOperator?: string
-  /** The transparency/path strategy of the current operator. */
+  /** The virtual/path strategy of the current operator. */
   operatorStrategy?: boolean | string
 }
 
@@ -87,7 +87,7 @@ export class ValidationContext {
   autoConfidence?: boolean|'force'
   /** The name of the current operator. */
   currentOperator?: string
-  /** The transparency strategy of the current operator. */
+  /** The virtual strategy of the current operator. */
   operatorStrategy?: boolean | string
 
   /**
@@ -165,13 +165,16 @@ export class ValidationContext {
     count: number,
     options: Partial<MatchValueOptions> = {}
   ): ValidationContext {
-    const strategy = this.operatorStrategy ?? false
+    // Default to true (Virtual) if not specified
+    const strategy = this.operatorStrategy ?? true
     let subKey = ''
 
     if (strategy !== false) {
-      // Transparent mode
+      // Virtual mode
       if (count > 1) {
-        const templateStr = typeof strategy === 'string' ? strategy : '[$key]'
+        // Default template distinguishes operators: e.g., $and[0]
+        const templateStr = typeof strategy === 'string' ? strategy : '$operator[$key]'
+
         subKey = this.formatPathTemplate(templateStr, {
           key: String(keyOrIndex),
           index: typeof keyOrIndex === 'number' ? keyOrIndex : 0,
@@ -181,7 +184,8 @@ export class ValidationContext {
       }
       // If count === 1, subKey remains empty (inherits parent path)
     } else {
-      // Non-transparent mode: Use default array-style indexing for children
+      // Non-transparent mode: Use traditional operator path style if possible, 
+      // or fall back to array-style for children
       subKey = `[${keyOrIndex}]`
     }
 
@@ -196,6 +200,30 @@ export class ValidationContext {
     } catch (e) {
       return `[${data.key}]` // Fallback
     }
+  }
+
+  /**
+   * Calculates weights for a list of items using the current strategy and context.
+   */
+  distribute(items: (AIScoreConfig | null)[]): number[] {
+    if (!this.strategy) {
+      throw new Error('Scoring strategy not found in ValidationContext. Ensure it is initialized correctly.')
+    }
+    return this.strategy.distribute(items, {
+      totalUnassignedWeight: this.unassignedWeight,
+      maxScore: this.maxScore,
+      autoConfidence: this.autoConfidence,
+    })
+  }
+
+  /**
+   * Aggregates multiple MatchResults using the current strategy.
+   */
+  aggregate(results: MatchResult[], weights: number[]): MatchResult {
+    if (!this.strategy) {
+      throw new Error('Scoring strategy not found in ValidationContext.')
+    }
+    return this.strategy.aggregate(results, weights)
   }
 }
 
@@ -288,6 +316,7 @@ export type ValidationOperatorHandler = ((
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ) => Promise<ValidationResult> | ValidationResult) & {
-  transparent?: boolean
-  expects?: string | string[]
+  virtual?: boolean | string
+  strategy?: string
 }
+

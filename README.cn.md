@@ -108,7 +108,7 @@ const result = await runner.run('my-script-id', fixtures);
 
 **特化操作符：**
 
-- **`$expect`**: 透明容器，专门用于为任何验证节点注入评分元数据（权重、红线）或标题。[详见评分策略](#2-评分策略-scoring-strategy)。
+- **`$expect`**: 虚拟容器，专门用于为任何验证节点注入评分元数据（权重、红线）或标题。[详见评分策略](#2-评分策略-scoring-strategy)。
 - **`$diff`**: 强制使用特定策略或白名单进行语义化差分对比。[详见语义化差异匹配](#6-语义化差异匹配-diff)。
 - **`$schema`**: 显式使用 JSON Schema 校验。 [详见 JSON Schema 验证](#5-json-schema-验证)。
 
@@ -232,7 +232,7 @@ score:
 
 #### 2.4 $expect：评分包装算子
 
-`$expect` 是一个透明的容器，专门用于在任何地方注入评分元数据、标题和维度配置：
+`$expect` 是一个虚拟容器，专门用于在任何地方注入评分元数据、标题和维度配置：
 
 ```yaml
 output:
@@ -324,65 +324,73 @@ operators:
       $checkCode: { strict: true, lang: 'ts' }
 ```
 
-#### 3.2 操作符函数签名与 `ValidationResult`
+#### 3.2 算子分类与开发模式
 
-系统支持两种签名模式。建议使用 **简化模式** 以获得最佳的开发体验，并且现在完全支持返回详细的 `ValidationResult` 对象。
+系统根据职能将算子分为两类，提供不同的开发体验：
 
-##### 简化模式 (推荐)
+##### 3.2.1 原子断言算子 (Atomic Assertions)
 
-适用于大多数业务逻辑校验。可返回布尔值、字符串、数字（0-1置信度）或 `{ score, message, pass }` 对象。
+适用于直接校验实际值的叶子节点（如：代码检查、敏感词探测、存在性校验）。这类算子通常逻辑单一，追求开发效率。
 
-```javascript
-/**
- * @param actual   - AI 的实际输出
- * @param expected - YAML 中传给该操作符的参数 (如 { strict: true })
- * @param fixture  - 当前测试上下文，包含：
- *                   - $data: 已渲染的完整模板数据
- *                   - $validate: 递归校验方法 (act, exp) => Promise<MatchResult>
- *                   - $options: 从 $value 结构中拆解出的辅助参数 (见下文)
- *                   - 其它 fixture 顶层属性
- * @returns {boolean | string | number | MatchResult}
- *          - `true`: 完全通过，得分 1.0。
- *          - `false` 或 `string`: 完全失败，得分 0.0。`string` 用作失败消息。
- *          - `number` (0.0-1.0): 部分通过，带有置信度分数。
- *          - `MatchResult` 对象: 详细结果。
- */
-export async function checkCode(actual, expected, fixture) {
-  // 示例 1: 简单通过/失败
-  if (actual.includes('eval')) {
-    return "不允许使用 eval"; // 失败并带消息
-  }
-  // 示例 2: 置信度分数
-  const confidence = actual.includes(expected.keyword) ? 0.8 : 0.2;
-  return confidence; // 返回 0.8 或 0.2
-  // 示例 3: 使用 $validate 进行递归校验
-  const { pass, score } = await fixture.$validate(actual, expected.schema);
-  return { score, pass, message: "Schema 校验失败" };
-}
-```
-
-##### 标准模式 (底层)
-
-如果你需要完全控制验证流程。在此模式下，函数必须是一个纯函数，且必须返回一个 `MatchResult` 对象。
+**开发模式：**
 
 ```javascript
 /**
  * @param actual   - AI 的实际输出
  * @param expected - YAML 中传给该操作符的参数
- * @param ctx      - 校验上下文 (只读配置与路径)
- * @param validate - 递归校验函数 (act, exp, ctx) => Promise<MatchResult>
+ * @param fixture  - 当前测试上下文
  */
-export async function myOp(actual, expected, ctx, validate) {
-  // 1. 递归调用 (validate 现在是纯函数)
-  const result = await validate(actual, expected, ctx.createSubContext('sub'));
-
-  // 2. 返回 MatchResult 对象。不允许直接修改 ctx。
-  return {
-    score: result.score * 0.5, // 应用自定义分数逻辑
-    pass: result.pass,
-    failures: result.failures
-  };
+export async function checkCode(actual, expected, fixture) {
+  if (actual.includes('eval')) return "不允许使用 eval";
+  return actual.includes(expected.keyword);
 }
+
+// checkCode.virtual = true; // 默认为虚拟模式 (true)，核心引擎不在当前路径增加层级
+```
+
+**简化返回值说明：**
+
+为了提升开发体验，系统会自动将简单的返回值映射为标准的 `MatchResult`：
+
+| 返回值类型 | 映射逻辑 | 适用场景 |
+| :--- | :--- | :--- |
+| `boolean` | `true` -> 得分 1.0，通过；`false` -> 得分 0.0，不通过。 | 简单的对/错断言。 |
+| `string` | 视为失败消息。得分 0.0，不通过，并将该字符串作为 `message`。 | 需要提供具体失败原因的断言。 |
+| `number` | 0.0 - 1.0 的置信度分数。是否“通过”取决于当前上下文的 `threshold` 配置。 | 模糊匹配或相似度校验。 |
+| `Object` | 必须符合 `MatchResult` 接口（含 `score`, `pass` 等）。 | 需要返回维度信息、详情树或自定义失败列表的高级场景。 |
+
+##### 3.2.2 逻辑容器算子 (Logic Containers)
+
+适用于组织多个子项校验的容器（如：自定义的 `$and`、`$or`）。这类算子通常包含递归调用，通过 `ValidationContext` 助手可以实现极致 KISS 的逻辑。
+
+**核心优势：**
+
+- **算子内置策略 (`strategy`)**：算子可以声明其本质聚合逻辑（如 `weighted` 或 `max`）。这保证了逻辑的一致性，开发者只需调用 `ctx.aggregate`，系统会自动处理策略优先级。
+- **自动权重分配**：通过 `ctx.distribute` 自动处理用户定义的 `score` 权重。
+- **路径自动化**：通过 `ctx.createChildContext` 自动处理路径索引和变量替换。
+
+**开发模式：**
+
+```javascript
+/**
+ * @param actual   - AI 的实际输出
+ * @param expected - 期待的子项列表
+ * @param ctx      - 校验上下文 (包含权重分配、聚合策略、路径助手等)
+ * @param validate - 递归校验函数
+ */
+export async function myContainer(actual, expectedList, ctx, validate) {
+  const weights = ctx.distribute(expectedList);
+  const results = [];
+  for (let i = 0; i < expectedList.length; i++) {
+    const subCtx = ctx.createChildContext(i, expectedList.length);
+    results.push(await validate(actual[i], expectedList[i], subCtx));
+  }
+  // 系统自动应用 myContainer.strategy 声明的策略
+  return ctx.aggregate(results, weights);
+}
+
+myContainer.virtual = true;
+myContainer.strategy = 'weighted'; // 锁定为加权平均策略
 ```
 
 #### 3.3 $value 约定：分离主值与参数
@@ -417,53 +425,17 @@ export function checkCode(actual, expected, fixture) {
 
 #### 3.4 递归校验与 $validate
 
-你可以在自定义操作符中调用 `fixture.$validate` 来复用已有的验证逻辑（包括正则、Schema 或其它操作符）。
+你可以在自定义操作符中调用 `fixture.$validate` 或标准的 `validate` 参数来复用已有的验证逻辑。
 
-```javascript
-export async function $eachMatch(actualArray, pattern, fixture) {
-  // 使用 fixture.$validate，它返回一个 MatchResult 对象
-  const { pass, failures } = await fixture.$validate(actualArray[0], pattern);
-  if (!pass) return failures[0].message;
-  return 1.0; // 返回置信度分数
-}
-```
+#### 3.5 虚拟路径策略 (`virtual` 属性)
 
-#### 3.5 操作符输入类型声明 (`expects` 属性)
+算子通过 `virtual` 属性声明其在详情树中的路径表现。系统遵循 **“默认虚拟 (Default Virtual)”** 准则：
 
-为了提高类型检查的准确性，并避免在算子内部重复进行基础类型校验，算子可以通过在其函数上附加一个 `expects` 属性来声明它所期望的 `actual` (实际值) 类型。
-
-如果 `actual` 的类型与算子声明的期望类型不符，核心验证引擎将在算子执行前抛出错误，并提供明确的错误信息，例如 `Operator $myOp requires an array, but got string`。
-
-`expects` 属性可以是一个字符串或一个字符串数组：
-
-- **字符串形式**: `operatorFunction.expects = 'array'`
-  这表示算子期望 `actual` 必须是一个数组。
-- **字符串数组形式**: `operatorFunction.expects = ['array', 'object']`
-  这表示算子期望 `actual` 必须是数组或对象。目前，核心引擎仅针对 `array` 类型进行强制检查。如果 `expects` 数组中包含 `'array'`，且 `actual` 不是数组，则会触发错误。
-
-注: 目前只对 `array` 类型进行强制检查。
-
-**示例：声明算子期望数组输入**
-
-```typescript
-// in myCustomOperator.ts
-export async function $myArrayOperator(actual, expected, ctx, validateMatch) {
-  // ... 算子的核心逻辑，此时可以确信 actual 是一个数组
-}
-$myArrayOperator.expects = 'array'; // 声明此算子期望一个数组作为输入
-```
-
-或者，如果算子是自定义的并注册在 `operators` 选项中：
-
-```yaml
-# 在 YAML 中定义自定义算子
-operators:
-  $myArrayOperator: "js://./myCustomOperator.js#$myArrayOperator" # 假设该文件导出了 $myArrayOperator 并设置了 expects 属性
-```
-
-**对内置算子的影响:**
-
-`$contains`, `$all`, `$sequence` 等内置算子现在也通过 `expects = 'array'` 属性明确声明了它们期望数组输入。当 `actual` 值不是数组时，核心验证引擎会提前报告错误。
+- **`true` (默认)**: **虚拟模式**。核心引擎不在当前路径增加层级（穿透）。
+  - **单元素场景**: 完全透明，子项直接继承父路径（例如 `output`）。
+  - **多元素场景**: 自动根据模板生成可读分支（例如 `$and[0]`）。
+- **`false`**: **物理模式**。强制保留算子物理层级（例如 `output.$myOp`）。
+- **`string`**: **自定义模式**。支持通过变量模板定制路径（例如 `$operator[$key]`）。
 
 #### 3.6 配置项
 
@@ -502,15 +474,7 @@ tools: true  # 自动将 weather.ai.yaml 设为可用工具
 
 ### 5. JSON Schema 验证
 
-对于结构化输出，JSON Schema 是最严谨的校验方式。
-
-#### 5.1 启发式识别 (Heuristic Recognition)
-
-默认情况下，Runner 开启了启发式识别。如果一个对象具有 `type` 属性，且其值为 `string`, `number`, `integer`, `boolean`, `object`, `array` 之一，它会被自动识别为 JSON Schema。
-
-如果你希望某个字段仅仅是包含 `type` 属性的普通业务数据，请设置 `disableHeuristicSchema: true`。
-
-#### 5.2 显式校验
+对于结构化输出，JSON Schema 是最严谨的校验方式。默认支持启发式识别（根据 `type` 属性）。
 
 推荐使用 `$schema` 操作符：
 
@@ -543,7 +507,7 @@ expect:
 - **长文本**: 自动使用按词对比 (`words`)。
 - **短字符串**: 使用精确的按字符对比 (`chars`)。
 
-#### 6.2 支持的策略类型
+#### 6.3 支持的策略类型
 
 你可以显式指定 `type` 来强制使用特定算法：
 
@@ -566,7 +530,7 @@ expect:
         added: true
 ```
 
-#### 6.3 宽容模式 (`diffPermissive`)
+#### 6.4 宽容模式 (`diffPermissive`)
 
 设置 `diffPermissive: true` 或在预期中使用 `diff: { permissive: true }` 可以关闭严格白名单。此时引擎会忽略所有未声明的变更，仅验证 `required: true` 的项是否按预期发生了变化。
 
@@ -627,52 +591,13 @@ Runner 通过以下逻辑判定 `script` 是否为合法 ID（而非源码）：
 interface ToolCall {
   name: string;               // 工具名称 (必填)
   args: Record<string, any>;  // 调用参数 (必填)
-  result?: any;               // 工具执行后的返回结果 (可选，用于验证闭环)
+  result?: any;               // 工具执行后的返回结果 (可选)
 }
 
 interface Message {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content?: string;           // 文本内容
-  /**
-   * 工具调用列表。
-   * - 当 role 为 'assistant' 时，代表 AI 发起的调用请求。
-   * - 当 role 为 'tool' 时，代表工具执行的结果。
-   */
-  tools?: ToolCall[];
-}
-```
-
-#### 1.3 `expect.tools` 的工作原理
-
-当你使用 `expect: { tools: [...] }` 时，Runner 会自动进行以下转换：
-
-1. **自动聚合**：遍历 `messages` 数组，提取所有包含 `tools` 属性的消息。
-2. **路径映射**：将校验目标映射到 `messages` 的深层结构中。例如 `tools: [ { name: 'calc' } ]` 实际上是在验证：*“是否存在一条消息，其 `tools` 数组中包含一个 `name` 为 'calc' 的对象？”*
-3. **操作符转换**：默认使用 `$all` 逻辑进行集合匹配。
-
-### 2. AIScriptExecutor 实现示例
-
-执行器是底层库与具体 AI 平台对接的唯一入口。
-
-```typescript
-import { AIScriptExecutor, AIExecutionContext, AIExecutionResult } from '@isdk/ai-test-runner';
-
-export class MyAIExecutor implements AIScriptExecutor {
-  async execute(context: AIExecutionContext): Promise<AIExecutionResult> {
-    const { script, args, options } = context;
-
-    // 示例：调用某个 AI SDK
-    const response = await someAIService.ask({
-      model: options.model || 'gpt-4',
-      prompt: script, // 如果是 ID，你可能需要先加载脚本内容
-      variables: args
-    });
-
-    return {
-      output: response.text,           // 用于结果校验
-      messages: response.fullHistory,  // 用于工具调用校验
-    };
-  }
+  tools?: ToolCall[];         // 工具调用列表
 }
 ```
 
@@ -717,9 +642,9 @@ export interface AITestFixture {
 | `title` | 测试标题 |
 | `passed` | 校验是否通过 |
 | `score` | 最终计算总分 |
-| `scoreDetails` | **(新)** 详细得分树（key, title, dimension, weight, score） |
+| `scoreDetails` | 详细得分树（包含 key, title, dimension, weight, score, details） |
 | `maxScore` | 本次测试最大分值 |
-| `passScore` | 及格分值参考 |
+| `passScore` | 及格线参考 |
 | `input` | 解析后的输入数据 |
 | `actual` | AI 的实际输出 |
 | `expected` | 预期的输出（格式化后） |

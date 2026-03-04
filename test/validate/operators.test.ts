@@ -84,7 +84,7 @@ describe('validate/operators', () => {
   it('should fail if operator is used on non-array actual', async () => {
     const { failures } = await validate({ a: 1 }, { $contains: 1 }, new ValidationContext())
     expect(failures).toHaveLength(1)
-    expect(failures[0].message).toContain('$contains requires an array')
+    expect(failures[0].message).toContain('requires an array')
   })
 
   // --- New tests for updated 'expects' logic ---
@@ -113,13 +113,13 @@ describe('validate/operators', () => {
     it('should fail with correct message when $all is used on non-array actual', async () => {
       const { failures } = await validate({ a: 1 }, { $all: [1] }, new ValidationContext());
       expect(failures).toHaveLength(1);
-      expect(failures[0].message).toContain('$all requires an array');
+      expect(failures[0].message).toContain('requires an array');
     });
 
     it('should fail with correct message when $sequence is used on non-array actual', async () => {
       const { failures } = await validate({ a: 1 }, { $sequence: [1] }, new ValidationContext());
       expect(failures).toHaveLength(1);
-      expect(failures[0].message).toContain('$sequence requires an array');
+      expect(failures[0].message).toContain('requires an array');
     });
 
     it('should pass if custom operator with expects = ["array"] is used on array actual', async () => {
@@ -139,7 +139,7 @@ describe('validate/operators', () => {
       }));
       expect(failures).toHaveLength(1);
       // The message comes from core.ts's 'needsArray' check
-      expect(failures[0].message).toContain('$customArrayOp requires an array');
+      expect(failures[0].message).toContain('expected array');
     });
 
     // Test that the 'requires an array' check is NOT triggered if 'expects' is not related to 'array'
@@ -169,8 +169,8 @@ describe('validate/operators', () => {
     })
 
     it('should support templates in $schema operator', async () => {
-      const { failures } = await validate('AI', { 
-        $schema: { type: 'string', pattern: '^{{prefix}}' } 
+      const { failures } = await validate('AI', {
+        $schema: { type: 'string', pattern: '^{{prefix}}' }
       }, new ValidationContext({ data: { prefix: 'AI' } }))
       expect(failures).toHaveLength(0)
     })

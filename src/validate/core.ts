@@ -33,13 +33,19 @@ export async function validate(
   expected: any,
   ctx: ValidationContext
 ): Promise<MatchResult> {
+  // Ensure default strategy if missing
+  if (!ctx.strategy) {
+    ctx.strategy = getStrategy('weighted')
+  }
+
   const { input, data } = ctx
+  const scoreCfg = getScoreConfig(expected)
 
   if (typeof actual === 'string') {
     actual = actual.trim()
   }
 
-  // Template formatting
+  // 1. Template formatting
   let vType = typeof expected
   if (vType === 'string') {
     expected = await formatTemplate(expected, {
@@ -50,7 +56,13 @@ export async function validate(
     vType = typeof expected
   }
 
-  // 1. Operator Handling (Wraps other logic)
+  let finalResult: MatchResult
+
+  // 2. Operator Detection (Same as original code logic)
+  let isPureOperator = false
+  let operator: string | undefined
+  let operatorHandler: any
+
   if (
     vType === 'object' &&
     expected !== null &&
@@ -58,10 +70,6 @@ export async function validate(
     !(expected instanceof YamlTypeJsonSchema)
   ) {
     const keys = Object.keys(expected)
-    let operator: string | undefined
-    let operatorHandler: any
-
-    // Detect operator
     if (ctx.allowOperatorOverride) {
       operator = keys.find((k) => ctx.operators?.[k] || OPERATORS[k])
       operatorHandler = ctx.operators?.[operator!] || OPERATORS[operator!]
@@ -79,37 +87,44 @@ export async function validate(
       const otherKeys = keys.filter(
         (k) => k !== operator && !metaKeys.includes(k)
       )
-      // Check if it's a pure operator usage (no other data properties)
-      // or special case $expect
       if (
         keys.length === 1 ||
         operator === '$expect' ||
         otherKeys.length === 0
       ) {
-        return validateOperator(actual, expected, operator, operatorHandler, ctx)
+        isPureOperator = true
       }
     }
   }
 
-  // 2. Type-specific Dispatch
-  if (isRegExp(expected)) {
-    return validateRegExp(actual, expected, ctx)
+  // 3. Dispatch Chain (Mirroring the EXACT priority of the original code)
+  if (isPureOperator) {
+    finalResult = await validateOperator(actual, expected, operator!, operatorHandler, ctx)
+  } else if (isRegExp(expected)) {
+    finalResult = await validateRegExp(actual, expected, ctx)
   } else if (vType === 'string') {
-    return validateString(actual, expected, ctx)
+    finalResult = await validateString(actual, expected, ctx)
   } else if (Array.isArray(expected)) {
-    return validateArray(actual, expected, ctx)
+    finalResult = await validateArray(actual, expected, ctx)
   } else if (vType === 'function') {
-    return validateFunction(actual, expected, ctx)
+    finalResult = await validateFunction(actual, expected, ctx)
   } else if (
     expected instanceof YamlTypeJsonSchema ||
     (!ctx.disableHeuristicSchema && isJsonSchema(expected))
   ) {
-    return validateSchema(actual, expected, ctx)
+    finalResult = await validateSchema(actual, expected, ctx)
   } else if (vType === 'object') {
-    return validateObject(actual, expected, ctx)
+    finalResult = await validateObject(actual, expected, ctx)
   } else {
-    return validatePrimitive(actual, expected, ctx)
+    finalResult = await validatePrimitive(actual, expected, ctx)
   }
+
+  /**
+   * 【极致路径自动化核心逻辑】
+   * 在每一层递归出口，根据当前上下文的 key 和配置的元数据修补结果。
+   * 这保证了无论算子如何实现，路径追踪和元数据传递始终一致且自动。
+   */
+  return patchMatchResult(finalResult, scoreCfg, ctx.key)
 }
 
 /**
@@ -188,48 +203,32 @@ async function validateOperator(
   const isCritical = scoreCfg.critical
 
   /**
-   * 【算子路径透明度保留逻辑】
-   * $and 和 $or 必须是透明的（不增加路径层级）。
-   * 这是为了避免路径出现 output.$and[0].$or 这种冗余（预期应为 output.$and[0]）。
-   * 具体的索引（如 $and[0]）由算子 Handler 内部显式添加。
+   * 【算子路径策略自动化】
+   * 默认为虚拟模式 (true)，核心引擎不在当前路径增加层级。
+   * Handler 内部通过 createChildContext 自动化处理子路径（支持变量模板）。
    */
-  const transparentOperators = [
-    '$expect',
-    '$or',
-    '$and',
-    '$not',
-    '$any',
-    '$schema',
-    '$exists',
-    '$diff',
-  ]
-  const isTransparent = transparentOperators.includes(operator)
+  const strategy = operatorHandler.virtual ?? true
+  const isVirtual = strategy !== false
 
-  const opCtx = ctx.createSubContext(isTransparent ? '' : operator, {
+  /**
+   * 【策略绑定优先级】
+   * 1. 算子内置策略 (operatorHandler.strategy) - 保证算子逻辑完整性（如 $or 必须是 max）
+   * 2. 用户显式配置 (scoreCfg.strategy) - 用户对当前区块的定制要求
+   * 3. 上下文继承 (ctx.strategy) - 继承自父级的默认行为
+   */
+  const opStrategyName = operatorHandler.strategy || scoreCfg.strategy
+  const opStrategy = opStrategyName ? getStrategy(opStrategyName) : ctx.strategy
+
+  const opCtx = ctx.createSubContext(isVirtual ? '' : operator, {
     isCriticalBranch: ctx.isCriticalBranch || isCritical,
     threshold: scoreCfg.threshold ?? ctx.threshold,
+    currentOperator: operator,
+    operatorStrategy: strategy,
+    strategy: opStrategy,
   })
 
   let val = expected[operator]
   val = await formatObject(cloneDeep(val), { data: ctx.data, input: ctx.input })
-
-  const needsArray =
-    operatorHandler.expects === 'array' ||
-    (Array.isArray(operatorHandler.expects) &&
-      operatorHandler.expects.includes('array'))
-
-  if (needsArray && !Array.isArray(actual)) {
-    return processValidationResult(
-      {
-        score: 0,
-        pass: false,
-        message: `Operator ${operator} requires an array, but got ${typeof actual}`,
-      },
-      val,
-      actual,
-      opCtx
-    )
-  }
 
   const operatorResult = await operatorHandler(
     actual,
@@ -238,18 +237,12 @@ async function validateOperator(
     validate
   )
 
-  let res = processValidationResult(
+  return processValidationResult(
     operatorResult,
     val,
     actual,
     opCtx
   )
-
-  const title = scoreCfg.title || (operatorResult && typeof operatorResult === 'object' ? (operatorResult as any).title : undefined)
-  const dimension = scoreCfg.dimension || (operatorResult && typeof operatorResult === 'object' ? (operatorResult as any).dimension : undefined)
-
-  res = patchMatchResult(res, { title, dimension, critical: isCritical }, opCtx.key)
-  return res
 }
 
 async function validateRegExp(
@@ -339,11 +332,7 @@ async function validateArray(
   const explicitWeights = expected.map((item) => {
     return item && typeof item === 'object' && item.score !== undefined ? item.score : null
   })
-  const strategy = ctx.strategy || getStrategy('weighted')
-  const weights = strategy.distribute(explicitWeights, {
-    totalUnassignedWeight: ctx.unassignedWeight,
-    maxScore: ctx.maxScore,
-  })
+  const weights = ctx.distribute(explicitWeights)
 
   const subResults: MatchResult[] = []
   for (let i = 0; i < expected.length; i++) {
@@ -353,17 +342,10 @@ async function validateArray(
     })
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     const subResult = await validate(actual[i], expected[i], subCtx)
-
-    /**
-     * 【详情回填逻辑说明】
-     * 数组校验本身是一层容器逻辑。
-     * 必须将计算出的 metadata 修补回子项的详情中，否则 details 树将断层。
-     */
-    patchMatchResult(subResult, scoreCfg, subCtx.key)
     subResults.push(subResult)
   }
 
-  return strategy.aggregate(subResults, weights)
+  return ctx.aggregate(subResults, weights)
 }
 
 async function validateFunction(
@@ -414,11 +396,7 @@ async function validateObject(
     return (item && typeof item === 'object' && item.score !== undefined) ? item.score : null
   })
 
-  const strategy = ctx.strategy || getStrategy('weighted')
-  const weights = strategy.distribute(explicitWeights, {
-    totalUnassignedWeight: ctx.unassignedWeight,
-    maxScore: ctx.maxScore,
-  })
+  const weights = ctx.distribute(explicitWeights)
 
   const subResults: MatchResult[] = []
 
@@ -453,13 +431,6 @@ async function validateObject(
     })
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
     const subResult = await validate(actualValue, v, subCtx)
-
-    /**
-     * 【详情回填逻辑说明】
-     * 对象属性校验是递归的核心点。
-     * 这里必须保证子项的 MatchResult.details 拥有正确的元数据，否则详情树会失去路径和维度信息。
-     */
-    patchMatchResult(subResult, scoreCfg, subCtx.key)
     subResults.push(subResult)
   }
 
@@ -476,7 +447,7 @@ async function validateObject(
       }
     }
     if (extraFailures.length > 0) {
-        const aggregated = strategy.aggregate(subResults, weights)
+        const aggregated = ctx.aggregate(subResults, weights)
         return {
            ...aggregated,
            pass: false,
@@ -485,7 +456,7 @@ async function validateObject(
     }
   }
 
-  return strategy.aggregate(subResults, weights)
+  return ctx.aggregate(subResults, weights)
 }
 
 async function validatePrimitive(

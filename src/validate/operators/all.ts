@@ -13,6 +13,15 @@ export async function validateAll(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
+  if (!Array.isArray(actual)) {
+    return {
+      score: 0,
+      pass: false,
+      message: `$all operator requires an array, but got ${typeof actual}`,
+      actual,
+    }
+  }
+
   const explicitWeights = expectedList.map((item) =>
     item && typeof item === 'object' && item.score !== undefined
       ? typeof item.score === 'number'
@@ -20,27 +29,22 @@ export async function validateAll(
         : (item.score.value ?? 1)
       : null
   )
-  
-  const strategy = ctx.strategy || getStrategy('weighted')
-  const weights = strategy.distribute(explicitWeights, {
-    totalUnassignedWeight: ctx.unassignedWeight,
-    maxScore: ctx.maxScore,
-  })
 
+  const weights = ctx.distribute(explicitWeights)
   const results: MatchResult[] = []
 
   for (let i = 0; i < expectedList.length; i++) {
-    const subCtx = ctx.createSubContext(`$all[${i}]`)
+    const subCtx = ctx.createChildContext(i, expectedList.length)
     // Pass allocated score to sub-context so it can be used for logging or deep logic
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
-    
+
     const result = await validateContains(actual, expectedList[i], subCtx, validateMatch)
     const matchResult = processValidationResult(result, expectedList[i], actual, subCtx)
-    
+
     results.push(matchResult)
   }
 
-  return strategy.aggregate(results, weights)
-}
+  return ctx.aggregate(results, weights)
+  }
 
-validateAll.expects = 'array'
+validateAll.strategy = 'weighted'

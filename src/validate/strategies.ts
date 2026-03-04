@@ -66,20 +66,16 @@ export const weightedSumStrategy: ScoringStrategy = {
       allFailures.push(...r.failures)
 
       /**
-       * 【详情聚合保留逻辑】
-       * 尝试展平（Flatten）简单的层级以保持详情树的可读性。
-       * 优先从子节点继承 title 和 dimension。
+       * 【详情收集 (SRP)】
+       * 策略层仅负责收集子项的详情列表。具体的路径 (key) 由核心层的 patchMatchResult
+       * 已经在每一层递归出口注入。我们只需将其合并即可。
        */
-      const detail: MatchResultDetail = {
-        key: (r.details && r.details.length === 1) ? r.details[0].key : '', 
-        score: r.score,
-        weight: w,
-        pass: r.pass,
-        title: r.title || (r.details && r.details.length === 1 ? r.details[0].title : undefined),
-        dimension: r.dimension || (r.details && r.details.length === 1 ? r.details[0].dimension : undefined),
-        details: (r.details && r.details.length === 1 && r.details[0].key === '') ? r.details[0].details : r.details,
+      if (r.details) {
+        r.details.forEach(d => {
+          d.weight = w
+          details.push(d)
+        })
       }
-      details.push(detail)
     }
 
     return {
@@ -121,15 +117,12 @@ export const maxStrategy: ScoringStrategy = {
         bestResult = r
       }
       
-      details.push({
-        key: (r.details && r.details.length === 1) ? r.details[0].key : '', 
-        score: r.score,
-        weight: weights[i] || 0,
-        pass: r.pass,
-        title: r.title || (r.details && r.details.length === 1 ? r.details[0].title : undefined),
-        dimension: r.dimension || (r.details && r.details.length === 1 ? r.details[0].dimension : undefined),
-        details: (r.details && r.details.length === 1 && r.details[0].key === '') ? r.details[0].details : r.details,
-      })
+      if (r.details) {
+        r.details.forEach(d => {
+          d.weight = weights[i] || 0
+          details.push(d)
+        })
+      }
     }
 
     if (anyPassed) {

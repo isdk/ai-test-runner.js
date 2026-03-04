@@ -174,6 +174,22 @@ describe('validate/logic-operators', () => {
       const { failures } = await validate(actual, expected, new ValidationContext())
       expect(failures).toHaveLength(1)
       // Path should accurately reflect the traversal: user -> $and[0] -> id
+      expect(failures[0].key).toBe('user.id')
+    })
+
+    it('should track deep muliti keys accurately in failures', async () => {
+      const actual = { user: { id: 1, sex: 'none' } }
+      const expected = {
+        user: {
+          $and: [
+            { id: { $schema: { type: 'number', minimum: 5 } } },
+            { sex: { $schema: { type: 'stirng', enum: ['male', 'female'] } } },
+          ]
+        }
+      }
+      const { failures } = await validate(actual, expected, new ValidationContext())
+      expect(failures).toHaveLength(1)
+      // Path should accurately reflect the traversal: user -> $and[0] -> id
       expect(failures[0].key).toBe('user.$and[0].id')
     })
 

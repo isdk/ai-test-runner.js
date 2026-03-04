@@ -10,5 +10,6 @@ export async function validateExpect(
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
-  return await validateMatch(actual, expected, ctx)
+  const subCtx = ctx.createChildContext(0, 1)
+  return await validateMatch(actual, expected, subCtx)
 }

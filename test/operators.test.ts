@@ -92,7 +92,7 @@ describe('AITestRunner Operators', () => {
 
     const result = await runner.run('test-script', fixtures)
     expect(result.failedCount).toBe(1)
-    expect(result.logs[0].failures![0].key).toBe('output.user.profile.bio.$longEnough')
+    expect(result.logs[0].failures![0].key).toBe('output.user.profile.bio')
   })
 
   it('should use custom operators from options', async () => {
