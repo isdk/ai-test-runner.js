@@ -10,6 +10,7 @@ import {
 import {
   isStrict,
   processValidationResult,
+  patchMatchResult,
 } from './utils.js'
 import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'
@@ -237,50 +238,17 @@ async function validateOperator(
     validate
   )
 
-  const res = processValidationResult(
+  let res = processValidationResult(
     operatorResult,
     val,
     actual,
     opCtx
   )
 
-  const title = scoreCfg.title || (operatorResult && typeof operatorResult === 'object' ? operatorResult.title : undefined)
-  const dimension = scoreCfg.dimension || (operatorResult && typeof operatorResult === 'object' ? operatorResult.dimension : undefined)
+  const title = scoreCfg.title || (operatorResult && typeof operatorResult === 'object' ? (operatorResult as any).title : undefined)
+  const dimension = scoreCfg.dimension || (operatorResult && typeof operatorResult === 'object' ? (operatorResult as any).dimension : undefined)
 
-  if (title) {
-    res.failures.forEach(f => {
-      if (f.message === 'Validation failed') f.message = title
-    })
-  }
-
-  /**
-   * 【元数据补丁逻辑说明】
-   * 这里显式补全 MatchResult 的元数据。
-   * 如果返回的是一个聚合详情，原地修补它的第一个元素，避免层级加深。
-   */
-  res.title = title
-  res.dimension = dimension
-  res.critical = isCritical
-
-  if (title || dimension) {
-    if (res.details && res.details.length > 0) {
-      res.details.forEach(d => {
-        if (title) d.title = d.title || title
-        if (dimension) d.dimension = d.dimension || dimension
-        if (isCritical) d.critical = true
-      })
-    } else {
-      res.details = [{
-        key: opCtx.key,
-        score: res.score,
-        weight: 1.0,
-        pass: res.pass,
-        title,
-        dimension,
-        critical: isCritical,
-      }]
-    }
-  }
+  res = patchMatchResult(res, { title, dimension, critical: isCritical }, opCtx.key)
   return res
 }
 
@@ -389,30 +357,9 @@ async function validateArray(
     /**
      * 【详情回填逻辑说明】
      * 数组校验本身是一层容器逻辑。
-     * 必须将计算出的 weight 和 metadata 修补回子项的详情中，否则 details 树将断层。
+     * 必须将计算出的 metadata 修补回子项的详情中，否则 details 树将断层。
      */
-    subResult.title = subResult.title || scoreCfg.title
-    subResult.dimension = subResult.dimension || scoreCfg.dimension
-    subResult.critical = subResult.critical || scoreCfg.critical
-
-    if (subResult.details && subResult.details.length > 0) {
-      subResult.details.forEach(d => {
-        if (!d.key) d.key = subCtx.key
-        d.title = d.title || scoreCfg.title
-        d.dimension = d.dimension || scoreCfg.dimension
-        if (scoreCfg.critical) d.critical = true
-      })
-    } else {
-      subResult.details = [{
-        key: subCtx.key,
-        score: subResult.score,
-        weight: 1.0,
-        pass: subResult.pass,
-        title: scoreCfg.title,
-        dimension: scoreCfg.dimension,
-        critical: scoreCfg.critical,
-      }]
-    }
+    patchMatchResult(subResult, scoreCfg, subCtx.key)
     subResults.push(subResult)
   }
 
@@ -510,31 +457,9 @@ async function validateObject(
     /**
      * 【详情回填逻辑说明】
      * 对象属性校验是递归的核心点。
-     * 这里必须保证子项的 MatchResult.details[0] 拥有正确的 key (即当前属性名)
-     * 以及元数据，否则详情树会失去路径信息。
+     * 这里必须保证子项的 MatchResult.details 拥有正确的元数据，否则详情树会失去路径和维度信息。
      */
-    subResult.title = subResult.title || scoreCfg.title
-    subResult.dimension = subResult.dimension || scoreCfg.dimension
-    subResult.critical = subResult.critical || scoreCfg.critical
-
-    if (subResult.details && subResult.details.length > 0) {
-      subResult.details.forEach(d => {
-        if (!d.key) d.key = subCtx.key
-        d.title = d.title || scoreCfg.title
-        d.dimension = d.dimension || scoreCfg.dimension
-        if (scoreCfg.critical) d.critical = true
-      })
-    } else {
-      subResult.details = [{
-        key: subCtx.key,
-        score: subResult.score,
-        weight: 1.0,
-        pass: subResult.pass,
-        title: scoreCfg.title,
-        dimension: scoreCfg.dimension,
-        critical: scoreCfg.critical,
-      }]
-    }
+    patchMatchResult(subResult, scoreCfg, subCtx.key)
     subResults.push(subResult)
   }
 

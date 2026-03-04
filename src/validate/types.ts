@@ -1,3 +1,4 @@
+import { template } from 'lodash-es'
 import { AIValidationFailure, AIStrictOption, AIScoreConfig, ValidationResult } from '../types.js'
 
 /**
@@ -39,6 +40,10 @@ export interface MatchValueOptions {
   /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
   threshold?: number
   autoConfidence?: boolean|'force'
+  /** The name of the operator currently being executed. */
+  currentOperator?: string
+  /** The transparency/path strategy of the current operator. */
+  operatorStrategy?: boolean | string
 }
 
 /**
@@ -80,6 +85,10 @@ export class ValidationContext {
   /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
   threshold?: number
   autoConfidence?: boolean|'force'
+  /** The name of the current operator. */
+  currentOperator?: string
+  /** The transparency strategy of the current operator. */
+  operatorStrategy?: boolean | string
 
   /**
    * Creates a new validation context.
@@ -104,6 +113,8 @@ export class ValidationContext {
     this.strategy = options.strategy
     this.threshold = options.threshold
     this.autoConfidence = options.autoConfidence
+    this.currentOperator = options.currentOperator
+    this.operatorStrategy = options.operatorStrategy
   }
 
   /**
@@ -136,8 +147,55 @@ export class ValidationContext {
       isCriticalBranch: this.isCriticalBranch,
       strategy: this.strategy,
       threshold: this.threshold,
+      currentOperator: this.currentOperator,
+      operatorStrategy: this.operatorStrategy,
       ...options,
     })
+  }
+
+  /**
+   * Creates a high-level child context with automated path generation based on operator strategy.
+   * 
+   * @param keyOrIndex - The key or index of the child item.
+   * @param count - Total number of items in the container (used for single-element optimization).
+   * @param options - Additional options.
+   */
+  createChildContext(
+    keyOrIndex: string | number,
+    count: number,
+    options: Partial<MatchValueOptions> = {}
+  ): ValidationContext {
+    const strategy = this.operatorStrategy ?? false
+    let subKey = ''
+
+    if (strategy !== false) {
+      // Transparent mode
+      if (count > 1) {
+        const templateStr = typeof strategy === 'string' ? strategy : '[$key]'
+        subKey = this.formatPathTemplate(templateStr, {
+          key: String(keyOrIndex),
+          index: typeof keyOrIndex === 'number' ? keyOrIndex : 0,
+          count,
+          operator: this.currentOperator || '',
+        })
+      }
+      // If count === 1, subKey remains empty (inherits parent path)
+    } else {
+      // Non-transparent mode: Use default array-style indexing for children
+      subKey = `[${keyOrIndex}]`
+    }
+
+    return this.createSubContext(subKey, options)
+  }
+
+  private formatPathTemplate(tpl: string, data: any): string {
+    try {
+      // Use lodash template with custom interpolation for $key, $operator, etc.
+      const compiled = template(tpl, { interpolate: /\$([a-zA-Z]+)/g })
+      return compiled(data)
+    } catch (e) {
+      return `[${data.key}]` // Fallback
+    }
   }
 }
 
@@ -224,9 +282,12 @@ export interface MatchResultDetail {
 /**
  * Function signature for handling custom validation operators (e.g., $contains).
  */
-export type ValidationOperatorHandler = (
+export type ValidationOperatorHandler = ((
   actual: any,
   expected: any,
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
-) => Promise<ValidationResult> | ValidationResult
+) => Promise<ValidationResult> | ValidationResult) & {
+  transparent?: boolean
+  expects?: string | string[]
+}
