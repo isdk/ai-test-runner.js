@@ -465,7 +465,7 @@ tools: true  # 自动将 weather.ai.yaml 设为可用工具
 ---
 - input: "查上海天气"
   expect:
-    tools: [{ name: 'weather', args: { city: 'Shanghai' } }]
+    tools: [{ name: 'weather', args: { city: /Shanghai|上海/ } }]
 ```
 
 #### 4.3 `expect.tools` 语法糖

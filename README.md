@@ -495,7 +495,7 @@ tools: true  # Automatically uses weather.ai.yaml as the available tool
 ---
 - input: "What's the weather in Shanghai?"
   expect:
-    tools: [{ name: 'weather', args: { city: 'Shanghai' } }]
+    tools: [{ name: 'weather', args: { city: /Shanghai|上海/ } }]
 ```
 
 #### 4.3 `expect.tools` Syntactic Sugar
