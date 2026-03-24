@@ -5,7 +5,7 @@ import { YamlTypeJsonSchema } from '../src/yaml-types/index.js'
 
 class MockExecutor implements AIScriptExecutor {
   async execute(context: AIExecutionContext): Promise<AIExecutionResult> {
-    if (context.args.echo) {
+    if (context.args.echo !== undefined) {
         return { output: context.args.echo }
     }
     return { output: 'default output' }
@@ -236,5 +236,19 @@ describe('AITestRunner', () => {
     ]
     const result = await runner.run('test-script', fixtures)
     expect(result.passedCount).toBe(1)
+  })
+
+  it('should pass "" into input and pass', async () => {
+    const fixtures = [
+      {
+        input: { echo: '' },
+        output: ''
+      }
+    ]
+    const result = await runner.run('test-script', fixtures)
+    expect(result.passedCount).toBe(1)
+    expect(result.failedCount).toBe(0)
+    expect(result.logs[0].passed).toBe(true)
+    expect(result.logs[0].actual).toBe('')
   })
 })

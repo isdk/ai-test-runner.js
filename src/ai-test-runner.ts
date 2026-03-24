@@ -77,7 +77,7 @@ async function resolveDefaultValue(value: any, defaultValue?: any, data?: any) {
     ) {
       value = omitBy(
         value,
-        (v) => v == null || (typeof v === 'string' && v === '')
+        (v) => v == null
       )
     }
 
@@ -541,13 +541,13 @@ export class AITestRunner extends EventEmitter {
       const ctx = new ValidationContext({
         ...commonCtxOptions,
         allocatedScore: weight,
-        key: validationBaseKey, 
+        key: validationBaseKey,
       })
       const result = await validate(actual, expected, ctx)
-      
+
       // Accumulate score
       totalEarnedScore += (result.score * weight)
-      
+
       scoreDetails.push({
         key: detailKey,
         score: result.score,
@@ -559,7 +559,7 @@ export class AITestRunner extends EventEmitter {
 
       if (!result.pass) {
         failures.push(...result.failures)
-        
+
         // Check for critical failures in the result
         const criticalFailures = result.failures.filter(f => f.critical)
         if (criticalFailures.length > 0) {
