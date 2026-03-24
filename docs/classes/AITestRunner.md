@@ -6,9 +6,29 @@
 
 # Class: AITestRunner
 
-Defined in: [ai-tools/packages/ai-test-runner/src/ai-test-runner.ts:89](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/ai-test-runner.ts#L89)
+Defined in: [ai-tools/packages/ai-test-runner/src/ai-test-runner.ts:113](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/ai-test-runner.ts#L113)
 
 Runner for executing AI script test fixtures and validating results.
+
+## Fires
+
+AITestRunner#test:start - Fired before executing a fixture.
+
+## Fires
+
+AITestRunner#test:pass - Fired when a fixture passes all validations.
+
+## Fires
+
+AITestRunner#test:fail - Fired when a fixture fails validation.
+
+## Fires
+
+AITestRunner#test:error - Fired when an exception occurs during execution.
+
+## Fires
+
+AITestRunner#test:skip - Fired when a fixture is skipped.
 
 ## Extends
 
@@ -20,7 +40,7 @@ Runner for executing AI script test fixtures and validating results.
 
 > **new AITestRunner**(`executor`): `AITestRunner`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/ai-test-runner.ts:95](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/ai-test-runner.ts#L95)
+Defined in: [ai-tools/packages/ai-test-runner/src/ai-test-runner.ts:119](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/ai-test-runner.ts#L119)
 
 Creates a new AITestRunner instance.
 
@@ -358,7 +378,7 @@ If the listener is not a function.
 
 > **run**(`script`, `fixtures`, `options`): `Promise`\<[`AITestFixtureResult`](../interfaces/AITestFixtureResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/ai-test-runner.ts:107](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/ai-test-runner.ts#L107)
+Defined in: [ai-tools/packages/ai-test-runner/src/ai-test-runner.ts:131](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/ai-test-runner.ts#L131)
 
 Runs a set of test fixtures against a specified script.
 
@@ -368,11 +388,11 @@ Runs a set of test fixtures against a specified script.
 
 `string`
 
-The script (e.g., prompt template) to run.
+The default script to run if not specified in fixtures.
 
 ##### fixtures
 
-`any`[]
+[`AITestFixture`](../interfaces/AITestFixture.md)[]
 
 An array of test fixtures.
 
@@ -380,7 +400,7 @@ An array of test fixtures.
 
 [`AITestRunnerOptions`](../interfaces/AITestRunnerOptions.md) = `{}`
 
-Runner options for this execution.
+Global runner options.
 
 #### Returns
 

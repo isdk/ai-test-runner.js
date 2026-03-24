@@ -8,9 +8,10 @@
 
 > **formatTemplate**(`value`, `options`): `Promise`\<`any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate-match.ts:54](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/validate-match.ts#L54)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/template.ts:12](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/validate/template.ts#L12)
 
 Formats a single value (string or RegExp) using prompt templates.
+It merges context data and input parameters to resolve template placeholders.
 
 ## Parameters
 
@@ -18,16 +19,16 @@ Formats a single value (string or RegExp) using prompt templates.
 
 `any`
 
-The value to format.
+The value containing templates (e.g., "Hello {{name}}").
 
 ### options
 
 `StringTemplateOptions`
 
-Template formatting options.
+Template formatting options including data and input.
 
 ## Returns
 
 `Promise`\<`any`\>
 
-The formatted value.
+The formatted string or RegExp with placeholders replaced.

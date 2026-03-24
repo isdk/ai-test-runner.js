@@ -6,9 +6,10 @@
 
 # Interface: AIScriptExecutor
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:36](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L36)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:120](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L120)
 
-Interface for components that can execute AI scripts.
+Interface for components capable of executing AI scripts or interacting with LLMs.
+Custom executors (e.g., for LangChain, OpenAI, or local models) must implement this.
 
 ## Methods
 
@@ -16,9 +17,9 @@ Interface for components that can execute AI scripts.
 
 > **execute**(`context`): `Promise`\<[`AIExecutionResult`](AIExecutionResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:43](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L43)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:127](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L127)
 
-Executes an AI script with the given context.
+Executes an AI script within the provided context.
 
 #### Parameters
 
@@ -26,10 +27,10 @@ Executes an AI script with the given context.
 
 [`AIExecutionContext`](AIExecutionContext.md)
 
-The execution context.
+The execution context including script and arguments.
 
 #### Returns
 
 `Promise`\<[`AIExecutionResult`](AIExecutionResult.md)\>
 
-A promise that resolves to the execution result.
+A promise resolving to the execution result.

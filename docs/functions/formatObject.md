@@ -8,9 +8,10 @@
 
 > **formatObject**(`input`, `options`): `Promise`\<`any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate-match.ts:94](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/validate-match.ts#L94)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/template.ts:54](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/validate/template.ts#L54)
 
-Recursively formats an object or array by applying prompt templates to string values.
+Recursively formats an object or array by applying prompt templates to string and RegExp values.
+Also handles template resolution for object keys.
 
 ## Parameters
 
@@ -30,4 +31,4 @@ Template formatting options.
 
 `Promise`\<`any`\>
 
-The formatted object or array.
+A new structure with all templates resolved.

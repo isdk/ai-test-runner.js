@@ -6,9 +6,10 @@
 
 # Interface: AIExecutionContext
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:15](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L15)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:87](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L87)
 
-The context in which an AI script is executed.
+The execution context passed to an `AIScriptExecutor`.
+Contains all necessary information to run an AI script or agent.
 
 ## Properties
 
@@ -16,9 +17,10 @@ The context in which an AI script is executed.
 
 > **args**: `Record`\<`string`, `any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:19](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L19)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:94](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L94)
 
-Arguments to be passed to the script.
+Arguments and variables to be injected into the script.
+These are typically resolved from templates.
 
 ***
 
@@ -26,9 +28,9 @@ Arguments to be passed to the script.
 
 > `optional` **options**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:21](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L21)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:98](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L98)
 
-Additional options for execution.
+Additional execution-level options (e.g., model parameters, temperature).
 
 ***
 
@@ -36,6 +38,6 @@ Additional options for execution.
 
 > **script**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:17](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L17)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:89](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L89)
 
-The script to be executed.
+The identifier or content of the script/prompt to be executed.

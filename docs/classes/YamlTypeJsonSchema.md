@@ -6,10 +6,20 @@
 
 # Class: YamlTypeJsonSchema
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:19](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L19)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:33](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L33)
 
-Represents a YAML tag for JSON Schema validation.
-Used to define expectations using standard JSON Schema.
+Represents a YAML-compatible JSON Schema object.
+When used with the `!json-schema` tag, it allows defining expectations
+that are automatically compiled into Ajv validation functions.
+
+## Example
+
+```yaml
+output: !json-schema
+  type: object
+  properties:
+    name: { type: string }
+```
 
 ## Extends
 
@@ -25,9 +35,9 @@ Used to define expectations using standard JSON Schema.
 
 > **new YamlTypeJsonSchema**(`options?`): `YamlTypeJsonSchema`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:81](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L81)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:101](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L101)
 
-Initializes a new YamlTypeJsonSchema.
+Initializes a new YamlTypeJsonSchema instance and compiles the schema using Ajv.
 
 #### Parameters
 
@@ -35,7 +45,7 @@ Initializes a new YamlTypeJsonSchema.
 
 `any`
 
-Schema configuration.
+The raw JSON Schema definition properties.
 
 #### Returns
 
@@ -51,7 +61,11 @@ Schema configuration.
 
 > **\[ValidateSymbol\]**: `ValidateFunction`\<`any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:22](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L22)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:38](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L38)
+
+**`Internal`**
+
+Compiled Ajv validation function.
 
 ***
 
@@ -59,9 +73,9 @@ Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:22](
 
 > `static` **YAMLTag**: `string` = `'!json-schema'`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:21](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L21)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:35](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L35)
 
-The YAML tag associated with this type.
+The standard YAML tag name for this type.
 
 ## Methods
 
@@ -69,15 +83,15 @@ The YAML tag associated with this type.
 
 > **getErrors**(): `ErrorObject`\<`string`, `Record`\<`string`, `any`\>, `unknown`\>[] \| `null` \| `undefined`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:119](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L119)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:140](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L140)
 
-Returns validation errors for the last validation call on this instance.
+Returns AJV validation errors for the last `validate()` call on this instance.
 
 #### Returns
 
 `ErrorObject`\<`string`, `Record`\<`string`, `any`\>, `unknown`\>[] \| `null` \| `undefined`
 
-An array of error objects or null.
+An array of Ajv error objects or null if no validation has occurred or passed.
 
 ***
 
@@ -85,15 +99,16 @@ An array of error objects or null.
 
 > **toJSON**(): `object`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:96](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L96)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:117](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L117)
 
-Converts the schema to a plain JSON object, filtering out private properties.
+Converts the instance to a plain JSON object suitable for Ajv compilation.
+Filters out internal properties (starting with '_') inherited from YamlTypeBaseObject.
 
 #### Returns
 
 `object`
 
-The JSON representation of the schema.
+A plain JSON representation of the schema.
 
 ***
 
@@ -101,9 +116,9 @@ The JSON representation of the schema.
 
 > **validate**(`data`): `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:110](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L110)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:131](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L131)
 
-Validates data against this schema instance.
+Validates data against this specific schema instance.
 
 #### Parameters
 
@@ -117,7 +132,7 @@ The data to validate.
 
 `boolean`
 
-True if valid.
+True if the data is valid.
 
 ***
 
@@ -125,9 +140,11 @@ True if valid.
 
 > `static` **create**(`schema?`): `YamlTypeJsonSchema`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:45](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L45)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:65](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L65)
 
-Creates a YamlTypeJsonSchema instance from a schema object.
+Ensures a value is a YamlTypeJsonSchema instance.
+If the input is already an instance, it's returned as-is;
+otherwise, a new instance is created from the provided schema object.
 
 #### Parameters
 
@@ -135,7 +152,7 @@ Creates a YamlTypeJsonSchema instance from a schema object.
 
 `any`
 
-The JSON Schema object.
+A raw schema object or an existing YamlTypeJsonSchema instance.
 
 #### Returns
 
@@ -149,9 +166,9 @@ A YamlTypeJsonSchema instance.
 
 > `static` **getErrors**(`schema`): `ErrorObject`\<`string`, `Record`\<`string`, `any`\>, `unknown`\>[] \| `null` \| `undefined`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:72](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L72)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:92](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L92)
 
-Retrieves validation errors from a schema instance.
+Static helper to retrieve AJV validation errors from a schema instance.
 
 #### Parameters
 
@@ -159,13 +176,13 @@ Retrieves validation errors from a schema instance.
 
 `YamlTypeJsonSchema`
 
-The YamlTypeJsonSchema instance.
+The schema instance to get errors from.
 
 #### Returns
 
 `ErrorObject`\<`string`, `Record`\<`string`, `any`\>, `unknown`\>[] \| `null` \| `undefined`
 
-An array of AJV error objects, or undefined if no errors.
+An array of AJV error objects, or undefined if no errors exist.
 
 ***
 
@@ -173,9 +190,11 @@ An array of AJV error objects, or undefined if no errors.
 
 > `static` **isInstance**(`obj`): `obj is YamlTypeJsonSchema`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:30](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L30)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:48](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L48)
 
-Checks if an object is an instance of YamlTypeJsonSchema.
+Type guard to check if an object is an instance of YamlTypeJsonSchema.
+Handles cases where the object might come from a different module instance
+by checking the constructor's static YAMLTag.
 
 #### Parameters
 
@@ -189,7 +208,7 @@ The object to check.
 
 `obj is YamlTypeJsonSchema`
 
-True if the object is a YamlTypeJsonSchema instance.
+True if the object is a YamlTypeJsonSchema.
 
 ***
 
@@ -197,9 +216,9 @@ True if the object is a YamlTypeJsonSchema instance.
 
 > `static` **validate**(`schema`, `data`): `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:59](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/yaml-types/json-schema.ts#L59)
+Defined in: [ai-tools/packages/ai-test-runner/src/yaml-types/json-schema.ts:79](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/yaml-types/json-schema.ts#L79)
 
-Validates data against a schema.
+Static helper to validate data against a schema.
 
 #### Parameters
 
@@ -207,7 +226,7 @@ Validates data against a schema.
 
 `any`
 
-The YamlTypeJsonSchema or schema object.
+The schema to use (will be converted via `.create()` if needed).
 
 ##### data
 

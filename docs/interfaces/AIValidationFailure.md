@@ -6,9 +6,9 @@
 
 # Interface: AIValidationFailure
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:49](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L49)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:133](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L133)
 
-Represents a failure during AI validation.
+Represents a failure encountered during the validation of an AI output.
 
 ## Properties
 
@@ -16,9 +16,19 @@ Represents a failure during AI validation.
 
 > `optional` **actual**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:57](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L57)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:141](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L141)
 
-The actual value received.
+The actual value that was received.
+
+***
+
+### critical?
+
+> `optional` **critical**: `boolean`
+
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:145](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L145)
+
+Indicates if this failure occurred in a critical validation path.
 
 ***
 
@@ -26,9 +36,9 @@ The actual value received.
 
 > `optional` **diff**: [`AIDiffItem`](AIDiffItem.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:59](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L59)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:143](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L143)
 
-Detailed diff information if applicable.
+Detailed diff information if the failure occurred during a string comparison.
 
 ***
 
@@ -36,9 +46,9 @@ Detailed diff information if applicable.
 
 > `optional` **expected**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:55](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L55)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:139](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L139)
 
-The expected value.
+The value that was expected at the given key.
 
 ***
 
@@ -46,9 +56,9 @@ The expected value.
 
 > `optional` **key**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:51](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L51)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:135](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L135)
 
-The key or path where the failure occurred.
+The dot-separated path or array index where the failure occurred.
 
 ***
 
@@ -56,6 +66,6 @@ The key or path where the failure occurred.
 
 > `optional` **message**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:53](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L53)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:137](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L137)
 
-A descriptive message about the failure.
+A human-readable message describing the failure.

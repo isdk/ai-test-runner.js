@@ -6,10 +6,10 @@
 
 # Interface: AIDiffItem
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:7](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L7)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:7](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L7)
 
-Represents a diff item in an AI validation process.
-Extends the basic `Change` object from the `diff` library.
+Represents a specific difference item in the validation process.
+Extends the `Change` object from the `diff` library with additional validation metadata.
 
 ## Extends
 
@@ -45,6 +45,17 @@ How many tokens (e.g. chars for `diffChars`, lines for `diffLines`) the value in
 
 ***
 
+### path?
+
+> `optional` **path**: `string`
+
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:12](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L12)
+
+The path in the object structure (e.g., "user.id" or "tags[0]").
+Present when performing structured diffs (like JSON).
+
+***
+
 ### removed
 
 > **removed**: `boolean`
@@ -56,6 +67,37 @@ true if the value was removed from the old string, otherwise false
 #### Inherited from
 
 `Change.removed`
+
+***
+
+### required?
+
+> `optional` **required**: `boolean`
+
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:26](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L26)
+
+If true, this change MUST be present in the actual output for the validation to pass.
+
+***
+
+### score?
+
+> `optional` **score**: [`AIScoreConfig`](../type-aliases/AIScoreConfig.md)
+
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:30](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L30)
+
+Scoring configuration for this specific diff item.
+
+***
+
+### val?
+
+> `optional` **val**: `any`
+
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:17](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L17)
+
+The logical value associated with this change.
+Present when performing structured diffs (like JSON).
 
 ***
 
@@ -78,6 +120,7 @@ In cases where tokens are considered common but are non-identical (e.g. because 
 
 > `optional` **verified**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:9](https://github.com/isdk/ai-test-runner.js/blob/c0cb346110918810799a67a72cce9eac3ac94913/src/types.ts#L9)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:22](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L22)
 
-Indicates whether this specific change has been verified.
+Indicates whether this specific change has been verified against the expected whitelist.
+Internal use during the validation process.
