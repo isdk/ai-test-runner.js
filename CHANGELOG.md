@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.2](https://github.com/isdk/ai-test-runner.js/compare/v0.2.1...v0.2.2) (2026-03-25)
+
+
+### Features
+
+* add comparison and expression validation operators ([ceaffe2](https://github.com/isdk/ai-test-runner.js/commit/ceaffe26ad89416462ebc546b2508d1ef1d311a2))
+* **validate:** add , , , and  array processing operators ([1f0f3f6](https://github.com/isdk/ai-test-runner.js/commit/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd))
+
 ## [0.2.1](https://github.com/isdk/ai-test-runner.js/compare/v0.2.0...v0.2.1) (2026-03-25)
 
 
