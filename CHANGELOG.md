@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.0](https://github.com/isdk/ai-test-runner.js/compare/v0.1.2...v0.2.0) (2026-03-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scoring:** Legacy metadata keys `score`, `title`, `critical`, `description`, `dimension` are no longer supported as metadata. They are now treated as normal business data. You must migrate to using `$meta` or the new `$`-prefixed shorthands.
+
+### Refactor
+
+* **scoring:** implement strict metadata separation with $meta and $shorthands ([377c154](https://github.com/isdk/ai-test-runner.js/commit/377c15407b6bafe4f8a761af78baade4190788a4))
+
 ## [0.1.2](https://github.com/isdk/ai-test-runner.js/compare/v0.1.1...v0.1.2) (2026-03-24)
 
 
