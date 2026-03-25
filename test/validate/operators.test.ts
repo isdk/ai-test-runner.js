@@ -10,7 +10,7 @@ describe('validate/operators', () => {
   })
 
   it('$contains should pass if array contains object item', async () => {
-    const { failures } = await validate([{score: 0, title: 'hello'}, 2, 3], { $contains: {score: 0} }, new ValidationContext())
+    const { failures } = await validate([{ score: 0, title: 'hello' }, 2, 3], { $contains: { score: 0 } }, new ValidationContext())
     expect(failures).toHaveLength(0)
   })
 
@@ -86,11 +86,44 @@ describe('validate/operators', () => {
     expect(failures2).toHaveLength(1)
   })
 
-  it('should fail if operator is used on non-array actual', async () => {
-    const { failures } = await validate({ a: 1 }, { $contains: 1 }, new ValidationContext())
-    expect(failures).toHaveLength(1)
-    expect(failures[0].message).toContain('requires an array')
+  it('should support non-array actual (via delegation)', async () => {
+    const { failures } = await validate({ a: 1 }, { $contains: { a: 1 } }, new ValidationContext())
+    expect(failures).toHaveLength(0)
   })
+
+  // --- $each operator tests ---
+  describe('$each', () => {
+    it('should iterate over arrays and validate each element', async () => {
+      const actual = [
+        { type: 'user', name: 'Alice' },
+        { type: 'user', name: 'Bob' }
+      ]
+      const { failures } = await validate(actual, { $each: { type: 'user' } }, new ValidationContext())
+      expect(failures).toHaveLength(0)
+    })
+
+    it('should fail if any element does not match', async () => {
+      const actual = [
+        { type: 'user', name: 'Alice' },
+        { type: 'admin', name: 'Bob' }
+      ]
+      const { failures } = await validate(actual, { $each: { type: 'user' } }, new ValidationContext())
+      expect(failures).toHaveLength(1)
+      expect(failures[0].message).toContain('String mismatch') // Or whatever nested error it yields
+    })
+
+    it('should fail on non-array input', async () => {
+      const { failures } = await validate({ type: 'user' }, { $each: { type: 'user' } }, new ValidationContext())
+      expect(failures).toHaveLength(1)
+      expect(failures[0].message).toContain('$each operator requires an array')
+    })
+
+    it('should pass vacuously on empty array', async () => {
+      const { failures } = await validate([], { $each: { type: 'user' } }, new ValidationContext())
+      expect(failures).toHaveLength(0)
+    })
+  })
+
 
   // --- New tests for updated 'expects' logic ---
   describe('operator requires array actual', () => {

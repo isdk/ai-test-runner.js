@@ -11,6 +11,7 @@ import { validateSchemaOperator } from './schema.js'
 import { validateExists } from './exists.js'
 import { validateExpect } from './expect.js'
 import { validateDiff } from './diff.js'
+import { validateEach } from './each.js'
 
 /** Map of supported collection validation operators. */
 export const OPERATORS: Record<string, ValidationOperatorHandler> = {
@@ -24,6 +25,7 @@ export const OPERATORS: Record<string, ValidationOperatorHandler> = {
   $exists: validateExists,
   $expect: validateExpect,
   $diff: validateDiff,
+  $each: validateEach,
 }
 
 export { validateAnd } from './and.js'
@@ -36,3 +38,4 @@ export { validateSchemaOperator } from './schema.js'
 export { validateExists } from './exists.js'
 export { validateExpect } from './expect.js'
 export { validateDiff } from './diff.js'
+export { validateEach } from './each.js'
