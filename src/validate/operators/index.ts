@@ -12,6 +12,17 @@ import { validateExists } from './exists.js'
 import { validateExpect } from './expect.js'
 import { validateDiff } from './diff.js'
 import { validateEach } from './each.js'
+import { validateExpr } from './expr.js'
+import {
+  validateEq,
+  validateNe,
+  validateGt,
+  validateGte,
+  validateLt,
+  validateLte,
+  validateIn,
+  validateNin,
+} from './cmp.js'
 
 /** Map of supported collection validation operators. */
 export const OPERATORS: Record<string, ValidationOperatorHandler> = {
@@ -26,6 +37,15 @@ export const OPERATORS: Record<string, ValidationOperatorHandler> = {
   $expect: validateExpect,
   $diff: validateDiff,
   $each: validateEach,
+  $expr: validateExpr,
+  $eq: validateEq,
+  $ne: validateNe,
+  $gt: validateGt,
+  $gte: validateGte,
+  $lt: validateLt,
+  $lte: validateLte,
+  $in: validateIn,
+  $nin: validateNin,
 }
 
 export { validateAnd } from './and.js'
@@ -39,3 +59,14 @@ export { validateExists } from './exists.js'
 export { validateExpect } from './expect.js'
 export { validateDiff } from './diff.js'
 export { validateEach } from './each.js'
+export { validateExpr } from './expr.js'
+export {
+  validateEq,
+  validateNe,
+  validateGt,
+  validateGte,
+  validateLt,
+  validateLte,
+  validateIn,
+  validateNin,
+} from './cmp.js'

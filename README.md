@@ -112,6 +112,19 @@ Powerful assertions for complex validation scenarios, including logical, collect
   - Shorthand mode: `$exists: true | false` (verifies value is not `undefined`).
   - Strict mode: `$exists: { $value: false, strict: true }` (strictly checks if the key exists in `Object.keys()`).
 
+**Comparison:**
+
+- **`$eq`, `$ne`**: **Equality & Inequality**. Strictly checks if the actual value equals (`$eq`) or does not equal (`$ne`) the expected value.
+- **`$gt`, `$gte`, `$lt`, `$lte`**: **Numeric & Relational Bounds**. Validates if the actual value is greater than (`$gt`), greater-than-or-equal (`$gte`), less than (`$lt`), or less-than-or-equal (`$lte`) to the expected value. Suitable for comparing scores, ages, or any numeric/relational metrics.
+- **`$in`, `$nin`**: **Array Inclusion**. Checks if the actual value is present (`$in`) or not present (`$nin`) within the expected array.
+
+**Expression:**
+
+- **`$expr`**: **Dynamic Expression Evaluation**. Intuitively evaluates a string expression (using JavaScript syntax) to perform complex mathematical calculations or cross-field logic bridging actual output, data, and input. Supports asynchronous and synchronous logic.
+  - Automatically injects context variables like `actual`, `expected`, `data`, `input`, and `ctx` into the evaluation scope.
+  - Highly suitable for mathematical computations and multi-property validation, allowing you to bypass deep nesting.
+  - Usage Example: `$expr: "actual > data.threshold"` or `$expr: "actual.price * actual.quantity >= 500 && data.userRole === 'admin'"`.
+
 **Specialized Operators:**
 
 - **`$expect`**: A transparent wrapper used to attach scoring metadata (weight, critical) and titles to any validation node. [See Scoring Strategy](#2-scoring-strategy).

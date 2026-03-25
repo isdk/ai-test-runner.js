@@ -40,7 +40,7 @@ describe('AITestRunner Operators', () => {
   })
 
   afterAll(() => {
-    try { unlinkSync(absPath) } catch (e) {}
+    try { unlinkSync(absPath) } catch (e) { }
   })
 
   it('should support absolute paths in js:// protocol', async () => {
@@ -439,7 +439,7 @@ describe('AITestRunner Operators', () => {
   it('should support standard 4-argument operators via js://', async () => {
     // Manually create a standard operator file
     const stdOpPath = join(tmpdir(), 'std-op.js')
-    writeFileSync(stdOpPath,  `
+    writeFileSync(stdOpPath, `
       export function stdOp(actual, expected, ctx, validateMatch) {
         if (actual !== expected) {
           return 'std mismatch'
@@ -461,7 +461,7 @@ describe('AITestRunner Operators', () => {
       const result = await runner.run('return-input', fixtures)
       expect(result.passedCount).toBe(1)
     } finally {
-      try { unlinkSync(stdOpPath) } catch (e) {}
+      try { unlinkSync(stdOpPath) } catch (e) { }
     }
   })
 
@@ -495,20 +495,20 @@ describe('AITestRunner Operators', () => {
     expect(result.passedCount).toBe(1)
   })
 
-    it('should support loading from npm packages (bare specifiers)', async () => {
-      const runner = new AITestRunner(mockExecutor)
-      const fixtures = [
-        {
-          input: { a: 1 },
-          operators: {
-            $eq: 'lodash-es#isEqual'
-          },
-          expect: { output: { $eq: { a: 1 } } }
-        }
-      ]
+  it('should support loading from npm packages (bare specifiers)', async () => {
+    const runner = new AITestRunner(mockExecutor)
+    const fixtures = [
+      {
+        input: { a: 1 },
+        operators: {
+          $equ: 'lodash-es#isEqual'
+        },
+        expect: { output: { $equ: { a: 1 } } }
+      }
+    ]
 
-      const result = await runner.run('return-input', fixtures)
-      expect(result.passedCount).toBe(1)
-    })
+    const result = await runner.run('return-input', fixtures)
+    expect(result.passedCount).toBe(1)
   })
+})
 

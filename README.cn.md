@@ -112,6 +112,18 @@ const result = await runner.run('my-script-id', fixtures);
   - 简写模式：`$exists: true | false`（用于验证值是否不为 `undefined`）。
   - 严格模式：`$exists: { $value: false, strict: true }`（严格检查该键是否存在于对象自身的键集合中）。
 
+**关系与比较操作符（Comparison）：**
+
+- **`$eq`, `$ne`**: **相等与不等**。严格验证实际值是否等于 (`$eq`) 或不等于 (`$ne`) 预期值。
+- **`$gt`, `$gte`, `$lt`, `$lte`**: **数值范围比较**。验证实际值是否大于 (`$gt`)、大于等于 (`$gte`)、小于 (`$lt`) 或小于等于 (`$lte`) 预期值。尤其适合评估长短、打分、阈值等数值/关系约束。
+- **`$in`, `$nin`**: **数组内包含**。验证实际值是否存在于 (`$in`) 或不存在于 (`$nin`) 给定的预期数组（列表）中。
+
+**表达式算子（Expression）：**
+
+- **`$expr`**: **动态表达式求值（Expression Operator）**。最符合前端直觉的语法，支持以 JavaScript 语法传入一段动态计算公式字符串，实现极度灵活的跨字段、算数运算或异步处理的逻辑判断。
+  - 能向表达式沙盒中自动注入强大的上下文变量（如：`actual`, `expected`, `data`, `input`, `ctx` 等）。
+  - 用法示例：相比冗长反直觉的嵌套算子，你可以简单地写 `$expr: "actual > data.min_score"` 或关联多属性 `$expr: "actual.price * actual.quantity >= 500 && data.userRole === 'admin'"`。
+
 **特化操作符：**
 
 - **`$expect`**: 虚拟容器，专门用于为任何验证节点注入评分元数据（权重、红线）或标题。[详见评分策略](#2-评分策略-scoring-strategy)。

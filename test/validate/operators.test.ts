@@ -250,4 +250,93 @@ describe('validate/operators', () => {
       expect(failures).toHaveLength(0)
     })
   })
+
+  // --- Comparison Operators Tests ---
+  describe('comparison operators', () => {
+    it('$eq should pass on equality', async () => {
+      const { failures, pass } = await validate(18, { $eq: 18 }, new ValidationContext())
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+    })
+
+    it('$ne should pass on inequality', async () => {
+      const { failures, pass } = await validate(18, { $ne: 20 }, new ValidationContext())
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+    })
+
+    it('$gt should pass when greater', async () => {
+      const { failures, pass } = await validate(20, { $gt: 18 }, new ValidationContext())
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+
+      const { pass: failPass } = await validate(18, { $gt: 18 }, new ValidationContext())
+      expect(failPass).toBe(false)
+    })
+
+    it('$gte should pass when greater or equal', async () => {
+      const { pass } = await validate(18, { $gte: 18 }, new ValidationContext())
+      expect(pass).toBe(true)
+    })
+
+    it('$lt should pass when less', async () => {
+      const { pass } = await validate(10, { $lt: 18 }, new ValidationContext())
+      expect(pass).toBe(true)
+    })
+
+    it('$lte should pass when less or equal', async () => {
+      const { pass } = await validate(18, { $lte: 18 }, new ValidationContext())
+      expect(pass).toBe(true)
+    })
+
+    it('$in should pass if in array', async () => {
+      const { pass } = await validate('active', { $in: ['active', 'pending'] }, new ValidationContext())
+      expect(pass).toBe(true)
+
+      const { failures, pass: failPass } = await validate('deleted', { $in: ['active', 'pending'] }, new ValidationContext())
+      expect(failPass).toBe(false)
+      expect(failures[0].message).toBe('Value should be in expected array')
+    })
+
+    it('$nin should pass if not in array', async () => {
+      const { pass } = await validate('deleted', { $nin: ['active', 'pending'] }, new ValidationContext())
+      expect(pass).toBe(true)
+    })
+  })
+
+  // --- $expr operator tests ---
+  describe('$expr', () => {
+    it('should validate simple synchronous expression', async () => {
+      const { failures, pass } = await validate(10, { $expr: 'actual > 5' }, new ValidationContext())
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+    })
+
+    it('should validate expression with data and input context', async () => {
+      const ctx = new ValidationContext({ data: { threshold: 5 } })
+      const { failures, pass } = await validate(10, { $expr: 'actual > data.threshold' }, ctx)
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+    })
+
+    it('should fail when expression is false', async () => {
+      const { failures, pass } = await validate(2, { $expr: 'actual > 5' }, new ValidationContext())
+      expect(pass).toBe(false)
+      expect(failures).toHaveLength(1)
+      expect(failures[0].message).toBe('Expression evaluated to false')
+    })
+
+    it('should handle async expressions', async () => {
+      const { failures, pass } = await validate(10, { $expr: 'await Promise.resolve(actual * 2) === 20' }, new ValidationContext())
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+    })
+
+    it('should return 0 score and fail when expression errors', async () => {
+      const { failures, pass } = await validate(10, { $expr: 'actual.toString().nonExistentMethod()' }, new ValidationContext())
+      expect(pass).toBe(false)
+      expect(failures).toHaveLength(1)
+      expect(failures[0].message).toContain('$expr evaluation error')
+    })
+  })
 })
