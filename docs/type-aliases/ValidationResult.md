@@ -8,7 +8,7 @@
 
 > **ValidationResult** = `boolean` \| `string` \| `number` \| \{\[`key`: `string`\]: `any`; `dimension?`: `string`; `message?`: `string`; `pass?`: `boolean`; `score`: `number`; \}
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:176](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L176)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:176](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L176)
 
 The result returned by a validation operator or function.
 - `boolean`: true -> pass (100%), false -> fail (0%).

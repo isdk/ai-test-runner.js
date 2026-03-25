@@ -6,7 +6,7 @@
 
 # Interface: AITestRunnerOptions
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:362](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L362)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:362](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L362)
 
 Options for the `AITestRunner.run` method.
 
@@ -16,7 +16,7 @@ Options for the `AITestRunner.run` method.
 
 > `optional` **allowOperatorOverride**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:394](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L394)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:394](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L394)
 
 Whether to allow custom operators to override built-in ones.
 
@@ -26,7 +26,7 @@ Whether to allow custom operators to override built-in ones.
 
 > `optional` **baseDir**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:398](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L398)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:398](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L398)
 
 Base directory for resolving relative paths in operators.
 
@@ -36,7 +36,7 @@ Base directory for resolving relative paths in operators.
 
 > `optional` **disableHeuristicSchema**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:386](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L386)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:386](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L386)
 
 Whether to disable heuristic JSON Schema recognition globally.
 
@@ -46,7 +46,7 @@ Whether to disable heuristic JSON Schema recognition globally.
 
 > `optional` **fixtureConfig**: `Partial`\<[`AITestFixture`](AITestFixture.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:366](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L366)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:366](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L366)
 
 Base configuration and default values for all fixtures in this run.
 
@@ -56,7 +56,7 @@ Base configuration and default values for all fixtures in this run.
 
 > `optional` **logVars**: `boolean` \| `"error"`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:405](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L405)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:405](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L405)
 
 Whether to include the resolved template variables (`vars`) in the log.
 - `true`: Always include.
@@ -69,7 +69,7 @@ Whether to include the resolved template variables (`vars`) in the log.
 
 > `optional` **maxScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:414](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L414)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:414](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L414)
 
 The maximum possible score for this fixture. Defaults to 1.
 
@@ -79,7 +79,7 @@ The maximum possible score for this fixture. Defaults to 1.
 
 > `optional` **operators**: `Record`\<`string`, `any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:390](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L390)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:390](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L390)
 
 Custom validation operators.
 
@@ -89,7 +89,7 @@ Custom validation operators.
 
 > `optional` **passScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:416](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L416)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:416](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L416)
 
 The minimum score required for the fixture to pass. Defaults to maxScore.
 
@@ -99,7 +99,7 @@ The minimum score required for the fixture to pass. Defaults to maxScore.
 
 > `optional` **scoring**: `boolean` \| `"auto"`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:412](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L412)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:412](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L412)
 
 Scoring mode configuration.
 - `true`: Enable scoring.
@@ -112,7 +112,7 @@ Scoring mode configuration.
 
 > `optional` **scriptConfig**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:378](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L378)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:378](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L378)
 
 Metadata about the script itself, such as output schema definitions.
 
@@ -122,7 +122,7 @@ Metadata about the script itself, such as output schema definitions.
 
 > `optional` **skips**: `object`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:374](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L374)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:374](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L374)
 
 A map of fixture indices to skip during execution.
 
@@ -136,7 +136,7 @@ A map of fixture indices to skip during execution.
 
 > `optional` **strict**: [`AIStrictOption`](../type-aliases/AIStrictOption.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:382](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L382)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:382](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L382)
 
 Global strict mode configuration. Individual fixtures can override this.
 
@@ -146,7 +146,7 @@ Global strict mode configuration. Individual fixtures can override this.
 
 > `optional` **unassignedWeight**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:418](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L418)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:418](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L418)
 
 The default relative weight for items that do not have an explicit 'score' property.
 
@@ -156,6 +156,6 @@ The default relative weight for items that do not have an explicit 'score' prope
 
 > `optional` **userConfig**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:370](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L370)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:370](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L370)
 
 User-provided runtime configuration, often passed down to the executor.

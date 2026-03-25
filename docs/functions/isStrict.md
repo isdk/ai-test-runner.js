@@ -8,7 +8,7 @@
 
 > **isStrict**(`type`, `strict?`): `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:11](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/validate/utils.ts#L11)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:99](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/validate/utils.ts#L99)
 
 Checks if strict mode is enabled for a specific type.
 

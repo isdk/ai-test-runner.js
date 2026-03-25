@@ -41,6 +41,8 @@
 
 ## Variables
 
+- [META\_CONTAINER](variables/META_CONTAINER.md)
+- [META\_SHORTHANDS](variables/META_SHORTHANDS.md)
 - [OPERATORS](variables/OPERATORS.md)
 - [yamlJsonSchemaTag](variables/yamlJsonSchemaTag.md)
 
@@ -52,8 +54,10 @@
 - [formatObject](functions/formatObject.md)
 - [formatTemplate](functions/formatTemplate.md)
 - [getDiff](functions/getDiff.md)
+- [getScoreConfig](functions/getScoreConfig.md)
 - [hasDiffChanges](functions/hasDiffChanges.md)
 - [isJsonSchema](functions/isJsonSchema.md)
+- [isMetadataKey](functions/isMetadataKey.md)
 - [isStrict](functions/isStrict.md)
 - [loadOperators](functions/loadOperators.md)
 - [patchMatchResult](functions/patchMatchResult.md)

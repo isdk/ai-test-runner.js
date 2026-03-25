@@ -6,7 +6,7 @@
 
 # Interface: AITestLogItem
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:196](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L196)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:196](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L196)
 
 Detailed log entry for a single test fixture execution.
 
@@ -16,7 +16,7 @@ Detailed log entry for a single test fixture execution.
 
 > **actual**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:214](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L214)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:214](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L214)
 
 The actual output produced by the executor.
 
@@ -26,7 +26,7 @@ The actual output produced by the executor.
 
 > `optional` **actualTrace**: `any`[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:242](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L242)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:242](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L242)
 
 The full interaction history or execution trace (from AIExecutionResult.messages).
 Useful for debugging tool calls and message sequences.
@@ -37,7 +37,7 @@ Useful for debugging tool calls and message sequences.
 
 > **duration**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:233](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L233)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:233](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L233)
 
 The duration of this specific test execution in milliseconds.
 
@@ -47,7 +47,7 @@ The duration of this specific test execution in milliseconds.
 
 > `optional` **error**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:227](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L227)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:227](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L227)
 
 Any technical error that occurred during the execution process.
 
@@ -57,7 +57,7 @@ Any technical error that occurred during the execution process.
 
 > **expected**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:216](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L216)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:216](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L216)
 
 The expected output or matcher used for validation.
 
@@ -67,7 +67,7 @@ The expected output or matcher used for validation.
 
 > `optional` **expectedSchema**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:223](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L223)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:223](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L223)
 
 The JSON schema used for validation, if any.
 
@@ -77,7 +77,7 @@ The JSON schema used for validation, if any.
 
 > `optional` **expectedTrace**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:246](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L246)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:246](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L246)
 
 The resolved and formatted expectation for the execution trace (from AITestFixture.expect).
 
@@ -87,7 +87,7 @@ The resolved and formatted expectation for the execution trace (from AITestFixtu
 
 > `optional` **failedCritical**: [`AIValidationFailure`](AIValidationFailure.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:210](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L210)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:210](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L210)
 
 A list of validation failures that were marked as 'critical' but failed.
 
@@ -97,7 +97,7 @@ A list of validation failures that were marked as 'critical' but failed.
 
 > `optional` **failures**: [`AIValidationFailure`](AIValidationFailure.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:225](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L225)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:225](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L225)
 
 A list of specific validation failures if the test did not pass.
 
@@ -107,7 +107,7 @@ A list of specific validation failures if the test did not pass.
 
 > **i**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:231](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L231)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:231](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L231)
 
 The 0-based index of the fixture in the input array.
 
@@ -117,7 +117,7 @@ The 0-based index of the fixture in the input array.
 
 > **input**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:212](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L212)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:212](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L212)
 
 The resolved input provided to the AI script.
 
@@ -127,7 +127,7 @@ The resolved input provided to the AI script.
 
 > `optional` **maxScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:206](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L206)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:206](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L206)
 
 The maximum possible score for this test.
 
@@ -137,7 +137,7 @@ The maximum possible score for this test.
 
 > `optional` **not**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:235](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L235)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:235](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L235)
 
 Whether the test expectation was negated (passes if validation fails).
 
@@ -147,7 +147,7 @@ Whether the test expectation was negated (passes if validation fails).
 
 > **passed**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:200](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L200)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:200](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L200)
 
 True if all validations passed for this fixture.
 
@@ -157,7 +157,7 @@ True if all validations passed for this fixture.
 
 > `optional` **passScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:208](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L208)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:208](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L208)
 
 The minimum score required for the test to pass.
 
@@ -167,7 +167,7 @@ The minimum score required for the test to pass.
 
 > `optional` **reason**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:221](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L221)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:221](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L221)
 
 Extracted reasoning or explanation from the AI output, if available
 (e.g., from a 'reasoning' field in JSON).
@@ -178,7 +178,7 @@ Extracted reasoning or explanation from the AI output, if available
 
 > `optional` **score**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:202](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L202)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:202](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L202)
 
 The final calculated score (0.0 to maxScore).
 
@@ -188,7 +188,7 @@ The final calculated score (0.0 to maxScore).
 
 > `optional` **scoreDetails**: `any`[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:204](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L204)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:204](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L204)
 
 Detailed breakdown of scores for each validation item.
 
@@ -198,7 +198,7 @@ Detailed breakdown of scores for each validation item.
 
 > `optional` **script**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:237](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L237)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:237](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L237)
 
 The specific script ID or source code executed.
 
@@ -208,7 +208,7 @@ The specific script ID or source code executed.
 
 > `optional` **skipped**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:229](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L229)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:229](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L229)
 
 Whether the test was skipped.
 
@@ -218,7 +218,7 @@ Whether the test was skipped.
 
 > `optional` **title**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:198](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L198)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:198](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L198)
 
 The name of the test fixture.
 
@@ -228,7 +228,7 @@ The name of the test fixture.
 
 > `optional` **tools**: `any`[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:250](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L250)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:250](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L250)
 
 The final set of tools provided to the executor after resolving IDs and 'tools: true'.
 
@@ -238,7 +238,7 @@ The final set of tools provided to the executor after resolving IDs and 'tools: 
 
 > `optional` **vars**: `Record`\<`string`, `any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:255](https://github.com/isdk/ai-test-runner.js/blob/0ac1fd2ced2ef35f932fb1aa60ba17a0bc4ae4b0/src/types.ts#L255)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:255](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L255)
 
 The final resolved template data (variables) used during execution and validation.
 Inclusion depends on `AITestRunnerOptions.logVars`.

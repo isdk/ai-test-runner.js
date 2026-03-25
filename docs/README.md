@@ -214,42 +214,59 @@ The system uses a **"top-down distribution, bottom-up aggregation"** model. Scor
 - **Adaptive Scale**: You can use percentages (`0~1`) or integer points (`0~maxScore`); the system automatically scales them proportionally.
 - **Dynamic Allocation**: If some items have scores and others don't, unassigned items split the remaining weight based on the chosen strategy and `unassignedWeight`.
 
-#### 2.3 `score` Metadata & Dimensions
+#### 2.3 `score` Metadata (`$meta`) & Dimensions (`$dimension`)
 
-Attach score metadata to any validation node (string, regex, operator, field) via `$expect` or directly in operator properties.
+> **⚠️ Note (Breaking Change)**: Starting from v1.x, keys like `score`, `title`, `critical`, `description`, `dimension` have returned to being normal business data and are no longer filtered as metadata.
+> **All metadata must now be defined via the `$meta` container or using `$`-prefixed shorthands.**
+
+You can attach metadata to any validation node (string, regex, operator, field) via `$meta` or directly in operator properties.
+
+**Recommended: Use `$meta` Container (Explicit Mode)**
+When `$meta` is present, the top-level namespace remains clean, allowing you to safely validate business fields with the same names.
 
 ```yaml
-# Short-hand number (relative weight or percentage of maxScore)
-score: 80
-
-# Detailed object with "Red-Line" logic, negative scores (penalties), and dimensions
-score:
-  value: -20          # Negative value means a penalty: subtracted if matched
-  dimension: 'security' # Category for multi-dimensional reporting
-  critical: true      # Mandatory: if reward fails or penalty triggers, 'passed' becomes false
-  strategy: 'weighted' # (Optional) Scoring strategy for children
-  threshold: 0.75     # (Optional) Confidence threshold
+someField:
+  score: 100         # Business data: actual output must have score: 100
+  $meta:
+    score: 80        # Metadata: weight for this validation
+    title: "Core Field"
 ```
 
-- **`dimension`**: (Optional `string`) Assigns the item to a specific category (e.g., `accuracy`, `fluency`, `security`).
-- **Penalties**: Negative scores act as absolute deductions. They follow the same scaling rules as rewards (`< 1` as percentage, `>= 1` as absolute points).
+**Shorthand: Use `$` Prefix (Shorthand Mode)**
+When `$meta` is **NOT** present, you can use `$`-prefixed shorthand keys:
+
+```yaml
+# score can be a shorthand number (relative weight)
+$score: 80
+
+# Or an object with "Red-Line" logic, penalties, and dimensions
+$score:
+  value: -20          # Penalty: subtracted if matched
+  critical: true      # Mandatory: if reward fails or penalty triggers, 'passed' becomes false
+$dimension: 'security' # Category for multi-dimensional reporting
+$strategy: 'weighted'  # (Optional) Scoring strategy for children
+$threshold: 0.75      # (Optional) Confidence threshold
+```
+
+- **`$dimension`**: (Optional `string`) Defines the category (e.g., `accuracy`, `fluency`, `security`).
+- **Penalties**: Negative values act as absolute deductions.
 
 #### 2.4 `$expect`: The Scoring Wrapper
 
-`$expect` is a transparent operator used to wrap any validation with scoring metadata, titles, and dimension configuration:
+`$expect` is a transparent wrapper used to inject scoring metadata, titles, and dimension configuration anywhere:
 
 ```yaml
 output:
   $and:
     - $expect: /Spring/
-      score: { value: 80, dimension: 'accuracy', critical: true }
-      title: "Core keyword"
+      $meta: { score: 80, dimension: 'accuracy', critical: true }
+      $title: "Core keyword"
     - $expect: /Flower/
-      score: 20
-      threshold: 0.5
+      $score: 20
+      $threshold: 0.5
     - $expect: /SensitiveWord/
-      score: { value: -50, dimension: 'security' }
-      title: "Security deduction"
+      $score: { value: -50, dimension: 'security' }
+      $title: "Security deduction"
 ```
 
 #### 2.5 `$diff`: Per-item Scoring
@@ -258,15 +275,15 @@ For long-form text or complex JSON, you can score individual whitelist items:
 
 ```yaml
 expect:
-  diff:
+  $diff:
     items:
       - value: "Key Conclusion"
         added: true
-        score: { value: 90, critical: true }
+        $score: { value: 90, critical: true }
       - value: "optional adjective"
         added: true
-        score: 10
-    permissive: true # Only score based on whitelist items, ignoring other changes.
+        $score: 10
+    permissive: true # Only score based on whitelist items.
 ```
 
 #### 2.6 Log Feedback
