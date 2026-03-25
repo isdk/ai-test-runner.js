@@ -8,7 +8,7 @@
 
 > **isJsonSchema**(`expected`): `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/schema.ts:24](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/validate/schema.ts#L24)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/schema.ts:24](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/schema.ts#L24)
 
 Heuristically determines if a given value should be treated as a JSON Schema.
 It checks for the presence of a 'type' property with a valid JSON Schema type

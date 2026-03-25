@@ -8,7 +8,7 @@
 
 > **calculateNormalizedWeights**(`explicitWeights`, `options`): `number`[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:331](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/validate/utils.ts#L331)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:331](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/utils.ts#L331)
 
 Calculates normalized weights for a set of items, balancing explicit scores and unassigned items.
 

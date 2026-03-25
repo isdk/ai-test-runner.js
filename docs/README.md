@@ -102,13 +102,19 @@ Powerful assertions for complex validation scenarios, including logical, collect
 
 **Logic & Collection:**
 
-- **`$and`**: Passes if **all** validation conditions in the array are met.
-- **`$or`**: Passes if **at least one** condition in the array is met.
-- **`$not`**: Negative assertion; fails if the pattern matches.
-- **`$contains`**: Passes if the array contains at least one item matching the pattern.
-- **`$all`**: Passes if the array contains all specified items, regardless of order.
-- **`$sequence`**: Passes if the array contains specified items in the exact order (noise allowed in between).
-- **`$exists`**: Validates whether a property exists. Supports shorthand and strict mode.
+- **`$and`**: **Logical AND**. Requires the actual value to satisfy **all** validation conditions specified in the array. Ideal for enforcing multiple constraints simultaneously.
+- **`$or`**: **Logical OR**. Passes if the actual value satisfies **at least one** condition in the array. The system evaluates all branches and automatically adopts the highest-scoring branch upon match.
+- **`$not`**: **Logical NOT (Negative Assertion)**. Fails if the actual value matches the expected pattern; passes otherwise. Frequently used for blacklisting, e.g., `$not: /Sensitive_Word/`.
+- **`$contains`**: **Inclusion Check**. Behavior adapts smartly based on the target type:
+  - If the target is an **array**, it verifies that the array contains **at least one item** matching the expected pattern.
+  - If the target is a **string**, it performs a substring search.
+  - If the target is an **object**, it performs a subset (partial key-value) match.
+- **`$all`**: **Full Subset Inclusion (Unordered)**. Requires the actual **array** to contain **all** items listed in the `$all` expectation, regardless of the order in which they appear, and allows for other unlisted elements.
+- **`$each`**: **Element-wise Validation**. Requires **every single element** in the actual **array** to match the given **single** validation rule. Vacuously passes on empty arrays; automatically distributes score weighting evenly across the dynamic number of items. Highly suitable for homogeneity assertions, e.g., `$each: { status: 'active' }`.
+- **`$sequence`**: **Ordered Sequence Check**. Requires the actual **array** to contain the specified items in the exact expected order. Intermediate, unlisted noise items are permitted between matches (i.e., relative ordering). Perfect for validating multi-step LLM tool-calling paths.
+- **`$exists`**: **Existence Validation**. Validates whether a property exists within an object. Supports:
+  - Shorthand mode: `$exists: true | false` (verifies value is not `undefined`).
+  - Strict mode: `$exists: { $value: false, strict: true }` (strictly checks if the key exists in `Object.keys()`).
 
 **Specialized Operators:**
 

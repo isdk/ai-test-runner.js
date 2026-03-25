@@ -8,7 +8,7 @@
 
 > **hasDiffChanges**(`diff`): `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/diff.ts:25](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/validate/diff.ts#L25)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/diff.ts:25](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/diff.ts#L25)
 
 Checks if a diff list contains any additions or removals.
 

@@ -8,7 +8,7 @@
 
 > **validateAnd**(`actual`, `expectedList`, `ctx`, `validateMatch`): `Promise`\<[`ValidationResult`](../type-aliases/ValidationResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/and.ts:13](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/validate/operators/and.ts#L13)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/and.ts:13](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/operators/and.ts#L13)
 
 Validates that a value matches ALL specified expectations.
 

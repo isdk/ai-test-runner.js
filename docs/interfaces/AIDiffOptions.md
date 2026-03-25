@@ -6,7 +6,7 @@
 
 # Interface: AIDiffOptions
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:55](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L55)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:55](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L55)
 
 Configuration options for string diffing.
 
@@ -16,7 +16,7 @@ Configuration options for string diffing.
 
 > `optional` **ignoreCase**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:70](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L70)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:70](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L70)
 
 Whether to ignore case differences.
 
@@ -26,7 +26,7 @@ Whether to ignore case differences.
 
 > `optional` **ignoreNewlineAtEof**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:74](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L74)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:74](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L74)
 
 (lines) Whether to ignore a missing newline character at the end of the last line.
 
@@ -36,7 +36,7 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:74](https://github.co
 
 > `optional` **ignoreWhitespace**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:72](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L72)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:72](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L72)
 
 (lines) Whether to ignore leading and trailing whitespace.
 
@@ -46,7 +46,7 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:72](https://github.co
 
 > `optional` **intlSegmenter**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:80](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L80)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:80](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L80)
 
 (words) Optional Intl.Segmenter for word-level diffing.
 
@@ -56,7 +56,7 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:80](https://github.co
 
 > `optional` **items**: [`AIDiffItem`](AIDiffItem.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:63](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L63)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:63](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L63)
 
 A list of expected diff items (whitelist) to match against the actual changes.
 
@@ -66,7 +66,7 @@ A list of expected diff items (whitelist) to match against the actual changes.
 
 > `optional` **newlineIsToken**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:76](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L76)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:76](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L76)
 
 (lines) Whether to treat the newline character at the end of each line as its own token.
 
@@ -76,7 +76,7 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:76](https://github.co
 
 > `optional` **permissive**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:68](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L68)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:68](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L68)
 
 Whether to allow unverified diff changes in non-strict mode.
 If true, changes not present in the `items` list will not cause a failure.
@@ -87,7 +87,7 @@ If true, changes not present in the `items` list will not cause a failure.
 
 > `optional` **stripTrailingCr**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:78](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L78)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:78](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L78)
 
 (lines) Whether to remove all trailing CR characters.
 
@@ -97,7 +97,7 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:78](https://github.co
 
 > `optional` **type**: [`AIDiffType`](../type-aliases/AIDiffType.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:61](https://github.com/isdk/ai-test-runner.js/blob/377c15407b6bafe4f8a761af78baade4190788a4/src/types.ts#L61)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:61](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/types.ts#L61)
 
 The diff strategy to use.
 Defaults to 'auto' when no whitelist is provided for better readability,

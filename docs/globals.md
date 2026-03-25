@@ -67,6 +67,7 @@
 - [validateAnd](functions/validateAnd.md)
 - [validateContains](functions/validateContains.md)
 - [validateDiff](functions/validateDiff.md)
+- [validateEach](functions/validateEach.md)
 - [validateExists](functions/validateExists.md)
 - [validateExpect](functions/validateExpect.md)
 - [validateJsonSchema](functions/validateJsonSchema.md)
