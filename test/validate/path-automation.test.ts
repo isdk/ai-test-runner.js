@@ -159,11 +159,6 @@ describe('validate/path-automation', () => {
     expect(resAll.pass).toBe(false)
     expect(resAll.failures[0].message).toContain('$all operator requires an array')
 
-    // 测试 $contains 接收非数组输入
-    const resContains = await validate(123, { $contains: 'test' }, ctx)
-    expect(resContains.pass).toBe(false)
-    expect(resContains.failures[0].message).toContain('$contains operator requires an array')
-
     // 测试 $sequence 接收非数组输入
     const resSeq = await validate({}, { $sequence: ['test'] }, ctx)
     expect(resSeq.pass).toBe(false)

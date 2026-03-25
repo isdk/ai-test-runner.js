@@ -101,7 +101,7 @@ Powerful assertions for complex validation scenarios, including logical, collect
 - **`$and`**: Passes if **all** validation conditions in the array are met.
 - **`$or`**: Passes if **at least one** condition in the array is met.
 - **`$not`**: Negative assertion; fails if the pattern matches.
-- **`$contains`**: Passes if the array contains at least one item matching the pattern.
+- **`$contains`**: Passes if the array contains at least one item matching the pattern; for strings, it checks for a substring; for objects, it performs a subset match.
 - **`$all`**: Passes if the array contains all specified items, regardless of order.
 - **`$sequence`**: Passes if the array contains specified items in the exact order (noise allowed in between).
 - **`$exists`**: Validates whether a property exists. Supports shorthand and strict mode.

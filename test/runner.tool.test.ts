@@ -316,7 +316,7 @@ describe('AITestRunner Tool Testing', () => {
 
     const result = await runner.run('test.ai.yaml', fixtures)
     expect(result.failedCount).toBe(1)
-    expect(result.logs[0].failures![0].message).toContain('requires an array')
+    expect(result.logs[0].failures![0].message).toContain('check failed')
   })
 
   it('should use default "toolTester" name if not specified but tools present', async () => {

@@ -5,18 +5,13 @@ import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
  * Validates that an array contains at least one item matching the expectation.
  */
 export async function validateContains(
-  actual: any[],
+  actual: any,
   expected: any,
   ctx: ValidationContext,
   validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
   if (!Array.isArray(actual)) {
-    return {
-      score: 0,
-      pass: false,
-      message: `$contains operator requires an array, but got ${typeof actual}`,
-      actual,
-    }
+    return (await validateMatch(actual, expected, ctx)) as ValidationResult
   }
 
   let maxBranchScore = 0
