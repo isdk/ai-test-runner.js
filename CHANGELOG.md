@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.1](https://github.com/isdk/ai-test-runner.js/compare/v0.2.0...v0.2.1) (2026-03-25)
+
+
+### Features
+
+* **validate:** add  operator and elaborate on array operators documentation ([8981666](https://github.com/isdk/ai-test-runner.js/commit/8981666864a0ecd1b4b3ecafad53b31be4126a40))
+* **validate:** enhance $contains to support string/object ([5e30b1f](https://github.com/isdk/ai-test-runner.js/commit/5e30b1f8de58ca04e7827dd4622347362c351aee))
+
 ## [0.2.0](https://github.com/isdk/ai-test-runner.js/compare/v0.1.2...v0.2.0) (2026-03-25)
 
 
