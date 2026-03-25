@@ -6,7 +6,7 @@
 
 # Interface: MatchResult
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:271](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L271)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:271](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L271)
 
 Result of a validation match operation.
 
@@ -16,7 +16,7 @@ Result of a validation match operation.
 
 > `optional` **critical**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:285](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L285)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:285](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L285)
 
 Whether this was a critical item.
 
@@ -26,7 +26,7 @@ Whether this was a critical item.
 
 > `optional` **details**: [`MatchResultDetail`](MatchResultDetail.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:279](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L279)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:279](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L279)
 
 Detailed scoring breakdown for sub-items.
 
@@ -36,7 +36,7 @@ Detailed scoring breakdown for sub-items.
 
 > `optional` **dimension**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:283](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L283)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:283](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L283)
 
 Optional dimension/tag.
 
@@ -46,7 +46,7 @@ Optional dimension/tag.
 
 > **failures**: [`AIValidationFailure`](AIValidationFailure.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:277](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L277)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:277](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L277)
 
 List of failures encountered during matching.
 
@@ -56,7 +56,7 @@ List of failures encountered during matching.
 
 > **pass**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:275](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L275)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:275](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L275)
 
 Whether the validation passed.
 
@@ -66,7 +66,7 @@ Whether the validation passed.
 
 > **score**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:273](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L273)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:273](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L273)
 
 The normalized confidence score (0.0 - 1.0).
 
@@ -76,6 +76,6 @@ The normalized confidence score (0.0 - 1.0).
 
 > `optional` **title**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:281](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/types.ts#L281)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:281](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L281)
 
 Optional title of the validation item.
