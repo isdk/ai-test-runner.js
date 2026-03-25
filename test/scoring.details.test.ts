@@ -18,7 +18,7 @@ describe('Scoring Details and Penalties', () => {
 
   it('should collect scoring details and dimensions', async () => {
     mockExecutor.execute.mockResolvedValue({
-      output: { 
+      output: {
         answer: 'Paris',
         meta: { safe: true }
       },
@@ -30,9 +30,9 @@ describe('Scoring Details and Penalties', () => {
         input: 'Capital of France',
         scoring: true,
         output: {
-          answer: { $expect: 'Paris', title: 'Correct Answer', dimension: 'accuracy', score: 80 },
+          answer: { $expect: 'Paris', $title: 'Correct Answer', $dimension: 'accuracy', $score: 80 },
           meta: {
-            safe: { $expect: true, title: 'Safety Check', dimension: 'security', score: 20 }
+            safe: { $expect: true, $title: 'Safety Check', $dimension: 'security', $score: 20 }
           }
         }
       }
@@ -44,7 +44,7 @@ describe('Scoring Details and Penalties', () => {
     expect(log.passed).toBe(true)
     expect(log.score).toBe(100)
     expect(log.scoreDetails).toBeDefined()
-    
+
     // Use robust find helper
     const answerDetail = findInDetails(log.scoreDetails, d => d.dimension === 'accuracy')
     expect(answerDetail).toBeDefined()
@@ -65,8 +65,8 @@ describe('Scoring Details and Penalties', () => {
         scoring: true,
         output: {
           $and: [
-            { $expect: /Bad word/, score: 100 },
-            { $expect: /kill/, score: -50, title: 'Deduction for violence' }
+            { $expect: /Bad word/, $score: 100 },
+            { $expect: /kill/, $score: -50, $title: 'Deduction for violence' }
           ]
         }
       }
@@ -94,8 +94,8 @@ describe('Scoring Details and Penalties', () => {
         scoring: true,
         output: {
           $and: [
-            { $expect: /Sensitive info/, score: 100 },
-            { $expect: /password/, score: { value: -20, critical: true }, title: 'Leakage' }
+            { $expect: /Sensitive info/, $score: 100 },
+            { $expect: /password/, $score: { value: -20, critical: true }, $title: 'Leakage' }
           ]
         }
       }

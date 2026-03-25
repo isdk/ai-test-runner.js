@@ -20,7 +20,7 @@ describe('Critical vs Diff Required Independence', () => {
           items: [{ value: ' world', added: true, required: true }],
           permissive: true
         },
-        score: { value: 10, critical: true }
+        $score: { value: 10, critical: true }
       },
       scoring: true,
       maxScore: 100
@@ -57,7 +57,7 @@ describe('Critical vs Diff Required Independence', () => {
     expect(log.passed).toBe(false)
     // Should NOT be in failedCritical because this branch is not critical
     expect(log.failedCritical).toBeUndefined()
-    
+
     // But it should still be a regular failure
     expect(log.failures).toBeDefined()
     expect(log.failures!.length).toBeGreaterThan(0)
@@ -69,7 +69,7 @@ describe('Critical vs Diff Required Independence', () => {
       input: 'wrong',
       output: {
         $expect: 'correct',
-        score: { value: 10, critical: true }
+        $score: { value: 10, critical: true }
       },
       scoring: true,
       maxScore: 100

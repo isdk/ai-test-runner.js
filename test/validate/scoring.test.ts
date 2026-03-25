@@ -255,8 +255,8 @@ describe('Scoring Strategies', () => {
 describe('Integration Reproduction', () => {
   it('reproduce mixed weights calculation', async () => {
     const expected = {
-      a: { $expect: 'A', score: 0.8 },
-      b: { $expect: 'B', score: 20 }
+      a: { $expect: 'A', $score: 0.8 },
+      b: { $expect: 'B', $score: 20 }
     };
     const actual = { a: 'A', b: 'WRONG' };
     const ctx = new ValidationContext({ maxScore: 100 });

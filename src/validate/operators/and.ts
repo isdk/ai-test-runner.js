@@ -1,6 +1,6 @@
 import { ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
-import { getStrategy } from '../strategies.js'
+import { getScoreConfig } from '../utils.js'
 
 /**
  * Validates that a value matches ALL specified expectations.
@@ -24,11 +24,7 @@ export async function validateAnd(
     }
   }
 
-  const explicitWeights = expectedList.map((item) =>
-    item && typeof item === 'object' && item.score !== undefined
-      ? item.score
-      : null
-  )
+  const explicitWeights = expectedList.map((item) => getScoreConfig(item).weight)
 
   const weights = ctx.distribute(explicitWeights)
   const results: MatchResult[] = []
@@ -43,4 +39,3 @@ export async function validateAnd(
   return ctx.aggregate(results, weights)
 }
 validateAnd.strategy = 'weighted'
-// Removed validateAnd.expects = 'array'

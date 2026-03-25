@@ -6,6 +6,94 @@ import {
 import { ValidationContext, MatchResult, MatchResultDetail } from './types.js'
 
 /**
+ * Reserved metadata control keys.
+ */
+export const META_CONTAINER = '$meta'
+export const META_SHORTHANDS = ['$score', '$critical', '$title', '$description', '$dimension', '$strategy', '$threshold']
+
+/**
+ * Checks if a key is a reserved metadata key for the given item.
+ * Exclusivity: If $meta exists, shorthands are NOT treated as metadata.
+ */
+export function isMetadataKey(key: string, item: any): boolean {
+  if (key === META_CONTAINER) return true
+  const meta = item && typeof item === 'object' ? item[META_CONTAINER] : undefined
+  const hasMetaContainer = meta && typeof meta === 'object'
+  if (!hasMetaContainer && META_SHORTHANDS.includes(key)) return true
+  return false
+}
+
+/**
+ * Internal helper to extract weight and critical flag from a node.
+ * Priorities & Exclusivity:
+ * 1. If $meta exists, ALL metadata is extracted from it. Shorthands are ignored.
+ * 2. If $meta is missing, shorthand keys ($score, $title, etc.) are used.
+ */
+export function getScoreConfig(item: any): {
+  weight: number | null
+  critical: boolean
+  strategy?: string
+  threshold?: number
+  title?: string
+  dimension?: string
+} {
+  let weight: number | null = null
+  let critical = false
+  let strategy: string | undefined
+  let threshold: number | undefined
+  let title: string | undefined
+  let dimension: string | undefined
+
+  if (item && typeof item === 'object') {
+    const meta = item[META_CONTAINER]
+    if (meta && typeof meta === 'object') {
+      // Explicit Mode: Use $meta container ONLY
+      title = meta.title
+      dimension = meta.dimension
+      critical = !!meta.critical
+      strategy = meta.strategy
+      threshold = meta.threshold
+      if (meta.score !== undefined) {
+        const s = meta.score
+        if (typeof s === 'number') {
+          weight = s
+        } else if (typeof s === 'object' && s !== null) {
+          weight = s.value ?? 1
+          critical = s.critical ?? critical
+          strategy = s.strategy ?? strategy
+          threshold = s.threshold ?? threshold
+          if (s.title) title = s.title
+          if (s.dimension) dimension = s.dimension
+        }
+      }
+    } else {
+      // Shorthand Mode: Use $ prefixed keys
+      title = item.$title
+      dimension = item.$dimension
+      critical = !!item.$critical
+      strategy = item.$strategy
+      threshold = item.$threshold
+
+      if (item.$score !== undefined) {
+        const s = item.$score
+        if (typeof s === 'number') {
+          weight = s
+        } else if (typeof s === 'object' && s !== null) {
+          weight = s.value ?? 1
+          critical = s.critical ?? critical
+          strategy = s.strategy ?? strategy
+          threshold = s.threshold ?? threshold
+          if (s.title) title = s.title
+          if (s.dimension) dimension = s.dimension
+        }
+      }
+    }
+  }
+
+  return { weight, critical, strategy, threshold, title, dimension }
+}
+
+/**
  * Checks if strict mode is enabled for a specific type.
  */
 export function isStrict(

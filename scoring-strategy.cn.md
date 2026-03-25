@@ -15,7 +15,13 @@
 
 ### 3.1 AIScoreConfig (配置定义)
 
+元数据（Metadata）现在遵循“显式优于隐式”的原则，必须通过 `$meta` 容器或 `$` 前缀定义。
+
+* **显式模式 ($meta)**：最高优先级。在此模式下，顶级命名空间（非算子键）被释放，可安全用于业务数据。
+* **简写模式 ($score, $title 等)**：在缺失 `$meta` 时生效。
+
 ```typescript
+// 元数据内容定义
 export type AIScoreConfig =
   | number
   | {
@@ -24,11 +30,17 @@ export type AIScoreConfig =
       critical?: boolean;      // 红线标记
       strategy?: string;       // 指定聚合策略
       threshold?: number;      // 置信度通过阈值
+      title?: string;          // 描述标题
       [key: string]: any;
     }
 ```
 
-### 3.2 MatchResult (结果输出)
+### 3.2 互斥原则 (Exclusivity)
+
+这是架构中的关键约束：**若对象中定义了 `$meta`，则同级的 `$` 前缀简写键将失效，并回归为业务数据。** 这确保了命名空间的确定性。
+
+### 3.3 MatchResult (结果输出)
+
 
 ```typescript
 export interface MatchResult {
@@ -47,12 +59,12 @@ export interface MatchResult {
 `ValidationContext` 提供了极致 KISS 的算子开发助手：
 
 * **`ctx.createChildContext(keyOrIndex, count)`**: 核心路径生成器。
-    * **变量模板系统**：支持在 `operatorStrategy` (string) 中使用变量。
-        * `$key`: 元素的键名或数组索引。
-        * `$operator`: 容器算子的名称（如 `$and`）。
-        * `$index`: 纯数字索引。
-        * `$count`: 子元素总数。
-    * **幽灵层优化**：当 `count === 1` 且处于虚拟模式时，自动穿透，不增加路径层级。
+  * **变量模板系统**：支持在 `operatorStrategy` (string) 中使用变量。
+    * `$key`: 元素的键名或数组索引。
+    * `$operator`: 容器算子的名称（如 `$and`）。
+    * `$index`: 纯数字索引。
+    * `$count`: 子元素总数。
+  * **幽灵层优化**：当 `count === 1` 且处于虚拟模式时，自动穿透，不增加路径层级。
 * **`ctx.distribute(items)`**: 权重分配器。自动根据当前策略计算各子项的归一化权重（0.0-1.0）。
 * **`ctx.aggregate(results, weights)`**: 结果聚合器。执行当前上下文关联的策略（如 `weighted` 或 `max`）进行结果归并。
 

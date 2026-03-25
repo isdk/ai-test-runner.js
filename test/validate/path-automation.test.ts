@@ -60,7 +60,7 @@ describe('validate/path-automation', () => {
       $and: [
         {
           name: 'test',
-          score: { value: 10, dimension: 'security', title: 'Check Name' }
+          $score: { value: 10, dimension: 'security', title: 'Check Name' }
         }
       ]
     }
@@ -121,10 +121,10 @@ describe('validate/path-automation', () => {
       $and: [
         {
           name: 'test',
-          score: { dimension: 'inner' }
+          $score: { dimension: 'inner' }
         }
       ],
-      score: { dimension: 'outer' }
+      $score: { dimension: 'outer' }
     }
     const actual = { name: 'test' }
 

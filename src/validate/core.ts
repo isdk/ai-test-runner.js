@@ -11,6 +11,10 @@ import {
   isStrict,
   processValidationResult,
   patchMatchResult,
+  getScoreConfig,
+  isMetadataKey,
+  META_CONTAINER,
+  META_SHORTHANDS,
 } from './utils.js'
 import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'
@@ -19,10 +23,6 @@ import { validateStringDiff } from './diff.js'
 import { YamlTypeJsonSchema } from '../yaml-types/index.js'
 import { getStrategy } from './strategies.js'
 
-/**
- * Metadata keys that are treated as scoring/documentation parameters.
- */
-const metaKeys = ['score', 'critical', 'title', 'description', 'dimension']
 
 /**
  * Validates that an actual value matches an expected value.
@@ -85,7 +85,7 @@ export async function validate(
 
     if (operator) {
       const otherKeys = keys.filter(
-        (k) => k !== operator && !metaKeys.includes(k)
+        (k) => k !== operator && !isMetadataKey(k, expected)
       )
       if (
         keys.length === 1 ||
@@ -150,48 +150,6 @@ export async function validateMatch(
   return result.failures
 }
 
-/**
- * Internal helper to extract weight and critical flag from a node.
- */
-function getScoreConfig(item: any): {
-  weight: number
-  critical: boolean
-  strategy?: string
-  threshold?: number
-  title?: string
-  dimension?: string
-} {
-  let weight = 1
-  let critical = false
-  let strategy: string | undefined
-  let threshold: number | undefined
-  let title: string | undefined
-  let dimension: string | undefined
-
-  if (item && typeof item === 'object') {
-    title = item.title
-    dimension = item.dimension
-    if (item.score !== undefined) {
-      const s = item.score
-      if (typeof s === 'number') {
-        weight = s
-      } else if (typeof s === 'object' && s !== null) {
-        weight = s.value ?? 1
-        critical = !!s.critical
-        strategy = s.strategy
-        threshold = s.threshold
-        if (s.title) title = s.title
-        if (s.dimension) dimension = s.dimension
-      }
-    }
-    if (item.critical !== undefined) {
-      critical = !!item.critical
-    }
-  }
-
-  return { weight, critical, strategy, threshold, title, dimension }
-}
-
 async function validateOperator(
   actual: any,
   expected: any,
@@ -201,6 +159,7 @@ async function validateOperator(
 ): Promise<MatchResult> {
   const scoreCfg = getScoreConfig(expected)
   const isCritical = scoreCfg.critical
+  const weight = scoreCfg.weight ?? 1
 
   /**
    * 【算子路径策略自动化】
@@ -329,9 +288,7 @@ async function validateArray(
     )
   }
 
-  const explicitWeights = expected.map((item) => {
-    return item && typeof item === 'object' && item.score !== undefined ? item.score : null
-  })
+  const explicitWeights = expected.map((item) => getScoreConfig(item).weight)
   const weights = ctx.distribute(explicitWeights)
 
   const subResults: MatchResult[] = []
@@ -388,12 +345,17 @@ async function validateObject(
      return processValidationResult({ score: 0, pass: false, message: 'Value equality check failed' }, expected, actual, ctx)
   }
 
-  const allKeys = Object.keys(expected).filter((k) => !metaKeys.includes(k))
+  const allKeys = Object.keys(expected).filter((k) => {
+    if (isMetadataKey(k, expected)) return false
+    // Filter out registered operators
+    if (ctx.operators?.[k] || OPERATORS[k]) return false
+    return true
+  })
   const matchedActualKeys = new Set<string>()
 
   const explicitWeights = allKeys.map((k) => {
     const item = expected[k]
-    return (item && typeof item === 'object' && item.score !== undefined) ? item.score : null
+    return getScoreConfig(item).weight
   })
 
   const weights = ctx.distribute(explicitWeights)

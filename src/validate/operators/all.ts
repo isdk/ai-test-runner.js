@@ -1,8 +1,7 @@
 import { ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
-import { calculateNormalizedWeights, processValidationResult } from '../utils.js'
+import { processValidationResult, getScoreConfig } from '../utils.js'
 import { validateContains } from './contains.js'
-import { getStrategy } from '../strategies.js'
 
 /**
  * Validates that an array contains ALL items specified in the expectation list.
@@ -22,13 +21,7 @@ export async function validateAll(
     }
   }
 
-  const explicitWeights = expectedList.map((item) =>
-    item && typeof item === 'object' && item.score !== undefined
-      ? typeof item.score === 'number'
-        ? item.score
-        : (item.score.value ?? 1)
-      : null
-  )
+  const explicitWeights = expectedList.map((item) => getScoreConfig(item).weight)
 
   const weights = ctx.distribute(explicitWeights)
   const results: MatchResult[] = []

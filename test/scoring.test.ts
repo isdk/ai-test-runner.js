@@ -19,8 +19,8 @@ describe('Scoring Strategy', () => {
       input: { a: 'spring', b: 'flower' },
       output: {
         $and: [
-          { $expect: /spring/, score: 8 },
-          { $expect: /flower/, score: 2 }
+          { $expect: /spring/, $score: 8 },
+          { $expect: /flower/, $score: 2 }
         ]
       },
       scoring: true,
@@ -49,8 +49,8 @@ describe('Scoring Strategy', () => {
       input: { a: 'spring', b: 'rock' },
       output: {
         $and: [
-          { $expect: /spring/, score: 8 },
-          { $expect: /flower/, score: 2 }
+          { $expect: /spring/, $score: 8 },
+          { $expect: /flower/, $score: 2 }
         ]
       },
       scoring: true,
@@ -69,8 +69,8 @@ describe('Scoring Strategy', () => {
       input: { a: 'winter', b: 'flower' },
       output: {
         $and: [
-          { $expect: /spring/, score: { value: 2, critical: true } },
-          { $expect: /flower/, score: 8 }
+          { $expect: /spring/, $score: { value: 2, critical: true } },
+          { $expect: /flower/, $score: 8 }
         ]
       },
       scoring: true,
@@ -94,12 +94,12 @@ describe('Scoring Strategy', () => {
         body: { text: 'The weather is nice', tags: ['sunny', 'warm'] }
       },
       output: {
-        header: { $expect: 'Summary', score: 20 },
+        header: { $expect: 'Summary', $score: 20 },
         body: {
-          score: 80,
-          text: { $expect: /weather/, score: 1 },
+          $score: 80,
+          text: { $expect: /weather/, $score: 1 },
           tags: {
-            score: 1,
+            $score: 1,
             $contains: 'sunny'
           }
         }
@@ -136,8 +136,8 @@ describe('Scoring Strategy', () => {
       input: 'apple',
       output: {
         $or: [
-          { $expect: 'apple', score: 10 },
-          { $expect: 'banana', score: 20 }
+          { $expect: 'apple', $score: 10 },
+          { $expect: 'banana', $score: 20 }
         ]
       },
       scoring: true,
@@ -156,8 +156,8 @@ describe('Scoring Strategy', () => {
       input: 'banana',
       output: {
         $or: [
-          { $expect: 'apple', score: 10 },
-          { $expect: 'banana', score: 20 }
+          { $expect: 'apple', $score: 10 },
+          { $expect: 'banana', $score: 20 }
         ]
       },
       scoring: true,
@@ -172,8 +172,8 @@ describe('Scoring Strategy', () => {
       input: 'The quick brown fox jumps over the lazy dog',
       diff: {
         items: [
-          { value: 'quick', added: true, score: 80 },
-          { value: 'lazy', added: true, score: 20 }
+          { value: 'quick', added: true, $score: 80 },
+          { value: 'lazy', added: true, $score: 20 }
         ],
         permissive: true
       },
@@ -196,8 +196,8 @@ describe('Scoring Strategy', () => {
       ...fixture,
       diff: {
         items: [
-          { value: 'quick', added: true, score: 80 },
-          { value: 'lazy', added: true, score: 20 }
+          { value: 'quick', added: true, $score: 80 },
+          { value: 'lazy', added: true, $score: 20 }
         ],
         permissive: false
       }
@@ -219,7 +219,7 @@ describe('Scoring Strategy', () => {
     const fixture = {
       input: { a: 'A', b: 'B' },
       output: {
-        a: { $expect: 'A', score: 9 }, // explicit weight 9
+        a: { $expect: 'A', $score: 9 }, // explicit weight 9
         b: 'B'                         // unassigned
       },
       scoring: true,
@@ -227,7 +227,7 @@ describe('Scoring Strategy', () => {
     }
 
     const result = await runner.run('return-input', [fixture])
-    expect(result.logs[0].score).toBe(100)
+    expect(result.logs[0].score).toBeCloseTo(100, 3)
 
     // Partial match: only the unassigned one matches
     const fixture2 = {
@@ -251,7 +251,7 @@ describe('Scoring Strategy', () => {
     const fixture = {
       input: { a: 'A', b: 'B', c: 'C' },
       output: {
-        a: { $expect: 'A', score: 10 }, // explicit weight 9
+        a: { $expect: 'A', $score: 10 }, // explicit weight 9
         b: 'B',                         // unassigned
         c: 'C',
       },
@@ -291,8 +291,8 @@ describe('Scoring Strategy', () => {
   it('should fail if a critical branch fails even with a high score', async () => {
     const fixture = {
       output: {
-        important: { $expect: 'CRITICAL', score: { value: 10, critical: true } },
-        optional: { $expect: 'YES', score: 90 }
+        important: { $expect: 'CRITICAL', $score: { value: 10, critical: true } },
+        optional: { $expect: 'YES', $score: 90 }
       },
       input: { important: 'WRONG', optional: 'YES' },
       scoring: true,
@@ -314,11 +314,11 @@ describe('Scoring Strategy', () => {
           $expect: {
             mid: {
               $expect: 'LEAF',
-              score: 50 // 50% of mid
+              $score: 50 // 50% of mid
             },
             other: 'STUFF' // 50% of mid
           },
-          score: 80 // 80% of top
+          $score: 80 // 80% of top
         },
         side: 'BAR' // 20% of top
       },
@@ -349,8 +349,8 @@ describe('Scoring Strategy', () => {
     const fixture = {
       output: {
         $and: [
-          { $expect: 'A', score: 70 },
-          { $expect: 'B', score: 30 }
+          { $expect: 'A', $score: 70 },
+          { $expect: 'B', $score: 30 }
         ]
       },
       input: 'A', // Only A matches
@@ -364,8 +364,8 @@ describe('Scoring Strategy', () => {
     const fixtureOr = {
       output: {
         $or: [
-          { $expect: 'A', score: 40 },
-          { $expect: 'B', score: 90 }
+          { $expect: 'A', $score: 40 },
+          { $expect: 'B', $score: 90 }
         ]
       },
       input: 'A', // Matches A (40)
@@ -384,22 +384,21 @@ describe('Scoring Strategy', () => {
     // 0-1 scale
     const fixture1 = {
       output: {
-        a: { $expect: 'A', score: 0.8 },
-        b: { $expect: 'B', score: 0.2 }
+        a: { $expect: 'A', $score: 0.8 },
+        b: { $expect: 'B', $score: 0.2 }
       },
-      input: 'A', // Error: output is object but input is string, but let's assume valid object input
+      input: { a: 'A', b: 'WRONG' },
       scoring: true,
       maxScore: 10
     }
-    // Correcting input for object match
-    const result1 = await runner.run('return-input', [{ ...fixture1, input: { a: 'A', b: 'WRONG' } }])
+    const result1 = await runner.run('return-input', [fixture1])
     expect(result1.logs[0].score).toBe(8)
 
     // 0-100 scale
     const fixture2 = {
       output: {
-        a: { $expect: 'A', score: 80 },
-        b: { $expect: 'B', score: 20 }
+        a: { $expect: 'A', $score: 80 },
+        b: { $expect: 'B', $score: 20 }
       },
       input: { a: 'A', b: 'WRONG' },
       scoring: true,
@@ -412,8 +411,8 @@ describe('Scoring Strategy', () => {
   it('should default passScore to maxScore and fail if score is lower', async () => {
     const fixture = {
       output: {
-        a: { $expect: 'A', score: 80 },
-        b: { $expect: 'B', score: 20 }
+        a: { $expect: 'A', $score: 80 },
+        b: { $expect: 'B', $score: 20 }
       },
       input: { a: 'A', b: 'WRONG' },
       scoring: true,
@@ -429,8 +428,8 @@ describe('Scoring Strategy', () => {
   it('should handle fully implicit scores (no maxScore, no passScore)', async () => {
     const fixture = {
       output: {
-        a: { $expect: 'A', score: 3 },
-        b: { $expect: 'B', score: 1 }
+        a: { $expect: 'A', $score: 3 },
+        b: { $expect: 'B', $score: 1 }
       },
       input: { a: 'A', b: 'WRONG' },
       scoring: true
@@ -455,7 +454,7 @@ describe('Scoring Strategy', () => {
   it('should support unassignedWeight: 0 to ignore unlabelled items', async () => {
     const fixture = {
       output: {
-        important: { $expect: 'A', score: 100 },
+        important: { $expect: 'A', $score: 100 },
         extra: 'B'
       },
       input: { important: 'A', extra: 'WRONG' },
@@ -472,8 +471,8 @@ describe('Scoring Strategy', () => {
   it('should handle adaptive scale with mixed fractional and large weights', async () => {
     const fixture = {
       output: {
-        a: { $expect: 'A', score: 0.8 },
-        b: { $expect: 'B', score: 20 }
+        a: { $expect: 'A', $score: 0.8 },
+        b: { $expect: 'B', $score: 20 }
       },
       input: { a: 'A', b: 'WRONG' },
       scoring: true
@@ -489,8 +488,8 @@ describe('Scoring Strategy', () => {
         $diff: {
           value: 'The brown fox jumps over the dog',
           items: [
-            { value: 'quick', added: true, score: 80 },
-            { value: 'lazy', added: true, score: 20 }
+            { value: 'quick', added: true, $score: 80 },
+            { value: 'lazy', added: true, $score: 20 }
           ],
           permissive: true
         }

@@ -210,24 +210,41 @@ expect: {
 - **自动适配量级**：你可以使用 `0~1` 的百分比，也可以使用 `0~maxScore` 的整数分值，系统会自动识别并进行比例缩放。
 - **动态分配**：如果某些项有分值而另一些没有，未标注项会根据所选策略和 `unassignedWeight` 分割剩余权重。
 
-#### 2.3 分值元数据 (`score`) 与维度 (`dimension`)
+#### 2.3 分值元数据 (`$meta`) 与维度 (`$dimension`)
 
-任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$expect` 或直接在算子属性中注入分值元数据。
+> **⚠️ 注意 (Breaking Change)**: 从 v1.x 开始，`score`, `title`, `critical`, `description`, `dimension` 等键名已回归业务数据，不再作为元数据过滤。
+> **所有元数据必须通过 `$meta` 容器或带有 `$` 前缀的简写键定义。**
+
+任何验证节点（字符串、正则、算子、对象字段）都可以通过 `$meta` 或直接在算子属性中注入分值元数据。
+
+**推荐方式：使用 `$meta` 容器（显式模式）**
+当存在 `$meta` 时，顶级命名空间保持清洁，您可以安全地校验同名的业务字段。
+
+```yaml
+someField:
+  score: 100         # 业务数据：实际输出必须包含 score 字段
+  $meta:
+    score: 80        # 元数据：该项的验证权重
+    title: "核心字段"
+```
+
+**快捷方式：使用 `$` 前缀（简写模式）**
+当对象中**不含** `$meta` 时，可以使用 `$` 前缀的简写键：
 
 ```yaml
 # score 可以是简写数字（奖励分或权重）
-score: 80
+$score: 80
 
 # 也可以是对象，支持负分（扣分）、维度标签和红线逻辑
-score:
+$score:
   value: -20          # 负数表示扣分：匹配成功时从总分减去
-  dimension: 'security' # 维度标签：用于生成多维度评估报告
   critical: true      # 红线项：如果此项不通过（奖励项）或匹配成功（惩罚项），passed 设为 false
-  strategy: 'weighted' # (可选) 子节点的评分策略
-  threshold: 0.75     # (可选) 用于模糊匹配的置信度阈值
+$dimension: 'security' # 维度标签：用于生成多维度评估报告
+$strategy: 'weighted'  # (可选) 子节点的评分策略
+$threshold: 0.75      # (可选) 用于模糊匹配的置信度阈值
 ```
 
-- **`dimension`**: (可选 `string`) 定义该项所属的维度（如 `accuracy`, `fluency`, `security`）。
+- **`$dimension`**: (可选 `string`) 定义该项所属的维度（如 `accuracy`, `fluency`, `security`）。
 - **负分 (Penalties)**: 负值被视为绝对扣分偏移量。归一化规则与奖励项一致（`< 1` 为百分比，`>= 1` 为绝对分值）。
 
 #### 2.4 $expect：评分包装算子
@@ -238,14 +255,14 @@ score:
 output:
   $and:
     - $expect: /春天/
-      score: { value: 80, dimension: 'accuracy', critical: true }
-      title: "核心关键词"
+      $meta: { score: 80, dimension: 'accuracy', critical: true }
+      $title: "核心关键词"
     - $expect: /花/
-      score: 20
-      threshold: 0.5 # 如果“花”的匹配置信度低于 50%，则失败。
+      $score: 20
+      $threshold: 0.5 # 如果“花”的匹配置信度低于 50%，则失败。
     - $expect: /敏感词/
-      score: { value: -50, dimension: 'security' }
-      title: "安全扣分"
+      $score: { value: -50, dimension: 'security' }
+      $title: "安全扣分"
 ```
 
 #### 2.5 $diff：差异分值化
@@ -254,14 +271,14 @@ output:
 
 ```yaml
 expect:
-  diff:
+  $diff:
     items:
       - value: "核心结论"
         added: true
-        score: { value: 90, critical: true }
+        $score: { value: 90, critical: true }
       - value: "修饰词"
         added: true
-        score: 10
+        $score: 10
     permissive: true # 宽容模式：仅根据白名单项评分，忽略未声明的其它变化。
 ```
 

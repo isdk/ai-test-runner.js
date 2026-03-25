@@ -16,7 +16,7 @@ import {
   AIDiffType,
 } from '../types.js'
 import { ValidationContext, MatchResult } from './types.js'
-import { isStrict, calculateNormalizedWeights } from './utils.js'
+import { isStrict, calculateNormalizedWeights, getScoreConfig } from './utils.js'
 import { formatTemplate } from './template.js'
 
 /**
@@ -365,11 +365,7 @@ export async function validateStringDiff(
     if (ctx.scoring) {
       const includeStrictness = !diffPermissive || strictDiff
       const explicitWeights = (expectedDiff as AIDiffItem[]).map((item) => {
-        if (item && item.score !== undefined) {
-          const s = item.score
-          return typeof s === 'number' ? s : (s.value ?? 1)
-        }
-        return null
+        return getScoreConfig(item).weight
       })
 
       const weightPool = includeStrictness
@@ -377,6 +373,7 @@ export async function validateStringDiff(
         : explicitWeights
       const weights = calculateNormalizedWeights(weightPool, {
         totalUnassignedWeight: ctx.unassignedWeight,
+        maxScore: ctx.maxScore, // Add maxScore for correct scaling
       })
 
       let earnedFraction = 0
@@ -387,6 +384,8 @@ export async function validateStringDiff(
         earnedFraction += weights[weights.length - 1]
       }
       score = earnedFraction
+    } else {
+      score = pass ? 1.0 : 0.0
     }
 
     let failed = false

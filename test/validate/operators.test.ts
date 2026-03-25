@@ -9,6 +9,11 @@ describe('validate/operators', () => {
     expect(failures).toHaveLength(0)
   })
 
+  it('$contains should pass if array contains object item', async () => {
+    const { failures } = await validate([{score: 0, title: 'hello'}, 2, 3], { $contains: {score: 0} }, new ValidationContext())
+    expect(failures).toHaveLength(0)
+  })
+
   it('$contains should fail if array does not contain item', async () => {
     const { failures } = await validate([1, 2, 3], { $contains: 4 }, new ValidationContext())
     expect(failures).toHaveLength(1)

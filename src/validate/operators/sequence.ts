@@ -1,6 +1,6 @@
 import { AIValidationFailure, ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
-import { calculateNormalizedWeights } from '../utils.js'
+import { getScoreConfig } from '../utils.js'
 
 /**
  * Validates that an array contains a sequence of matching items in the specified order.
@@ -20,13 +20,7 @@ export async function validateSequence(
     }
   }
 
-  const explicitWeights = expectedList.map((item) =>
-    item && typeof item === 'object' && item.score !== undefined
-      ? typeof item.score === 'number'
-        ? item.score
-        : (item.score.value ?? 1)
-      : null
-  )
+  const explicitWeights = expectedList.map((item) => getScoreConfig(item).weight)
   const weights = ctx.distribute(explicitWeights)
 
   let totalScore = 0
