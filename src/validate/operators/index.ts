@@ -13,6 +13,8 @@ import { validateExpect } from './expect.js'
 import { validateDiff } from './diff.js'
 import { validateEach } from './each.js'
 import { validateExpr } from './expr.js'
+import { validateSort } from './sort.js'
+import { validateNth, validateFirst, validateLast } from './nth.js'
 import {
   validateEq,
   validateNe,
@@ -38,6 +40,10 @@ export const OPERATORS: Record<string, ValidationOperatorHandler> = {
   $diff: validateDiff,
   $each: validateEach,
   $expr: validateExpr,
+  $sort: validateSort,
+  $nth: validateNth,
+  $first: validateFirst,
+  $last: validateLast,
   $eq: validateEq,
   $ne: validateNe,
   $gt: validateGt,
@@ -60,6 +66,8 @@ export { validateExpect } from './expect.js'
 export { validateDiff } from './diff.js'
 export { validateEach } from './each.js'
 export { validateExpr } from './expr.js'
+export { validateSort } from './sort.js'
+export { validateNth, validateFirst, validateLast } from './nth.js'
 export {
   validateEq,
   validateNe,

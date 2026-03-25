@@ -112,6 +112,15 @@ Powerful assertions for complex validation scenarios, including logical, collect
   - Shorthand mode: `$exists: true | false` (verifies value is not `undefined`).
   - Strict mode: `$exists: { $value: false, strict: true }` (strictly checks if the key exists in `Object.keys()`).
 
+**Array Processing & Transformation:**
+
+- **`$sort`**: **Array Sorting**. Sorts the actual array before applying further validations. Use the `$by` property to specify the field(s) to sort by. Use a `-` prefix for descending order. If `$by` is omitted, it performs a natural sort. Once sorted, the remainder of the expectation object is applied to the sorted array. Perfect for chaining with `$first`, `$last`, or `$sequence`.
+  - Usage Example: `$sort: { $by: "-createdAt", $first: { status: "success" } }`
+- **`$nth`**: **Element Extraction by Index**. Retrieves the element at the specified `$index` from the actual array and validates it against the remainder of the expectation object. Supports negative indexing (e.g., `-1` for the last element) and out-of-bounds protection.
+  - Usage Example: `$nth: { $index: 1, status: "success" }`
+- **`$first`**: **First Element Extraction**. A convenient syntactic sugar for `$nth: { $index: 0 }`. Extracts the first element of the array for validation.
+- **`$last`**: **Last Element Extraction**. A convenient syntactic sugar for `$nth: { $index: -1 }`. Extracts the last element of the array for validation.
+
 **Comparison:**
 
 - **`$eq`, `$ne`**: **Equality & Inequality**. Strictly checks if the actual value equals (`$eq`) or does not equal (`$ne`) the expected value.
