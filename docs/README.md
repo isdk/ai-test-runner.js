@@ -116,6 +116,28 @@ Powerful assertions for complex validation scenarios, including logical, collect
   - Shorthand mode: `$exists: true | false` (verifies value is not `undefined`).
   - Strict mode: `$exists: { $value: false, strict: true }` (strictly checks if the key exists in `Object.keys()`).
 
+**Array Processing & Transformation:**
+
+- **`$sort`**: **Array Sorting**. Sorts the actual array before applying further validations. Use the `$by` property to specify the field(s) to sort by. Use a `-` prefix for descending order. If `$by` is omitted, it performs a natural sort. Once sorted, the remainder of the expectation object is applied to the sorted array. Perfect for chaining with `$first`, `$last`, or `$sequence`.
+  - Usage Example: `$sort: { $by: "-createdAt", $first: { status: "success" } }`
+- **`$nth`**: **Element Extraction by Index**. Retrieves the element at the specified `$index` from the actual array and validates it against the remainder of the expectation object. Supports negative indexing (e.g., `-1` for the last element) and out-of-bounds protection.
+  - Usage Example: `$nth: { $index: 1, status: "success" }`
+- **`$first`**: **First Element Extraction**. A convenient syntactic sugar for `$nth: { $index: 0 }`. Extracts the first element of the array for validation.
+- **`$last`**: **Last Element Extraction**. A convenient syntactic sugar for `$nth: { $index: -1 }`. Extracts the last element of the array for validation.
+
+**Comparison:**
+
+- **`$eq`, `$ne`**: **Equality & Inequality**. Strictly checks if the actual value equals (`$eq`) or does not equal (`$ne`) the expected value.
+- **`$gt`, `$gte`, `$lt`, `$lte`**: **Numeric & Relational Bounds**. Validates if the actual value is greater than (`$gt`), greater-than-or-equal (`$gte`), less than (`$lt`), or less-than-or-equal (`$lte`) to the expected value. Suitable for comparing scores, ages, or any numeric/relational metrics.
+- **`$in`, `$nin`**: **Array Inclusion**. Checks if the actual value is present (`$in`) or not present (`$nin`) within the expected array.
+
+**Expression:**
+
+- **`$expr`**: **Dynamic Expression Evaluation**. Intuitively evaluates a string expression (using JavaScript syntax) to perform complex mathematical calculations or cross-field logic bridging actual output, data, and input. Supports asynchronous and synchronous logic.
+  - Automatically injects context variables like `actual`, `expected`, `data`, `input`, and `ctx` into the evaluation scope.
+  - Highly suitable for mathematical computations and multi-property validation, allowing you to bypass deep nesting.
+  - Usage Example: `$expr: "actual > data.threshold"` or `$expr: "actual.price * actual.quantity >= 500 && data.userRole === 'admin'"`.
+
 **Specialized Operators:**
 
 - **`$expect`**: A transparent wrapper used to attach scoring metadata (weight, critical) and titles to any validation node. [See Scoring Strategy](#2-scoring-strategy).

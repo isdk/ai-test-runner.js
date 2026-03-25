@@ -8,7 +8,7 @@
 
 > **validateNot**(`actual`, `expected`, `ctx`, `validateMatch`): `Promise`\<[`ValidationResult`](../type-aliases/ValidationResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/not.ts:7](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/operators/not.ts#L7)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/not.ts:7](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/operators/not.ts#L7)
 
 Validates that a value does NOT match the specified expectation.
 

@@ -8,7 +8,7 @@
 
 > **wrapCustomOperator**(`handler`): [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/loader.ts:17](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/loader.ts#L17)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/loader.ts:17](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/loader.ts#L17)
 
 Wraps a custom operator handler to match the internal ValidationOperatorHandler signature.
 

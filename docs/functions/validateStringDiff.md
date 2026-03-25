@@ -8,7 +8,7 @@
 
 > **validateStringDiff**(`actual`, `expected`, `ctx`, `options?`): `Promise`\<[`MatchResult`](../interfaces/MatchResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/diff.ts:290](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/diff.ts#L290)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/diff.ts:290](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/diff.ts#L290)
 
 Validates a string mismatch using structured diff analysis.
 

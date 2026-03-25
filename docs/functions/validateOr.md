@@ -8,7 +8,7 @@
 
 > **validateOr**(`actual`, `expectedList`, `ctx`, `validateMatch`): `Promise`\<[`ValidationResult`](../type-aliases/ValidationResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/or.ts:13](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/operators/or.ts#L13)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/or.ts:13](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/operators/or.ts#L13)
 
 Validates that a value matches at least ONE of the specified expectations.
 

@@ -8,7 +8,7 @@
 
 > **patchMatchResult**(`res`, `metadata`, `key?`): [`MatchResult`](../interfaces/MatchResult.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:250](https://github.com/isdk/ai-test-runner.js/blob/8981666864a0ecd1b4b3ecafad53b31be4126a40/src/validate/utils.ts#L250)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:250](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/utils.ts#L250)
 
 Patches a MatchResult with metadata (title, dimension, critical) and ensures details are consistent.
 This is the main orchestration function called at each recursive exit.
