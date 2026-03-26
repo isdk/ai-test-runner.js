@@ -8,7 +8,7 @@
 
 > **loadOperators**(`operators`, `baseDir?`): `Promise`\<`Record`\<`string`, [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md)\>\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/loader.ts:51](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/loader.ts#L51)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/loader.ts:51](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/loader.ts#L51)
 
 Loads operators from a record of strings or handlers, or an array of strings.
 Strings are treated as module paths with optional export names (e.g., "js://./utils.js#myOp").

@@ -8,7 +8,7 @@
 
 > **AITestTools** = `boolean` \| [`AITestTool`](AITestTool.md) \| [`AITestTool`](AITestTool.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:347](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/types.ts#L347)
+Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:347](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L347)
 
 Configuration for tool usage in test fixtures.
 

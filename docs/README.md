@@ -118,8 +118,20 @@ Powerful assertions for complex validation scenarios, including logical, collect
 
 **Array Processing & Transformation:**
 
-- **`$sort`**: **Array Sorting**. Sorts the actual array before applying further validations. Use the `$by` property to specify the field(s) to sort by. Use a `-` prefix for descending order. If `$by` is omitted, it performs a natural sort. Once sorted, the remainder of the expectation object is applied to the sorted array. Perfect for chaining with `$first`, `$last`, or `$sequence`.
-  - Usage Example: `$sort: { $by: "-createdAt", $first: { status: "success" } }`
+- **`$sort`**: **Array Sorting**. Sorts the actual array before applying further validations. Use the `$by` property to specify the field(s) to sort by. Once sorted, the remainder of the expectation object is applied to the sorted array. Perfect for chaining with `$first`, `$last`, or `$sequence`.
+  - **`$by`**: Defines the sorting criteria. Supports multiple formats:
+    - **String**: Property name. Use `-` prefix for descending order (e.g., `"-score"`).
+    - **Function**: Custom synchronous or asynchronous JavaScript function `(item, index, array) => value`.
+    - **Expression Object**: `{ "$expr": "string", "order": "asc" | "desc" }`. Provides access to `item`, `index`, `array`, `data`, `input`, and `ctx`.
+    - **Array**: A list of the above formats for multi-level sorting.
+  - Usage Example:
+    ```yaml
+    $sort:
+      $by:
+        - { $expr: "item.score * 1.2", order: "desc" }
+        - "-createdAt"
+      $first: { status: "success" }
+    ```
 - **`$nth`**: **Element Extraction by Index**. Retrieves the element at the specified `$index` from the actual array and validates it against the remainder of the expectation object. Supports negative indexing (e.g., `-1` for the last element) and out-of-bounds protection.
   - Usage Example: `$nth: { $index: 1, status: "success" }`
 - **`$first`**: **First Element Extraction**. A convenient syntactic sugar for `$nth: { $index: 0 }`. Extracts the first element of the array for validation.

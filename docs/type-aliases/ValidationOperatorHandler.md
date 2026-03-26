@@ -8,7 +8,7 @@
 
 > **ValidationOperatorHandler** = (`actual`, `expected`, `ctx`, `validateMatch`) => `Promise`\<[`ValidationResult`](ValidationResult.md)\> \| [`ValidationResult`](ValidationResult.md) & `object`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:313](https://github.com/isdk/ai-test-runner.js/blob/1f0f3f63b582b1826ae6418f15b9e3bc4e7440dd/src/validate/types.ts#L313)
+Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:313](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L313)
 
 Function signature for handling custom validation operators (e.g., $contains).
 
