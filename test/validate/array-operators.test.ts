@@ -48,6 +48,188 @@ describe('Array Processing Operators', () => {
       expect(rs.pass).toBe(true)
     })
 
+    it('should sort using a synchronous function', async () => {
+      const actual = [{ v: 3 }, { v: 1 }, { v: 2 }]
+      const rs = await validate(actual, {
+        $sort: {
+          $by: (item: any) => item.v,
+          $sequence: [{ v: 1 }, { v: 2 }, { v: 3 }]
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should sort using an asynchronous function', async () => {
+      const actual = [{ v: 3 }, { v: 1 }, { v: 2 }]
+      const rs = await validate(actual, {
+        $sort: {
+          $by: async (item: any) => {
+            await new Promise(resolve => setTimeout(resolve, 10))
+            return item.v
+          },
+          $sequence: [{ v: 1 }, { v: 2 }, { v: 3 }]
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should sort using expression objects with custom order', async () => {
+      const actual = [{ a: 1, b: 2 }, { a: 2, b: 1 }, { a: 1, b: 1 }]
+      // Sort by a (asc), then by b (desc)
+      const rs = await validate(actual, {
+        $sort: {
+          $by: [
+            'a',
+            { $expr: 'item.b', order: 'desc' }
+          ],
+          $sequence: [
+            { a: 1, b: 2 },
+            { a: 1, b: 1 },
+            { a: 2, b: 1 }
+          ]
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should provide access to index and array in expression', async () => {
+      const actual = ['c', 'a', 'b']
+      // Sort by index in reverse order (just for testing access)
+      const rs = await validate(actual, {
+        $sort: {
+          $by: { $expr: 'index', order: 'desc' },
+          $sequence: ['b', 'a', 'c']
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should handle complex expressions and context', async () => {
+      const actual = [{ val: 10 }, { val: 20 }, { val: 30 }]
+      const rs = await validate(actual, {
+        $sort: {
+          $by: { $expr: 'item.val + data.offset', order: 'desc' },
+          $first: { val: 30 }
+        }
+      }, new ValidationContext({ data: { offset: 100 } }))
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should be a stable sort (preserve order for equal keys)', async () => {
+      const actual = [
+        { category: 'A', id: 1 },
+        { category: 'B', id: 2 },
+        { category: 'A', id: 3 },
+        { category: 'B', id: 4 }
+      ]
+      // Sort only by category
+      const rs = await validate(actual, {
+        $sort: {
+          $by: 'category',
+          $sequence: [
+            { category: 'A', id: 1 },
+            { category: 'A', id: 3 },
+            { category: 'B', id: 2 },
+            { category: 'B', id: 4 }
+          ]
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should support mixed types in $by array', async () => {
+      const actual = [
+        { type: 'fruit', price: 10, name: 'apple' },
+        { type: 'veg', price: 5, name: 'carrot' },
+        { type: 'fruit', price: 5, name: 'banana' }
+      ]
+      // 1. type (string desc) -> 'veg', 'fruit', 'fruit'
+      // 2. price (function asc) -> 5, 5, 10
+      // 3. name (expr asc)
+      const rs = await validate(actual, {
+        $sort: {
+          $by: [
+            '-type',
+            (item: any) => item.price,
+            { $expr: 'item.name' }
+          ],
+          $sequence: [
+            { name: 'carrot' },
+            { name: 'banana' },
+            { name: 'apple' }
+          ]
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should handle missing properties gracefully', async () => {
+      const actual = [{ a: 2 }, { }, { a: 1 }]
+      const rs = await validate(actual, {
+        $sort: {
+          $by: 'a',
+          // lodash handles undefined/null by putting them at the end or beginning depending on order
+          $first: { a: 1 },
+          $last: { }
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should handle expressions accessing nested properties', async () => {
+      const actual = [
+        { user: { profile: { age: 30 } } },
+        { user: { profile: { age: 20 } } },
+        { user: { profile: { age: 25 } } }
+      ]
+      const rs = await validate(actual, {
+        $sort: {
+          $by: { $expr: 'item.user.profile.age' },
+          $first: { user: { profile: { age: 20 } } }
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should handle errors in expression evaluation gracefully', async () => {
+      const actual = [{ a: 1 }, { a: 2 }]
+      // This will throw because 'undefinedVariable' is not defined
+      const rs = await validate(actual, {
+        $sort: {
+          $by: { $expr: 'undefinedVariable.prop' },
+          $sequence: [{ a: 1 }, { a: 2 }]
+        }
+      }, new ValidationContext())
+
+      expect(rs.pass).toBe(false)
+      expect(rs.failures[0].message).toContain('evaluation error')
+    })
+
+    it('should sort an array of primitive strings using $expr', async () => {
+      const actual = ['banana', 'apple', 'cherry']
+      const rs = await validate(actual, {
+        $sort: {
+          $by: { $expr: 'item' }, // sort alphabetically
+          $sequence: ['apple', 'banana', 'cherry']
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
+    it('should handle complex logic in async function', async () => {
+      const actual = [{ v: 'a' }, { v: 'b' }, { v: 'c' }]
+      const rs = await validate(actual, {
+        $sort: {
+          $by: async (item: any, index: number, array: any[]) => {
+            // Complex logic: reverse sort based on some async "weight"
+            return array.length - index
+          },
+          $sequence: [{ v: 'c' }, { v: 'b' }, { v: 'a' }]
+        }
+      }, new ValidationContext())
+      expect(rs.pass).toBe(true)
+    })
+
     it('should fall back to natural sort if $by is empty array, and fail if $by is invalid type', async () => {
       const actual = [3, 1, 2]
 
@@ -66,7 +248,7 @@ describe('Array Processing Operators', () => {
         }
       }, new ValidationContext())
       expect(rs2.pass).toBe(false)
-      expect(rs2.failures[0].message).toContain('must be a string or an array of strings')
+      expect(rs2.failures[0].message).toContain('must be a string, function, or expression object')
     })
 
     it('should chain nicely with $each', async () => {
