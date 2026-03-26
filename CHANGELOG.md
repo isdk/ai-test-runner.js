@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.3](https://github.com/isdk/ai-test-runner.js/compare/v0.2.1...v0.2.3) (2026-03-26)
+
+
+### Features
+
+* add comparison and expression validation operators ([ceaffe2](https://github.com/isdk/ai-test-runner.js/commit/ceaffe26ad89416462ebc546b2508d1ef1d311a2))
+* **validate:** add `$sort`, `$nth`, `$first`, and `$last` array processing operators ([0e872fc](https://github.com/isdk/ai-test-runner.js/commit/0e872fc8b105f95482bdab69cdced6ec96cd0e56))
+* **validate:** enhance $sort operator with function and expression support ([26beed9](https://github.com/isdk/ai-test-runner.js/commit/26beed9596be872b157e2e95587682721c3a51f4))
+
 ## [0.2.2](https://github.com/isdk/ai-test-runner.js/compare/v0.2.1...v0.2.2) (2026-03-25)
 
 
