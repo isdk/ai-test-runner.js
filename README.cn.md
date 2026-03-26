@@ -121,6 +121,7 @@ const result = await runner.run('my-script-id', fixtures);
     - **表达式对象**：`{ "$expr": "string", "order": "asc" | "desc" }`。在表达式中可访问 `item`, `index`, `array`, `data`, `input` 和 `ctx` 等上下文变量。
     - **数组**：支持将上述格式组合为数组，进行多层级排序（例如：先按类型升序，再按分数降序）。
   - 用法示例：
+
     ```yaml
     $sort:
       $by:
@@ -128,6 +129,7 @@ const result = await runner.run('my-script-id', fixtures);
         - "-createdAt"
       $first: { status: "success" }
     ```
+
 - **`$nth`**: **按索引提取元素**。从实际数组中取回指定 `$index` 位置的元素，并将其送入剩余的期望断言中进行独立校验。支持负数索引（如 `-1` 代表提取最后一个元素），并会在路径追踪引擎中精准补齐所在数组的索引层级，同时自带越界保护。
   - 用法示例：`$nth: { $index: 1, status: "success" }`
 - **`$first`**: **提取第一个元素**。这是 `$nth: { $index: 0 }` 的便捷语法糖，极其符合自然语言直觉地提取数组首个元素进行断言。
@@ -143,6 +145,12 @@ const result = await runner.run('my-script-id', fixtures);
 
 - **`$expr`**: **动态表达式求值（Expression Operator）**。最符合前端直觉的语法，支持以 JavaScript 语法传入一段动态计算公式字符串，实现极度灵活的跨字段、算数运算或异步处理的逻辑判断。
   - 能向表达式沙盒中自动注入强大的上下文变量（如：`actual`, `expected`, `data`, `input`, `ctx` 等）。
+  - **进阶技巧：实现缺失的核心算子功能**
+    由于框架目前不提供内置的 `$length`、`$keys` 或 `$values` 算子，你可以通过 `$expr` 轻松实现：
+    - **检查数组长度**：`$expr: "actual.length === 5"` 或动态比较 `$expr: "actual.length >= data.minSize"`。
+    - **提取并验证对象键（Keys）**：`$expr: "Object.keys(actual).includes('id')"` 或验证键的正则表达式 `$expr: "Object.keys(actual).some(k => /^user_/.test(k))"`。
+    - **检查对象值（Values）是否存在**：`$expr: "Object.values(actual).includes('active')"`。
+    - **复杂多属性联动**：`$expr: "actual.items.length > 0 && actual.status === 'success'"`。
   - 用法示例：相比冗长反直觉的嵌套算子，你可以简单地写 `$expr: "actual > data.min_score"` 或关联多属性 `$expr: "actual.price * actual.quantity >= 500 && data.userRole === 'admin'"`。
 
 **特化操作符：**
