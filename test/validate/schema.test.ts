@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateMatch } from '../../src/validate/core.js'
+import { validate } from '../../src/validate/core.js'
+import { ValidationContext } from '../../src/validate/types.js'
 import { isJsonSchema } from '../../src/validate/schema.js'
 import { YamlTypeJsonSchema } from '../../src/yaml-types/index.js'
 
@@ -40,20 +41,20 @@ describe('validate/schema', () => {
   describe('schema validation integration', () => {
     it('should validate using YamlTypeJsonSchema instance', async () => {
       const schema = YamlTypeJsonSchema.create({ type: 'number' })
-      const failures = await validateMatch(123, schema)
+      const { failures } = await validate(123, schema, new ValidationContext())
       expect(failures).toHaveLength(0)
 
-      const failures2 = await validateMatch('abc', schema)
+      const { failures: failures2 } = await validate('abc', schema, new ValidationContext())
       expect(failures2).toHaveLength(1)
       expect(failures2[0].message).toBe('JSON Schema validation failed')
     })
 
     it('should validate if expected object looks like a schema (automatic recognition)', async () => {
       // This tests that validateMatch internally calls validateJsonSchema for plain objects
-      const failures = await validateMatch(123, { type: 'number' })
+      const { failures } = await validate(123, { type: 'number' }, new ValidationContext())
       expect(failures).toHaveLength(0)
 
-      const failures2 = await validateMatch('abc', { type: 'number' })
+      const { failures: failures2 } = await validate('abc', { type: 'number' }, new ValidationContext())
       expect(failures2).toHaveLength(1)
       expect(failures2[0].message).toBe('JSON Schema validation failed')
     })
@@ -65,7 +66,7 @@ describe('validate/schema', () => {
           age: { type: 'number', minimum: 18 }
         }
       }
-      const failures = await validateMatch({ age: 10 }, schema)
+      const { failures } = await validate({ age: 10 }, schema, new ValidationContext())
       expect(failures).toHaveLength(1)
       expect(failures[0].message).toBe('JSON Schema validation failed')
       expect(failures[0].expected).toBeDefined() // AJV errors
@@ -75,24 +76,24 @@ describe('validate/schema', () => {
     it('should support templates within automatic schema recognition', async () => {
       const schema = { type: 'string', pattern: '^{{prefix}}' }
       const options = { data: { prefix: 'AI' } }
-      const failures = await validateMatch('AI is cool', schema, options)
+      const { failures } = await validate('AI is cool', schema, new ValidationContext(options))
       expect(failures).toHaveLength(0)
 
-      const failures2 = await validateMatch('Human is cool', schema, options)
+      const { failures: failures2 } = await validate('Human is cool', schema, new ValidationContext(options))
       expect(failures2).toHaveLength(1)
     })
 
     it('should NOT validate as schema if disableHeuristicSchema is true', async () => {
       const schema = { type: 'number' }
       // Should fail as value equality check because it's treated as a normal object
-      const failures = await validateMatch(123, schema, { disableHeuristicSchema: true })
+      const { failures } = await validate(123, schema, new ValidationContext({ disableHeuristicSchema: true }))
       expect(failures).toHaveLength(1)
       expect(failures[0].message).toBe('Value equality check failed')
     })
 
     it('should still validate YamlTypeJsonSchema instances even if disableHeuristicSchema is true', async () => {
       const schema = YamlTypeJsonSchema.create({ type: 'number' })
-      const failures = await validateMatch(123, schema, { disableHeuristicSchema: true })
+      const { failures } = await validate(123, schema, new ValidationContext({ disableHeuristicSchema: true }))
       expect(failures).toHaveLength(0)
     })
 
@@ -106,7 +107,7 @@ describe('validate/schema', () => {
 
       // When disabled, { type: 'number' } is treated as a plain object to match against { version: 1 }
       // It should fail because { type: 'number' } !== 1
-      const failures = await validateMatch(actual, expected, { disableHeuristicSchema: true })
+      const { failures } = await validate(actual, expected, new ValidationContext({ disableHeuristicSchema: true }))
       expect(failures).toHaveLength(1)
       expect(failures[0].key).toBe('meta.version')
       expect(failures[0].message).toBe('Value equality check failed')
