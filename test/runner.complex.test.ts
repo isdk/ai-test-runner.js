@@ -116,4 +116,37 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
       const result = await runner.run('test', fixtures)
       expect(result.passedCount).toBe(1)
   })
+
+  it('should be failed in JSON Schema pattern', async () => {
+    const fixtures = [
+      {
+        input: {
+          content: [
+            "@now()",
+            "@weather(location=\"重庆\")",
+          ]
+        },
+        outputSchema: {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "allOf": [
+            {
+              "contains": {
+                "type": "string",
+                "regexp": "/^@weather\\(location=([\"'])(重庆|Chongqing)(?:,\\s*(?:(?:重庆|Chongqing|四川|Sichuan),\\s*)?(中国|China))?\\1\\)$/i"
+              }
+            }
+          ]
+        },
+      }
+    ]
+    // This might fail currently because we don't format the schema object in validateMatch
+    // Let's see. If it fails, we know we need to fix validateMatch or AITestRunner.
+    const result = await runner.run('test', fixtures)
+    console.log('🚀 ~ file: runner.complex.test.ts:147 ~ result:', JSON.stringify(result,null,2))
+    expect(result.passedCount).toBe(0)
+    expect(result.failedCount).toBe(1)
+  })
+
 })
