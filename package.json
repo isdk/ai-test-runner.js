@@ -17,7 +17,9 @@
   ],
   "homepage": "https://github.com/isdk/ai-test-runner.js",
   "repository": "https://github.com/isdk/ai-test-runner.js",
-  "bugs": "https://github.com/@isdk/ai-test-runner.js/issues",
+  "bugs": {
+    "url": "https://github.com/isdk/ai-test-runner.js/issues"
+  },
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
