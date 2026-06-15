@@ -7,10 +7,10 @@ class DynamicMockExecutor implements AIScriptExecutor {
   async execute(context: AIExecutionContext): Promise<AIExecutionResult> {
     const { args } = context
     if (args.jsonObj) {
-        return { output: args.jsonObj }
+      return { output: args.jsonObj }
     }
     if (args.content) {
-        return { output: args.content }
+      return { output: args.content }
     }
     return { output: 'default' }
   }
@@ -23,7 +23,7 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
   it('should resolve variables from fixtureConfig (front-matter)', async () => {
     const fixtures = [{ input: { content: '{{globalVar}}' }, output: 'fixed-value' }]
     const result = await runner.run('test', fixtures, {
-        fixtureConfig: { globalVar: 'fixed-value' }
+      fixtureConfig: { globalVar: 'fixed-value' }
     })
     expect(result.passedCount).toBe(1)
   })
@@ -31,7 +31,7 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
   it('should resolve variables from userConfig.data', async () => {
     const fixtures = [{ input: { content: '{{envVar}}' }, output: 'from-env' }]
     const result = await runner.run('test', fixtures, {
-        userConfig: { data: { envVar: 'from-env' } }
+      userConfig: { data: { envVar: 'from-env' } }
     })
     expect(result.passedCount).toBe(1)
   })
@@ -40,8 +40,8 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
     const fixtures = [
       {
         input: {
-            base: 'foo',
-            content: '{{base}}-bar'
+          base: 'foo',
+          content: '{{base}}-bar'
         },
         output: 'foo-bar'
       }
@@ -71,8 +71,8 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
       {
         input: { prefix: 'abc', content: 'abc-123' },
         outputSchema: {
-            type: 'string',
-            pattern: '^{{prefix}}'
+          type: 'string',
+          pattern: '^{{prefix}}'
         }
       }
     ]
@@ -90,31 +90,31 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
 
   it('should handle mixed sources with priority: userConfig > input > fixtureConfig', async () => {
     const fixtures = [
-        {
-            input: { var: 'input-val', content: '{{var}}' },
-            output: 'user-val'
-        }
+      {
+        input: { var: 'input-val', content: '{{var}}' },
+        output: 'user-val'
+      }
     ]
     const result = await runner.run('test', fixtures, {
-        fixtureConfig: { var: 'fixture-val' },
-        userConfig: { data: { var: 'user-val' } }
+      fixtureConfig: { var: 'fixture-val' },
+      userConfig: { data: { var: 'user-val' } }
     })
     expect(result.passedCount).toBe(1)
   })
 
   it('should support templates in diff config', async () => {
-      const fixtures = [
-          {
-              input: { content: 'hello\nworld', nl: '\n', sp: ' ' },
-              output: 'hello world',
-              diff: [
-                  { value: '{{sp}}', removed: true },
-                  { value: '{{nl}}', added: true }
-              ]
-          }
-      ]
-      const result = await runner.run('test', fixtures)
-      expect(result.passedCount).toBe(1)
+    const fixtures = [
+      {
+        input: { content: 'hello\nworld', nl: '\n', sp: ' ' },
+        output: 'hello world',
+        diff: [
+          { value: '{{sp}}', removed: true },
+          { value: '{{nl}}', added: true }
+        ]
+      }
+    ]
+    const result = await runner.run('test', fixtures)
+    expect(result.passedCount).toBe(1)
   })
 
   it('should be failed in JSON Schema pattern', async () => {
@@ -144,7 +144,6 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
     // This might fail currently because we don't format the schema object in validateMatch
     // Let's see. If it fails, we know we need to fix validateMatch or AITestRunner.
     const result = await runner.run('test', fixtures)
-    console.log('🚀 ~ file: runner.complex.test.ts:147 ~ result:', JSON.stringify(result,null,2))
     expect(result.passedCount).toBe(0)
     expect(result.failedCount).toBe(1)
   })
