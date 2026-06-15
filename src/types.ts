@@ -111,6 +111,8 @@ export interface AIExecutionResult {
    * like validating tool call sequences.
    */
   messages?: any[]
+
+  meta?: any
 }
 
 /**
@@ -253,6 +255,8 @@ export interface AITestLogItem {
    * Inclusion depends on `AITestRunnerOptions.logVars`.
    */
   vars?: Record<string, any>
+
+  actualMeta?: any
 }
 
 /**

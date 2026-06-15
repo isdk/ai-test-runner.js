@@ -327,6 +327,7 @@ export class AITestRunner extends EventEmitter {
         actualTrace: execResult.messages,
         expectedTrace,
         tools: templateData.tools,
+        actualMeta: execResult.meta,
       }
 
       const logVars = options.logVars
