@@ -21,7 +21,7 @@ export async function validateExpr(
       actual,
       expected,
       data: ctx.data,
-      input: ctx.input,
+      fixture: ctx.input,
       ctx,
     })
 
