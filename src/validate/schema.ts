@@ -60,6 +60,7 @@ export async function validateJsonSchema(
       schema = YamlTypeJsonSchema.create(expected)
     } catch (e) {
       // Not a valid JSON Schema
+      console.error('validateJsonSchema error:', e)
     }
   }
 
