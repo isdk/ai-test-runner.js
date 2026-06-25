@@ -78,8 +78,13 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
     ]
     // This might fail currently because we don't format the schema object in validateMatch
     // Let's see. If it fails, we know we need to fix validateMatch or AITestRunner.
-    const result = await runner.run('test', fixtures)
+    let result = await runner.run('test', fixtures)
     expect(result.passedCount).toBe(1)
+
+    fixtures[0].input.prefix = 'none'
+    result = await runner.run('test', fixtures)
+    expect(result.passedCount).toBe(0)
+    expect(result.failedCount).toBe(1)
   })
 
   it('should handle missing variables by keeping them as is (or as empty depending on template engine)', async () => {
