@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.0](https://github.com/isdk/ai-test-runner.js/compare/v0.2.3...v0.3.0) (2026-06-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename input var used in $expr to fixture
+* add nullable as non-exists supports by default, add nullAsAbsent argument(if true, null will be treat exists)
+
+### Features
+
+* add actualMeta to AITestLogItem, meta to AIExecutionResult ([149c052](https://github.com/isdk/ai-test-runner.js/commit/149c0526b0e971f312fb01e57c3e26226d9c7a55))
+* add nullable as non-exists supports by default, add nullAsAbsent argument(if true, null will be treat exists) ([80b5a0e](https://github.com/isdk/ai-test-runner.js/commit/80b5a0e7e73018ad2c0f9c307007db89e567839f))
+
+
+### Refactor
+
+* rename input var used in $expr to fixture ([ce75971](https://github.com/isdk/ai-test-runner.js/commit/ce75971deab69ffa520dfde898dcc765f6ed0187))
+
 ## [0.2.3](https://github.com/isdk/ai-test-runner.js/compare/v0.2.1...v0.2.3) (2026-03-26)
 
 
