@@ -125,6 +125,7 @@ Powerful assertions for complex validation scenarios, including logical, collect
     - **Expression Object**: `{ "$expr": "string", "order": "asc" | "desc" }`. Provides access to `item`, `index`, `array`, `data`, `input`, and `ctx`.
     - **Array**: A list of the above formats for multi-level sorting.
   - Usage Example:
+
     ```yaml
     $sort:
       $by:
@@ -132,6 +133,7 @@ Powerful assertions for complex validation scenarios, including logical, collect
         - "-createdAt"
       $first: { status: "success" }
     ```
+
 - **`$nth`**: **Element Extraction by Index**. Retrieves the element at the specified `$index` from the actual array and validates it against the remainder of the expectation object. Supports negative indexing (e.g., `-1` for the last element) and out-of-bounds protection.
   - Usage Example: `$nth: { $index: 1, status: "success" }`
 - **`$first`**: **First Element Extraction**. A convenient syntactic sugar for `$nth: { $index: 0 }`. Extracts the first element of the array for validation.
@@ -146,8 +148,19 @@ Powerful assertions for complex validation scenarios, including logical, collect
 **Expression:**
 
 - **`$expr`**: **Dynamic Expression Evaluation**. Intuitively evaluates a string expression (using JavaScript syntax) to perform complex mathematical calculations or cross-field logic bridging actual output, data, and input. Supports asynchronous and synchronous logic.
-  - Automatically injects context variables like `actual`, `expected`, `data`, `input`, and `ctx` into the evaluation scope.
-  - Highly suitable for mathematical computations and multi-property validation, allowing you to bypass deep nesting.
+  - Automatically injects context variables like `actual`, `expected`, `data`, `fixture`, and `ctx` into the evaluation scope.
+    - `fixture`: the current fixture information
+      - `title`
+      - `input`
+      - `output`
+      - `outputSchema`
+      - etc
+  - **Advanced Tip: Implementing Missing Core Operators**
+    While specific `$length`, `$keys`, or `$values` operators are not natively provided, you can easily implement them using `$expr`:
+    - **Check Array Length**: `$expr: "actual.length === 5"` or dynamic comparison `$expr: "actual.length >= data.minSize"`.
+    - **Verify Object Keys**: `$expr: "Object.keys(actual).includes('id')"` or regex pattern matching `$expr: "Object.keys(actual).some(k => /^user_/.test(k))"`.
+    - **Check Object Values**: `$expr: "Object.values(actual).includes('active')"`.
+    - **Multi-Property Logical Synergy**: `$expr: "actual.items.length > 0 && actual.status === 'success'"` or complex calculations `$expr: "actual.price * actual.quantity >= 500 && data.userRole === 'admin'"`.
   - Usage Example: `$expr: "actual > data.threshold"` or `$expr: "actual.price * actual.quantity >= 500 && data.userRole === 'admin'"`.
 
 **Specialized Operators:**

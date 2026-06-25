@@ -6,7 +6,7 @@
 
 # Interface: ScoringStrategy
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:234](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L234)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:234](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L234)
 
 Interface for a scoring strategy.
 Defines how scores are distributed to children and aggregated back to the parent.
@@ -17,7 +17,7 @@ Defines how scores are distributed to children and aggregated back to the parent
 
 > **aggregate**(`results`, `weights`, `options?`): [`MatchResult`](MatchResult.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:252](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L252)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:252](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L252)
 
 Aggregates the results from child matches into a single result.
 
@@ -51,7 +51,7 @@ Additional aggregation options.
 
 > **distribute**(`items`, `options?`): `number`[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:241](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L241)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:241](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L241)
 
 Calculates the weights for a list of items.
 

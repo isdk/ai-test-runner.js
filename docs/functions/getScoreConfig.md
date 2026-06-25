@@ -8,7 +8,7 @@
 
 > **getScoreConfig**(`item`): `object`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:32](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/utils.ts#L32)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/utils.ts:32](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/utils.ts#L32)
 
 Internal helper to extract weight and critical flag from a node.
 Priorities & Exclusivity:
@@ -31,19 +31,19 @@ Priorities & Exclusivity:
 
 ### dimension?
 
-> `optional` **dimension**: `string`
+> `optional` **dimension?**: `string`
 
 ### strategy?
 
-> `optional` **strategy**: `string`
+> `optional` **strategy?**: `string`
 
 ### threshold?
 
-> `optional` **threshold**: `number`
+> `optional` **threshold?**: `number`
 
 ### title?
 
-> `optional` **title**: `string`
+> `optional` **title?**: `string`
 
 ### weight
 

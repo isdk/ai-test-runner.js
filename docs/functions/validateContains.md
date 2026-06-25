@@ -8,7 +8,7 @@
 
 > **validateContains**(`actual`, `expected`, `ctx`, `validateMatch`): `Promise`\<[`ValidationResult`](../type-aliases/ValidationResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/contains.ts:7](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/operators/contains.ts#L7)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/operators/contains.ts:7](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/operators/contains.ts#L7)
 
 Validates that an array contains at least one item matching the expectation.
 

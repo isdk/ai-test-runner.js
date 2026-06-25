@@ -8,7 +8,7 @@
 
 > **ValidationResult** = `boolean` \| `string` \| `number` \| \{\[`key`: `string`\]: `any`; `dimension?`: `string`; `message?`: `string`; `pass?`: `boolean`; `score`: `number`; \}
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:176](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L176)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:178](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L178)
 
 The result returned by a validation operator or function.
 - `boolean`: true -> pass (100%), false -> fail (0%).
@@ -16,41 +16,49 @@ The result returned by a validation operator or function.
 - `number`: pass with confidence score (0-1).
 - `object`: detailed result with score and optional message.
 
-## Type Declaration
+## Union Members
 
 `boolean`
 
+***
+
 `string`
+
+***
 
 `number`
 
+***
+
+### Type Literal
+
 \{\[`key`: `string`\]: `any`; `dimension?`: `string`; `message?`: `string`; `pass?`: `boolean`; `score`: `number`; \}
 
-## Index Signature
+### Index Signature
 
 \[`key`: `string`\]: `any`
 
 Additional metadata.
 
-### dimension?
+#### dimension?
 
-> `optional` **dimension**: `string`
+> `optional` **dimension?**: `string`
 
 The dimension/tag this score belongs to.
 
-### message?
+#### message?
 
-> `optional` **message**: `string`
+> `optional` **message?**: `string`
 
 Optional failure message.
 
-### pass?
+#### pass?
 
-> `optional` **pass**: `boolean`
+> `optional` **pass?**: `boolean`
 
 Whether the validation is considered passed. Default depends on threshold.
 
-### score
+#### score
 
 > **score**: `number`
 

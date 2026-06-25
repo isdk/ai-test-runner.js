@@ -6,7 +6,7 @@
 
 # Interface: AITestFixtureResult
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:261](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L261)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:265](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L265)
 
 Summary result of running a set of test fixtures.
 
@@ -16,7 +16,7 @@ Summary result of running a set of test fixtures.
 
 > **duration**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:271](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L271)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:275](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L275)
 
 Total wall-clock time for the entire run in milliseconds.
 
@@ -26,7 +26,7 @@ Total wall-clock time for the entire run in milliseconds.
 
 > **failedCount**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:263](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L263)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:267](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L267)
 
 Total number of fixtures that failed validation.
 
@@ -36,7 +36,7 @@ Total number of fixtures that failed validation.
 
 > **logs**: [`AITestLogItem`](AITestLogItem.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:269](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L269)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:273](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L273)
 
 Array of detailed logs for each executed fixture.
 
@@ -46,7 +46,7 @@ Array of detailed logs for each executed fixture.
 
 > **passedCount**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:265](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L265)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:269](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L269)
 
 Total number of fixtures that passed validation.
 
@@ -56,6 +56,6 @@ Total number of fixtures that passed validation.
 
 > **skippedCount**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:267](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L267)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:271](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L271)
 
 Total number of fixtures that were skipped.

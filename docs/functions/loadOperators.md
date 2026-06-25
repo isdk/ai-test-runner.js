@@ -8,7 +8,7 @@
 
 > **loadOperators**(`operators`, `baseDir?`): `Promise`\<`Record`\<`string`, [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md)\>\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/loader.ts:51](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/loader.ts#L51)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/loader.ts:51](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/loader.ts#L51)
 
 Loads operators from a record of strings or handlers, or an array of strings.
 Strings are treated as module paths with optional export names (e.g., "js://./utils.js#myOp").
@@ -18,7 +18,7 @@ If an array is provided, names are inferred from the paths or export names.
 
 ### operators
 
-`Record`\<`string`, `string` \| [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md) \| [`CustomOperatorHandler`](../type-aliases/CustomOperatorHandler.md)\> | (`string` \| [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md) \| [`CustomOperatorHandler`](../type-aliases/CustomOperatorHandler.md))[]
+`Record`\<`string`, `string` \| [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md) \| [`CustomOperatorHandler`](../type-aliases/CustomOperatorHandler.md)\> \| (`string` \| [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md) \| [`CustomOperatorHandler`](../type-aliases/CustomOperatorHandler.md))[]
 
 ### baseDir?
 

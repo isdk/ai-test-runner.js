@@ -6,7 +6,7 @@
 
 # Class: ValidationContext
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:52](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L52)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:52](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L52)
 
 Manages the read-only configuration and context of a validation process.
 
@@ -14,15 +14,15 @@ Manages the read-only configuration and context of a validation process.
 
 ### Constructor
 
-> **new ValidationContext**(`options`): `ValidationContext`
+> **new ValidationContext**(`options?`): `ValidationContext`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:97](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L97)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:97](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L97)
 
 Creates a new validation context.
 
 #### Parameters
 
-##### options
+##### options?
 
 [`MatchValueOptions`](../interfaces/MatchValueOptions.md) = `{}`
 
@@ -38,7 +38,7 @@ Initial options for the context.
 
 > **allocatedScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:80](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L80)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:80](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L80)
 
 The score allocated to this validation node from its parent.
 
@@ -46,9 +46,9 @@ The score allocated to this validation node from its parent.
 
 ### allowOperatorOverride?
 
-> `optional` **allowOperatorOverride**: `boolean`
+> `optional` **allowOperatorOverride?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:68](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L68)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:68](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L68)
 
 Whether to allow custom operators to override built-in ones.
 
@@ -56,17 +56,17 @@ Whether to allow custom operators to override built-in ones.
 
 ### autoConfidence?
 
-> `optional` **autoConfidence**: `boolean` \| `"force"`
+> `optional` **autoConfidence?**: `boolean` \| `"force"`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:87](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L87)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:87](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L87)
 
 ***
 
 ### currentOperator?
 
-> `optional` **currentOperator**: `string`
+> `optional` **currentOperator?**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:89](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L89)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:89](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L89)
 
 The name of the current operator.
 
@@ -76,7 +76,7 @@ The name of the current operator.
 
 > **data**: `Record`\<`string`, `any`\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:56](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L56)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:56](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L56)
 
 Data context used for template formatting and variable injection.
 
@@ -84,9 +84,9 @@ Data context used for template formatting and variable injection.
 
 ### diffPermissive?
 
-> `optional` **diffPermissive**: `boolean`
+> `optional` **diffPermissive?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:62](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L62)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:62](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L62)
 
 Whether to allow unverified diff changes in non-strict mode.
 
@@ -94,9 +94,9 @@ Whether to allow unverified diff changes in non-strict mode.
 
 ### disableHeuristicSchema?
 
-> `optional` **disableHeuristicSchema**: `boolean`
+> `optional` **disableHeuristicSchema?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:64](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L64)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:64](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L64)
 
 Whether to disable heuristic JSON Schema recognition.
 
@@ -106,7 +106,7 @@ Whether to disable heuristic JSON Schema recognition.
 
 > **input**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:58](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L58)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:58](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L58)
 
 The original test fixture input and configuration.
 
@@ -116,7 +116,7 @@ The original test fixture input and configuration.
 
 > **isCriticalBranch**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:82](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L82)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:82](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L82)
 
 Whether the current validation branch is mandatory (critical).
 
@@ -124,9 +124,9 @@ Whether the current validation branch is mandatory (critical).
 
 ### isKeyPresent?
 
-> `optional` **isKeyPresent**: `boolean`
+> `optional` **isKeyPresent?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:70](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L70)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:70](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L70)
 
 Whether the current key is actually present in the parent object.
 
@@ -136,7 +136,7 @@ Whether the current key is actually present in the parent object.
 
 > **key**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:54](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L54)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:54](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L54)
 
 The current hierarchical key or dot-separated path being validated.
 
@@ -146,7 +146,7 @@ The current hierarchical key or dot-separated path being validated.
 
 > **maxScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:74](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L74)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:74](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L74)
 
 The maximum possible score.
 
@@ -154,9 +154,9 @@ The maximum possible score.
 
 ### operators?
 
-> `optional` **operators**: `Record`\<`string`, [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md)\>
+> `optional` **operators?**: `Record`\<`string`, [`ValidationOperatorHandler`](../type-aliases/ValidationOperatorHandler.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:66](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L66)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:66](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L66)
 
 Custom validation operators.
 
@@ -164,9 +164,9 @@ Custom validation operators.
 
 ### operatorStrategy?
 
-> `optional` **operatorStrategy**: `string` \| `boolean`
+> `optional` **operatorStrategy?**: `string` \| `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:91](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L91)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:91](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L91)
 
 The virtual strategy of the current operator.
 
@@ -176,7 +176,7 @@ The virtual strategy of the current operator.
 
 > **passScore**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:76](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L76)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:76](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L76)
 
 The minimum score required to pass.
 
@@ -184,9 +184,9 @@ The minimum score required to pass.
 
 ### scoring?
 
-> `optional` **scoring**: `boolean` \| `"auto"`
+> `optional` **scoring?**: `boolean` \| `"auto"`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:72](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L72)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:72](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L72)
 
 Scoring mode configuration.
 
@@ -194,9 +194,9 @@ Scoring mode configuration.
 
 ### strategy?
 
-> `optional` **strategy**: [`ScoringStrategy`](../interfaces/ScoringStrategy.md)
+> `optional` **strategy?**: [`ScoringStrategy`](../interfaces/ScoringStrategy.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:84](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L84)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:84](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L84)
 
 The scoring strategy to use.
 
@@ -204,9 +204,9 @@ The scoring strategy to use.
 
 ### strict?
 
-> `optional` **strict**: [`AIStrictOption`](../type-aliases/AIStrictOption.md)
+> `optional` **strict?**: [`AIStrictOption`](../type-aliases/AIStrictOption.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:60](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L60)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:60](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L60)
 
 Configuration for strict validation (e.g., forbidding extra keys).
 
@@ -214,9 +214,9 @@ Configuration for strict validation (e.g., forbidding extra keys).
 
 ### threshold?
 
-> `optional` **threshold**: `number`
+> `optional` **threshold?**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:86](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L86)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:86](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L86)
 
 The threshold for fuzzy matching. Only applicable for leaf nodes.
 
@@ -224,9 +224,9 @@ The threshold for fuzzy matching. Only applicable for leaf nodes.
 
 ### unassignedWeight?
 
-> `optional` **unassignedWeight**: `number`
+> `optional` **unassignedWeight?**: `number`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:78](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L78)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:78](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L78)
 
 The default weight for unassigned items.
 
@@ -236,7 +236,7 @@ The default weight for unassigned items.
 
 > **aggregate**(`results`, `weights`): [`MatchResult`](../interfaces/MatchResult.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:222](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L222)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:222](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L222)
 
 Aggregates multiple MatchResults using the current strategy.
 
@@ -258,9 +258,9 @@ Aggregates multiple MatchResults using the current strategy.
 
 ### createChildContext()
 
-> **createChildContext**(`keyOrIndex`, `count`, `options`): `ValidationContext`
+> **createChildContext**(`keyOrIndex`, `count`, `options?`): `ValidationContext`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:163](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L163)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:163](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L163)
 
 Creates a high-level child context with automated path generation based on operator strategy.
 
@@ -268,9 +268,9 @@ Creates a high-level child context with automated path generation based on opera
 
 ##### keyOrIndex
 
-The key or index of the child item.
+`string` \| `number`
 
-`string` | `number`
+The key or index of the child item.
 
 ##### count
 
@@ -278,7 +278,7 @@ The key or index of the child item.
 
 Total number of items in the container (used for single-element optimization).
 
-##### options
+##### options?
 
 `Partial`\<[`MatchValueOptions`](../interfaces/MatchValueOptions.md)\> = `{}`
 
@@ -292,9 +292,9 @@ Additional options.
 
 ### createSubContext()
 
-> **createSubContext**(`subKey`, `options`): `ValidationContext`
+> **createSubContext**(`subKey`, `options?`): `ValidationContext`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:127](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L127)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:127](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L127)
 
 Creates a sub-context for a nested property or array element.
 Handles path concatenation (e.g., appending '.prop' or '[index]').
@@ -307,7 +307,7 @@ Handles path concatenation (e.g., appending '.prop' or '[index]').
 
 The name of the sub-property or index (e.g., "name", "[0]").
 
-##### options
+##### options?
 
 `Partial`\<[`MatchValueOptions`](../interfaces/MatchValueOptions.md)\> = `{}`
 
@@ -325,7 +325,7 @@ A new ValidationContext instance for the nested path.
 
 > **distribute**(`items`): `number`[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/types.ts:208](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/types.ts#L208)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/types.ts:208](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/types.ts#L208)
 
 Calculates weights for a list of items using the current strategy and context.
 

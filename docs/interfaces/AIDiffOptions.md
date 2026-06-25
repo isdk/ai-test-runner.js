@@ -6,7 +6,7 @@
 
 # Interface: AIDiffOptions
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:55](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L55)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:55](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L55)
 
 Configuration options for string diffing.
 
@@ -14,9 +14,9 @@ Configuration options for string diffing.
 
 ### ignoreCase?
 
-> `optional` **ignoreCase**: `boolean`
+> `optional` **ignoreCase?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:70](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L70)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:70](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L70)
 
 Whether to ignore case differences.
 
@@ -24,9 +24,9 @@ Whether to ignore case differences.
 
 ### ignoreNewlineAtEof?
 
-> `optional` **ignoreNewlineAtEof**: `boolean`
+> `optional` **ignoreNewlineAtEof?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:74](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L74)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:74](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L74)
 
 (lines) Whether to ignore a missing newline character at the end of the last line.
 
@@ -34,9 +34,9 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:74](https://github.co
 
 ### ignoreWhitespace?
 
-> `optional` **ignoreWhitespace**: `boolean`
+> `optional` **ignoreWhitespace?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:72](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L72)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:72](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L72)
 
 (lines) Whether to ignore leading and trailing whitespace.
 
@@ -44,9 +44,9 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:72](https://github.co
 
 ### intlSegmenter?
 
-> `optional` **intlSegmenter**: `any`
+> `optional` **intlSegmenter?**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:80](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L80)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:80](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L80)
 
 (words) Optional Intl.Segmenter for word-level diffing.
 
@@ -54,9 +54,9 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:80](https://github.co
 
 ### items?
 
-> `optional` **items**: [`AIDiffItem`](AIDiffItem.md)[]
+> `optional` **items?**: [`AIDiffItem`](AIDiffItem.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:63](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L63)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:63](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L63)
 
 A list of expected diff items (whitelist) to match against the actual changes.
 
@@ -64,9 +64,9 @@ A list of expected diff items (whitelist) to match against the actual changes.
 
 ### newlineIsToken?
 
-> `optional` **newlineIsToken**: `boolean`
+> `optional` **newlineIsToken?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:76](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L76)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:76](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L76)
 
 (lines) Whether to treat the newline character at the end of each line as its own token.
 
@@ -74,9 +74,9 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:76](https://github.co
 
 ### permissive?
 
-> `optional` **permissive**: `boolean`
+> `optional` **permissive?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:68](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L68)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:68](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L68)
 
 Whether to allow unverified diff changes in non-strict mode.
 If true, changes not present in the `items` list will not cause a failure.
@@ -85,9 +85,9 @@ If true, changes not present in the `items` list will not cause a failure.
 
 ### stripTrailingCr?
 
-> `optional` **stripTrailingCr**: `boolean`
+> `optional` **stripTrailingCr?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:78](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L78)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:78](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L78)
 
 (lines) Whether to remove all trailing CR characters.
 
@@ -95,9 +95,9 @@ Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:78](https://github.co
 
 ### type?
 
-> `optional` **type**: [`AIDiffType`](../type-aliases/AIDiffType.md)
+> `optional` **type?**: [`AIDiffType`](../type-aliases/AIDiffType.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:61](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L61)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:61](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L61)
 
 The diff strategy to use.
 Defaults to 'auto' when no whitelist is provided for better readability,

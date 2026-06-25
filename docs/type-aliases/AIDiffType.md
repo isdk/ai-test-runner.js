@@ -8,7 +8,7 @@
 
 > **AIDiffType** = `"auto"` \| `"chars"` \| `"words"` \| `"wordsWithSpace"` \| `"lines"` \| `"sentences"` \| `"json"`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:43](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L43)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:43](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L43)
 
 Supported diff strategies for string comparison.
 - `auto`: Automatically detect the best diff strategy based on content.

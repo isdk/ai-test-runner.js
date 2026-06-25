@@ -6,9 +6,9 @@
 
 # Function: processValidationResult()
 
-> **processValidationResult**(`result`, `expected`, `actual`, `ctx`, `options`): [`MatchResult`](../interfaces/MatchResult.md)
+> **processValidationResult**(`result`, `expected`, `actual`, `ctx`, `options?`): [`MatchResult`](../interfaces/MatchResult.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/utils.ts:124](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/utils.ts#L124)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/utils.ts:124](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/utils.ts#L124)
 
 Processes the result of a validation function/operator and normalizes it to a MatchResult.
 Performs "auto-backfill" of missing keys and context information for failures.
@@ -40,7 +40,7 @@ The actual value received.
 
 The current validation context.
 
-### options
+### options?
 
 Additional normalization options.
 

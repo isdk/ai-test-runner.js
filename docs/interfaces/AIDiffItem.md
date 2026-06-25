@@ -6,7 +6,7 @@
 
 # Interface: AIDiffItem
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:7](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L7)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:7](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L7)
 
 Represents a specific difference item in the validation process.
 Extends the `Change` object from the `diff` library with additional validation metadata.
@@ -21,7 +21,7 @@ Extends the `Change` object from the `diff` library with additional validation m
 
 > **added**: `boolean`
 
-Defined in: ai-tools/node\_modules/.pnpm/diff@8.0.3/node\_modules/diff/libesm/types.d.ts:10
+Defined in: @isdk/ai-tools/node\_modules/.pnpm/diff@8.0.4/node\_modules/diff/libesm/types.d.ts:10
 
 true if the value was inserted into the new string, otherwise false
 
@@ -35,7 +35,7 @@ true if the value was inserted into the new string, otherwise false
 
 > **count**: `number`
 
-Defined in: ai-tools/node\_modules/.pnpm/diff@8.0.3/node\_modules/diff/libesm/types.d.ts:18
+Defined in: @isdk/ai-tools/node\_modules/.pnpm/diff@8.0.4/node\_modules/diff/libesm/types.d.ts:18
 
 How many tokens (e.g. chars for `diffChars`, lines for `diffLines`) the value in the change object consists of
 
@@ -47,9 +47,9 @@ How many tokens (e.g. chars for `diffChars`, lines for `diffLines`) the value in
 
 ### path?
 
-> `optional` **path**: `string`
+> `optional` **path?**: `string`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:12](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L12)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:12](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L12)
 
 The path in the object structure (e.g., "user.id" or "tags[0]").
 Present when performing structured diffs (like JSON).
@@ -60,7 +60,7 @@ Present when performing structured diffs (like JSON).
 
 > **removed**: `boolean`
 
-Defined in: ai-tools/node\_modules/.pnpm/diff@8.0.3/node\_modules/diff/libesm/types.d.ts:14
+Defined in: @isdk/ai-tools/node\_modules/.pnpm/diff@8.0.4/node\_modules/diff/libesm/types.d.ts:14
 
 true if the value was removed from the old string, otherwise false
 
@@ -72,9 +72,9 @@ true if the value was removed from the old string, otherwise false
 
 ### required?
 
-> `optional` **required**: `boolean`
+> `optional` **required?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:26](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L26)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:26](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L26)
 
 If true, this change MUST be present in the actual output for the validation to pass.
 
@@ -82,9 +82,9 @@ If true, this change MUST be present in the actual output for the validation to 
 
 ### score?
 
-> `optional` **score**: [`AIScoreConfig`](../type-aliases/AIScoreConfig.md)
+> `optional` **score?**: [`AIScoreConfig`](../type-aliases/AIScoreConfig.md)
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:30](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L30)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:30](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L30)
 
 Scoring configuration for this specific diff item.
 
@@ -92,9 +92,9 @@ Scoring configuration for this specific diff item.
 
 ### val?
 
-> `optional` **val**: `any`
+> `optional` **val?**: `any`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:17](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L17)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:17](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L17)
 
 The logical value associated with this change.
 Present when performing structured diffs (like JSON).
@@ -105,7 +105,7 @@ Present when performing structured diffs (like JSON).
 
 > **value**: `string`
 
-Defined in: ai-tools/node\_modules/.pnpm/diff@8.0.3/node\_modules/diff/libesm/types.d.ts:6
+Defined in: @isdk/ai-tools/node\_modules/.pnpm/diff@8.0.4/node\_modules/diff/libesm/types.d.ts:6
 
 The concatenated content of all the tokens represented by this change object - i.e. generally the text that is either added, deleted, or common, as a single string.
 In cases where tokens are considered common but are non-identical (e.g. because an option like `ignoreCase` or a custom `comparator` was used), the value from the *new* string will be provided here.
@@ -118,9 +118,9 @@ In cases where tokens are considered common but are non-identical (e.g. because 
 
 ### verified?
 
-> `optional` **verified**: `boolean`
+> `optional` **verified?**: `boolean`
 
-Defined in: [ai-tools/packages/ai-test-runner/src/types.ts:22](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/types.ts#L22)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/types.ts:22](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/types.ts#L22)
 
 Indicates whether this specific change has been verified against the expected whitelist.
 Internal use during the validation process.

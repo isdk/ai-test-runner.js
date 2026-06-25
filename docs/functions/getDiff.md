@@ -6,9 +6,9 @@
 
 # Function: getDiff()
 
-> **getDiff**(`expected`, `actual`, `options`): [`AIDiffItem`](../interfaces/AIDiffItem.md)[]
+> **getDiff**(`expected`, `actual`, `options?`): [`AIDiffItem`](../interfaces/AIDiffItem.md)[]
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/diff.ts:139](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/diff.ts#L139)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/diff.ts:139](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/diff.ts#L139)
 
 Gets the diff items using the specified or detected strategy.
 
@@ -22,7 +22,7 @@ Gets the diff items using the specified or detected strategy.
 
 `any`
 
-### options
+### options?
 
 [`AIDiffOptions`](../interfaces/AIDiffOptions.md) = `{}`
 

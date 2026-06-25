@@ -8,7 +8,7 @@
 
 > **validateNth**(`actual`, `expected`, `ctx`, `validateMatch`): `Promise`\<[`ValidationResult`](../type-aliases/ValidationResult.md)\>
 
-Defined in: [ai-tools/packages/ai-test-runner/src/validate/operators/nth.ts:14](https://github.com/isdk/ai-test-runner.js/blob/26beed9596be872b157e2e95587682721c3a51f4/src/validate/operators/nth.ts#L14)
+Defined in: [@isdk/ai-tools/packages/ai-test-runner/src/validate/operators/nth.ts:14](https://github.com/isdk/ai-test-runner.js/blob/ce75971deab69ffa520dfde898dcc765f6ed0187/src/validate/operators/nth.ts#L14)
 
 Validates that an array element at a specific index matches expectations.
 
