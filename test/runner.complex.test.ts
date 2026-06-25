@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { AITestRunner } from '../src/ai-test-runner.js'
-import { AIScriptExecutor, AIExecutionContext, AIExecutionResult } from '../src/types.js'
+import { AIScriptExecutor, AIExecutionContext, AIExecutionResult, AITestFixture } from '../src/types.js'
 import { YamlTypeJsonSchema } from '../src/yaml-types/index.js'
 
 class DynamicMockExecutor implements AIScriptExecutor {
@@ -67,7 +67,7 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
     // But defaultValue formats it if data is provided.
     // However, in AITestRunner.run, defaultValue is called without data for outputSchema.
 
-    const fixtures = [
+    const fixtures: AITestFixture[] = [
       {
         input: { prefix: 'abc', content: 'abc-123' },
         outputSchema: {
@@ -79,6 +79,9 @@ describe('AITestRunner Deep Template & Boundary Tests', () => {
     // This might fail currently because we don't format the schema object in validateMatch
     // Let's see. If it fails, we know we need to fix validateMatch or AITestRunner.
     let result = await runner.run('test', fixtures)
+    expect(result.passedCount).toBe(1)
+    fixtures[0].disableHeuristicSchema = true
+    result = await runner.run('test', fixtures)
     expect(result.passedCount).toBe(1)
 
     fixtures[0].input.prefix = 'none'

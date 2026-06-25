@@ -571,7 +571,7 @@ export class AITestRunner extends EventEmitter {
     }
 
     if (checkSchema !== false && expectedSchema && expectedSchema.type) {
-      await runValidation(execResult.output, expectedSchema, allocatedPerBlock, 'schema')
+      await runValidation(execResult.output, YamlTypeJsonSchema.create(expectedSchema), allocatedPerBlock, 'schema')
     }
 
     // 2. Output Matching
