@@ -1,6 +1,6 @@
 import { AIValidationFailure, ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
-import { getScoreConfig } from '../utils.js'
+import { genArrayLoopOptions, getScoreConfig } from '../utils.js'
 
 /**
  * Validates that an array contains a sequence of matching items in the specified order.
@@ -37,7 +37,7 @@ export async function validateSequence(
 
     let tempIdx = actualIdx
     while (tempIdx < actual.length) {
-      const subCtx = ctx.createSubContext('')
+      const subCtx = ctx.createSubContext('', {loop: genArrayLoopOptions(actual, i)})
       subCtx.allocatedScore = subAllocated
       const result = (await validateMatch(
         actual[tempIdx],

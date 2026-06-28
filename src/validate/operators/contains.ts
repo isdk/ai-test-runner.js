@@ -1,4 +1,5 @@
 import { ValidationResult } from '../../types.js'
+import { genArrayLoopOptions } from '../utils.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 
 /**
@@ -17,8 +18,9 @@ export async function validateContains(
   let maxBranchScore = 0
   let matchedAny = false
 
-  for (const item of actual) {
-    const subCtx = ctx.createSubContext('')
+  for (let i = 0; i < actual.length; i++) {
+    const item = actual[i]
+    const subCtx = ctx.createSubContext('', {loop: genArrayLoopOptions(actual, i)})
     subCtx.allocatedScore = ctx.allocatedScore
     const result = (await validateMatch(item, expected, subCtx)) as MatchResult
 

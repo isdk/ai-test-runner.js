@@ -55,4 +55,20 @@ describe('$contains extension', () => {
     const { failures } = await validate(actual, expected, new ValidationContext())
     expect(failures).toHaveLength(0)
   })
+
+  it('should has loop in array', async () => {
+    const actual = [
+      { date: '2023-01-01', v: 10 },
+      { date: '2023-01-03', v: 30 },
+      { date: '2023-01-02', v: 20 },
+    ]
+
+    const rs = await validate(actual, {
+      $contains: {
+        date: {$expr: 'loop && typeof loop.index === "number" && loop.last'}
+      }
+    }, new ValidationContext())
+
+    expect(rs.pass).toBe(true)
+  })
 })

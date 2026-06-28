@@ -1,6 +1,6 @@
 import { ValidationResult } from '../../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
-import { processValidationResult } from '../utils.js'
+import { genArrayLoopOptions, processValidationResult } from '../utils.js'
 
 /**
  * Validates that EVERY item in an array matches the specified expectation.
@@ -33,7 +33,7 @@ export async function validateEach(
   const results: MatchResult[] = []
 
   for (let i = 0; i < actual.length; i++) {
-    const subCtx = ctx.createChildContext(i, actual.length)
+    const subCtx = ctx.createChildContext(i, actual.length, {loop: genArrayLoopOptions(actual, i)})
     subCtx.allocatedScore = weights[i] * ctx.allocatedScore
 
     const result = await validateMatch(actual[i], expected, subCtx)

@@ -42,6 +42,22 @@ describe('validate/operators', () => {
     expect(failures[0].message).toContain('$sequence mismatch')
   })
 
+  it('$sequence should has loop in array', async () => {
+    const actual = [
+      { date: '2023-01-01', v: 10 },
+      { date: '2023-01-03', v: 30 },
+      { date: '2023-01-02', v: 20 },
+    ]
+
+    const rs = await validate(actual, {
+      $sequence: [{
+        date: {$expr: 'loop && typeof loop.index === "number"'}
+      }]
+    }, new ValidationContext())
+
+    expect(rs.pass).toBe(true)
+  })
+
   it('$not should pass if value does not match', async () => {
     const { failures } = await validate('hello', { $not: 'world' }, new ValidationContext())
     expect(failures).toHaveLength(0)
@@ -63,6 +79,22 @@ describe('validate/operators', () => {
     }
     const { failures } = await validate(actual, expected, new ValidationContext())
     expect(failures).toHaveLength(0)
+  })
+
+  it('$all should has loop in array', async () => {
+    const actual = [
+      { date: '2023-01-01', v: 10 },
+      { date: '2023-01-03', v: 30 },
+      { date: '2023-01-02', v: 20 },
+    ]
+
+    const rs = await validate(actual, {
+      $all: [{
+        date: {$expr: 'loop && typeof loop.index === "number"'}
+      }]
+    }, new ValidationContext())
+
+    expect(rs.pass).toBe(true)
   })
 
   it('$sequence with regex', async () => {
@@ -121,6 +153,22 @@ describe('validate/operators', () => {
     it('should pass vacuously on empty array', async () => {
       const { failures } = await validate([], { $each: { type: 'user' } }, new ValidationContext())
       expect(failures).toHaveLength(0)
+    })
+
+    it('should has loop in array', async () => {
+      const actual = [
+        { date: '2023-01-01', v: 10 },
+        { date: '2023-01-03', v: 30 },
+        { date: '2023-01-02', v: 20 },
+      ]
+
+      const rs = await validate(actual, {
+        $each: {
+          date: {$expr: 'loop && typeof loop.index === "number"'}
+        }
+      }, new ValidationContext())
+
+      expect(rs.pass).toBe(true)
     })
   })
 

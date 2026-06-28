@@ -144,13 +144,18 @@ const result = await runner.run('my-script-id', fixtures);
 **表达式算子（Expression）：**
 
 - **`$expr`**: **动态表达式求值（Expression Operator）**。最符合前端直觉的语法，支持以 JavaScript 语法传入一段动态计算公式字符串，实现极度灵活的跨字段、算数运算或异步处理的逻辑判断。
-  - 能向表达式沙盒中自动注入强大的上下文变量（如：`actual`, `expected`, `data`, `fixture`, `ctx` 等）。
+  - 能向表达式沙盒中自动注入强大的上下文变量（如：`actual`, `expected`, `data`, `fixture`, `loop`, `ctx` 等）。
     - `fixture`: 当前 fixture 的信息
       - `title`
       - `input`
       - `output`
       - `outputSchema`
       - etc
+    - `loop`: 仅当是数组并且使用算子(`$sequence`, `$each`, `$all`, `$contains`)才存在
+      - `index`: 当前索引值
+      - `first`: 是否是第一个
+      - `last`: 是否是最后一个
+      - `length`: 数组长度
   - **进阶技巧：实现缺失的核心算子功能**
     由于框架目前不提供内置的 `$length`、`$keys` 或 `$values` 算子，你可以通过 `$expr` 轻松实现：
     - **检查数组长度**：`$expr: "actual.length === 5"` 或动态比较 `$expr: "actual.length >= data.minSize"`。

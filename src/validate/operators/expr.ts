@@ -17,13 +17,15 @@ export async function validateExpr(
   }
 
   try {
-    const fn = newFunction(expected, {
+    const fnScopeData: any = {
       actual,
       expected,
       data: ctx.data,
       fixture: ctx.input,
       ctx,
-    })
+    }
+    if (ctx.loop) {fnScopeData.loop = ctx.loop}
+    const fn = newFunction(expected, fnScopeData)
 
     const res = await fn()
 

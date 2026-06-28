@@ -3,7 +3,7 @@ import {
   ValidationResult,
   AIValidationFailure,
 } from '../types.js'
-import { ValidationContext, MatchResult, MatchResultDetail } from './types.js'
+import { ValidationContext, MatchResult, MatchResultDetail, ArrayLoopOptions } from './types.js'
 
 /**
  * Reserved metadata control keys.
@@ -179,7 +179,7 @@ export function processValidationResult(
       }
 
       message = resObj.message
-      
+
       /**
        * 【业务逻辑保留理由】
        * 即使在 pass: true 的情况下，也必须提取这些元数据。
@@ -224,14 +224,14 @@ export function processValidationResult(
     }
     if (newFailure.expected === undefined) newFailure.expected = expected
     if (newFailure.actual === undefined) newFailure.actual = actual
-    
+
     // 如果当前分支是红线分支（Critical），则标记所有失败为 Critical
     if (ctx.isCriticalBranch || critical) newFailure.critical = true
     return newFailure
   })
 
   const res: MatchResult = { score, pass, failures: finalFailures, dimension, title, critical, details }
-  
+
   /**
    * 【业务逻辑保留理由】
    * 如果有维度信息但没有详情树，创建一个单节点详情。
@@ -356,7 +356,7 @@ export function calculateNormalizedWeights(
     0
   )
   const scale = Math.max(maxScore, maxExplicit)
-  
+
   // 调整未分配权重的量纲
   if (!((autoConfidence && totalUnassignedWeight >= 0 && totalUnassignedWeight < 1) || (autoConfidence === 'force'))) {
     totalUnassignedWeight = totalUnassignedWeight / scale
@@ -407,6 +407,16 @@ export function calculateNormalizedWeights(
      * 惩罚项（负数）不参与正数项的比例瓜分。
      * 直接返回归一化后的绝对负权重，确保 score: -20 在 maxScore: 100 时权重正好是 -0.2。
      */
-    return w 
+    return w
   })
+}
+
+export function genArrayLoopOptions(arr: any[], i: number) {
+  const result: ArrayLoopOptions = {
+    first: i === 0,
+    index: i,
+    last: i === arr.length - 1,
+    length: arr.length,
+  }
+  return result
 }

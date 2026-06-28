@@ -6,6 +6,7 @@ import {
   ValidationContext,
   MatchResult,
   MatchResultDetail,
+  ArrayLoopOptions,
 } from './types.js'
 import {
   isStrict,

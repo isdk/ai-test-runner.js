@@ -1,6 +1,13 @@
 import { template } from 'lodash-es'
 import { AIValidationFailure, AIStrictOption, AIScoreConfig, ValidationResult } from '../types.js'
 
+export interface ArrayLoopOptions {
+  first: boolean
+  index: number
+  last: boolean
+  length: number
+}
+
 /**
  * Options for matching and validating values.
  */
@@ -44,6 +51,7 @@ export interface MatchValueOptions {
   currentOperator?: string
   /** The virtual/path strategy of the current operator. */
   operatorStrategy?: boolean | string
+  loop?: ArrayLoopOptions
 }
 
 /**
@@ -89,6 +97,7 @@ export class ValidationContext {
   currentOperator?: string
   /** The virtual strategy of the current operator. */
   operatorStrategy?: boolean | string
+  loop?: ArrayLoopOptions
 
   /**
    * Creates a new validation context.
@@ -115,6 +124,7 @@ export class ValidationContext {
     this.autoConfidence = options.autoConfidence
     this.currentOperator = options.currentOperator
     this.operatorStrategy = options.operatorStrategy
+    if (options.loop) {this.loop = options.loop}
   }
 
   /**
@@ -155,7 +165,7 @@ export class ValidationContext {
 
   /**
    * Creates a high-level child context with automated path generation based on operator strategy.
-   * 
+   *
    * @param keyOrIndex - The key or index of the child item.
    * @param count - Total number of items in the container (used for single-element optimization).
    * @param options - Additional options.
@@ -184,7 +194,7 @@ export class ValidationContext {
       }
       // If count === 1, subKey remains empty (inherits parent path)
     } else {
-      // Non-transparent mode: Use traditional operator path style if possible, 
+      // Non-transparent mode: Use traditional operator path style if possible,
       // or fall back to array-style for children
       subKey = `[${keyOrIndex}]`
     }
