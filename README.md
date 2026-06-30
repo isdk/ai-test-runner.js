@@ -144,7 +144,7 @@ Powerful assertions for complex validation scenarios, including logical, collect
 **Expression:**
 
 - **`$expr`**: **Dynamic Expression Evaluation**. Intuitively evaluates a string expression (using JavaScript syntax) to perform complex mathematical calculations or cross-field logic bridging actual output, data, and input. Supports asynchronous and synchronous logic.
-  - Automatically injects context variables like `actual`, `expected`, `data`, `fixture`, `loop`, and `ctx` into the evaluation scope.
+  - Automatically injects context variables like `actual`, `expected`, `data`, `fixture`, `loop`, and `ctx.actual`(root) into the evaluation scope.
     - `fixture`: the current fixture information
       - `title`
       - `input`

@@ -38,6 +38,9 @@ export async function validate(
   if (!ctx.strategy) {
     ctx.strategy = getStrategy('weighted')
   }
+  if (!ctx.actual) {
+    ctx.actual = actual
+  }
 
   const { input, data } = ctx
   const scoreCfg = getScoreConfig(expected)

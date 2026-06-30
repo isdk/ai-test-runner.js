@@ -144,7 +144,7 @@ const result = await runner.run('my-script-id', fixtures);
 **表达式算子（Expression）：**
 
 - **`$expr`**: **动态表达式求值（Expression Operator）**。最符合前端直觉的语法，支持以 JavaScript 语法传入一段动态计算公式字符串，实现极度灵活的跨字段、算数运算或异步处理的逻辑判断。
-  - 能向表达式沙盒中自动注入强大的上下文变量（如：`actual`, `expected`, `data`, `fixture`, `loop`, `ctx` 等）。
+  - 能向表达式沙盒中自动注入强大的上下文变量（如：`actual`, `expected`, `data`, `fixture`, `loop`, `ctx.actual`(root) 等）。
     - `fixture`: 当前 fixture 的信息
       - `title`
       - `input`

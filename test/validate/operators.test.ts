@@ -354,6 +354,12 @@ describe('validate/operators', () => {
 
   // --- $expr operator tests ---
   describe('$expr', () => {
+    it('should validate root actual', async () => {
+      const { failures, pass } = await validate({o: {i: 10}, o1: 3}, {o: {i: { $expr: 'ctx.actual.o1 === 3' }}}, new ValidationContext())
+      expect(pass).toBe(true)
+      expect(failures).toHaveLength(0)
+    })
+
     it('should validate simple synchronous expression', async () => {
       const { failures, pass } = await validate(10, { $expr: 'actual > 5' }, new ValidationContext())
       expect(pass).toBe(true)

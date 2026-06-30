@@ -52,6 +52,8 @@ export interface MatchValueOptions {
   /** The virtual/path strategy of the current operator. */
   operatorStrategy?: boolean | string
   loop?: ArrayLoopOptions
+  /** the root actual */
+  actual?: any
 }
 
 /**
@@ -98,6 +100,8 @@ export class ValidationContext {
   /** The virtual strategy of the current operator. */
   operatorStrategy?: boolean | string
   loop?: ArrayLoopOptions
+  /** the root actual */
+  actual?: any
 
   /**
    * Creates a new validation context.
@@ -125,6 +129,7 @@ export class ValidationContext {
     this.currentOperator = options.currentOperator
     this.operatorStrategy = options.operatorStrategy
     if (options.loop) {this.loop = options.loop}
+    this.actual = options.actual
   }
 
   /**
