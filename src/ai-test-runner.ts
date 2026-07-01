@@ -270,7 +270,7 @@ export class AITestRunner extends EventEmitter {
         options: { ...userConfig },
       }
 
-      this.emit('test:start', { i, script: currentScript, input })
+      this.emit('test:start', { i, script: currentScript, input, title: fixture.title, fixture })
 
       const execResult = await this.executor.execute(execContext)
       const duration = Date.now() - ts
