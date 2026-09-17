@@ -46,10 +46,8 @@
     "@isdk/ai-tool": "workspace:^",
     "@isdk/ai-tool-agent": "workspace:^",
     "@isdk/match-ex": "workspace:^",
-    "@isdk/template-engines": "workspace:^",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "ajv-keywords": "^5.1.0",
+    "@isdk/match-ex-schema": "workspace:^",
+    "@isdk/match-ex-template": "workspace:^",
     "diff": "^8.0.3",
     "lodash-es": "^4.17.23",
     "util-ex": "^2.5.2"
