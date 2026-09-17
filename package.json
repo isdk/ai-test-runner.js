@@ -45,6 +45,7 @@
   "dependencies": {
     "@isdk/ai-tool": "workspace:^",
     "@isdk/ai-tool-agent": "workspace:^",
+    "@isdk/template-engines": "workspace:^",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "ajv-keywords": "^5.1.0",
