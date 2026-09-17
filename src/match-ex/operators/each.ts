@@ -1,4 +1,4 @@
-import { ValidationResult } from '../../types.js'
+import { ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { genArrayLoopOptions, processValidationResult } from '../utils.js'
 

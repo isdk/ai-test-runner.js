@@ -1,5 +1,5 @@
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
-import { AIValidationFailure } from '../types.js'
+import { AIValidationFailure } from './types.js'
 import {
   MatchValueOptions,
   ValidationContext,

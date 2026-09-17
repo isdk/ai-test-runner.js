@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateMatch } from '../../src/validate/core.js'
+import { validateMatch } from '../../src/match-ex/core.js'
 
 describe('validate/diff', () => {
   it('should fail with diff info when string mismatch', async () => {

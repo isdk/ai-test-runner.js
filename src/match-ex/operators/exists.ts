@@ -1,4 +1,4 @@
-import { ValidationResult } from '../../types.js'
+import { ValidationResult } from '../types.js'
 import { ValidationContext } from '../types.js'
 
 /**

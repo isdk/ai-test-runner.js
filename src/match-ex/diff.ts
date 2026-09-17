@@ -14,7 +14,7 @@ import {
   AIValidationFailure,
   AIDiffOptions,
   AIDiffType,
-} from '../types.js'
+} from './types.js'
 import { ValidationContext, MatchResult } from './types.js'
 import { isStrict, calculateNormalizedWeights, getScoreConfig } from './utils.js'
 import { formatTemplate } from './template.js'

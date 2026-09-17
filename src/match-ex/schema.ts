@@ -1,4 +1,4 @@
-import { AIValidationFailure } from '../types.js'
+import { AIValidationFailure } from './types.js'
 import { ValidationContext, MatchResult } from './types.js'
 import { JsonSchemaType } from './schema-type.js'
 

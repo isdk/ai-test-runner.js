@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validate, validateMatch } from '../../src/validate/core.js'
-import { ValidationContext } from '../../src/validate/types.js'
+import { validate, validateMatch } from '../../src/match-ex/core.js'
+import { ValidationContext } from '../../src/match-ex/types.js'
 
 describe('validate/$exists', () => {
   it('should pass if property exists (non-strict)', async () => {

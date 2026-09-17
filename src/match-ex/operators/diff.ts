@@ -1,7 +1,7 @@
-import { ValidationResult } from '../../types.js'
+import { ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { validateStringDiff } from '../diff.js'
-import { AIDiffOptions } from '../../types.js'
+import { AIDiffOptions } from '../types.js'
 
 /**
  * Validates a string using diff analysis.

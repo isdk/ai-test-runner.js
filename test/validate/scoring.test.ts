@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { processValidationResult } from '../../src/validate/utils.js';
-import { ValidationContext, MatchResult } from '../../src/validate/types.js';
-import { weightedSumStrategy, maxStrategy, getStrategy } from '../../src/validate/strategies.js';
-import { validate } from '../../src/validate/core.js';
+import { processValidationResult } from '../../src/match-ex/utils.js';
+import { ValidationContext, MatchResult } from '../../src/match-ex/types.js';
+import { weightedSumStrategy, maxStrategy, getStrategy } from '../../src/match-ex/strategies.js';
+import { validate } from '../../src/match-ex/core.js';
 
 describe('processValidationResult', () => {
   let ctx: ValidationContext;

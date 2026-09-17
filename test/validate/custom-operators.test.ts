@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { loadOperators } from '../../src/validate/loader.js'
-import { ValidationContext, MatchResult } from '../../src/validate/types.js'
-import { validate } from '../../src/validate/core.js'
+import { loadOperators } from '../../src/match-ex/loader.js'
+import { ValidationContext, MatchResult } from '../../src/match-ex/types.js'
+import { validate } from '../../src/match-ex/core.js'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 

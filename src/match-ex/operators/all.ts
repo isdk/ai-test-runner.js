@@ -1,4 +1,4 @@
-import { ValidationResult } from '../../types.js'
+import { ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { processValidationResult, getScoreConfig } from '../utils.js'
 import { validateContains } from './contains.js'

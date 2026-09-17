@@ -1,16 +1,16 @@
-import { ValidationResult } from '../../types.js'
+import { ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { getScoreConfig } from '../utils.js'
 
 /**
- * Validates that a value matches ALL specified expectations.
+ * Validates that a value matches at least ONE of the specified expectations.
  * 
  * @param actual - The value to validate.
  * @param expectedList - Array of expectations.
  * @param ctx - Validation context.
  * @param validateMatch - Recursive validation function.
  */
-export async function validateAnd(
+export async function validateOr(
   actual: any,
   expectedList: any[],
   ctx: ValidationContext,
@@ -20,7 +20,7 @@ export async function validateAnd(
     return {
       score: 0,
       pass: false,
-      message: '$and operator requires an array of expectations',
+      message: '$or operator requires an array of expectations',
     }
   }
 
@@ -38,4 +38,4 @@ export async function validateAnd(
 
   return ctx.aggregate(results, weights)
 }
-validateAnd.strategy = 'weighted'
+validateOr.strategy = 'max'

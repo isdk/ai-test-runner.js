@@ -3,7 +3,7 @@ import {
   AIStrictOption,
   ValidationResult,
   AIValidationFailure,
-} from '../types.js'
+} from './types.js'
 import { ValidationContext, MatchResult, MatchResultDetail, ArrayLoopOptions } from './types.js'
 
 export { toRegExp } from 'util-ex'

@@ -1,4 +1,4 @@
-import { AIValidationFailure, ValidationResult } from '../../types.js'
+import { AIValidationFailure, ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { genArrayLoopOptions, getScoreConfig } from '../utils.js'
 

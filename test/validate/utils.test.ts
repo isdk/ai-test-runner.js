@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isStrict } from '../../src/validate/utils.js'
+import { isStrict } from '../../src/match-ex/utils.js'
 
 describe('validate/utils', () => {
   describe('isStrict', () => {

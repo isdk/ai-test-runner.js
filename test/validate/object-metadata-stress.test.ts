@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { validate } from '../../src/validate/core.js'
-import { ValidationContext } from '../../src/validate/types.js'
-import { formatObject } from '../../src/validate/template.js'
+import { validate } from '../../src/match-ex/core.js'
+import { ValidationContext } from '../../src/match-ex/types.js'
+import { formatObject } from '../../src/match-ex/template.js'
 
 describe('Object Metadata - Stress & Edge Cases', () => {
   it('should maintain local exclusivity: parent $meta does NOT disable child shorthands', async () => {

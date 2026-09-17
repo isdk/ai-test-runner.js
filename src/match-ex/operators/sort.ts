@@ -1,4 +1,4 @@
-import { ValidationResult } from '../../types.js'
+import { ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn } from '../types.js'
 import { orderBy, omit } from 'lodash-es'
 import { newFunction } from 'util-ex'

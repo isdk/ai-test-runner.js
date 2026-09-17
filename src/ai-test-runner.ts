@@ -15,8 +15,8 @@ import {
   formatObject,
   validate,
   ValidationContext,
-} from './validate/index.js'
-import { loadOperators } from './validate/loader.js'
+} from './match-ex/index.js'
+import { loadOperators } from './match-ex/loader.js'
 import { YamlTypeJsonSchema } from './yaml-types/index.js'
 
 const ReasonNames = [

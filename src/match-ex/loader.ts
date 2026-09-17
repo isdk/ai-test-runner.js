@@ -1,7 +1,7 @@
 import { camelCase } from 'lodash-es'
 import { ValidationOperatorHandler, ValidationContext } from './types.js'
 import { processValidationResult } from './utils.js'
-import { ValidationResult } from '../types.js'
+import { ValidationResult } from './types.js'
 
 /**
  * Converts a filesystem path into a `file:` URL without relying on any node

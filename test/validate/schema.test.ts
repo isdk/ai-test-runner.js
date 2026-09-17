@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { validate } from '../../src/validate/core.js'
-import { ValidationContext } from '../../src/validate/types.js'
-import { isJsonSchema } from '../../src/validate/schema.js'
+import { validate } from '../../src/match-ex/core.js'
+import { ValidationContext } from '../../src/match-ex/types.js'
+import { isJsonSchema } from '../../src/match-ex/schema.js'
 import { YamlTypeJsonSchema } from '../../src/yaml-types/index.js'
 
 describe('validate/schema', () => {

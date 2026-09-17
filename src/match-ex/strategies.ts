@@ -1,4 +1,4 @@
-import { AIScoreConfig } from '../types.js'
+import { AIScoreConfig } from './types.js'
 import { ScoringStrategy, MatchResult, MatchResultDetail } from './types.js'
 import { calculateNormalizedWeights } from './utils.js'
 

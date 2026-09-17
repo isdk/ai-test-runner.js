@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { validate } from '../../src/validate/core.js'
-import { ValidationContext } from '../../src/validate/types.js'
-import { ValidationOperatorHandler } from '../../src/validate/types.js'
+import { validate } from '../../src/match-ex/core.js'
+import { ValidationContext } from '../../src/match-ex/types.js'
+import { ValidationOperatorHandler } from '../../src/match-ex/types.js'
 
 describe('validate/operators', () => {
   it('$contains should pass if array contains item', async () => {

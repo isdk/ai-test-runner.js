@@ -4,7 +4,7 @@
  */
 
 import { registerYamlTag } from '@isdk/ai-tool'
-import { JsonSchemaType } from '../validate/schema-type.js'
+import { JsonSchemaType } from '../match-ex/schema-type.js'
 import { YamlTypeJsonSchema, yamlJsonSchemaTag } from './json-schema.js'
 
 export * from './json-schema.js'

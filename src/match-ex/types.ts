@@ -1,5 +1,158 @@
+import { Change } from 'diff'
 import { template } from 'lodash-es'
-import { AIValidationFailure, AIStrictOption, AIScoreConfig, ValidationResult } from '../types.js'
+
+/**
+ * Supported diff strategies for string comparison.
+ * - `auto`: Automatically detect the best diff strategy based on content.
+ * - `chars`: Character-level diffing.
+ * - `words`: Word-level diffing (ignoring whitespace).
+ * - `wordsWithSpace`: Word-level diffing (including whitespace).
+ * - `lines`: Line-level diffing.
+ * - `sentences`: Sentence-level diffing.
+ * - `json`: JSON-level diffing (serializes objects to JSON first).
+ */
+export type AIDiffType =
+  | 'auto'
+  | 'chars'
+  | 'words'
+  | 'wordsWithSpace'
+  | 'lines'
+  | 'sentences'
+  | 'json'
+
+/**
+ * Represents a specific difference item in the validation process.
+ * Extends the `Change` object from the `diff` library with additional validation metadata.
+ */
+export interface AIDiffItem extends Change {
+  /**
+   * The path in the object structure (e.g., "user.id" or "tags[0]").
+   * Present when performing structured diffs (like JSON).
+   */
+  path?: string
+  /**
+   * The logical value associated with this change.
+   * Present when performing structured diffs (like JSON).
+   */
+  val?: any
+  /**
+   * Indicates whether this specific change has been verified against the expected whitelist.
+   * Internal use during the validation process.
+   */
+  verified?: boolean
+  /**
+   * If true, this change MUST be present in the actual output for the validation to pass.
+   */
+  required?: boolean
+  /**
+   * Scoring configuration for this specific diff item.
+   */
+  score?: AIScoreConfig
+}
+
+/**
+ * Represents a failure encountered during the validation of a value.
+ */
+export interface AIValidationFailure {
+  /** The dot-separated path or array index where the failure occurred. */
+  key?: string
+  /** A human-readable message describing the failure. */
+  message?: string
+  /** The value that was expected at the given key. */
+  expected?: any
+  /** The actual value that was received. */
+  actual?: any
+  /** Detailed diff information if the failure occurred during a string comparison. */
+  diff?: AIDiffItem[]
+  /** Indicates if this failure occurred in a critical validation path. */
+  critical?: boolean
+}
+
+/**
+ * Configuration for scoring a validation item.
+ * Can be a simple number (weight) or a detailed object.
+ */
+export type AIScoreConfig =
+  | number
+  | {
+      /** The relative weight or value of this item. Positive for rewards, negative for penalties. */
+      value: number
+      /** The dimension/tag this score belongs to (e.g. 'accuracy', 'security'). */
+      dimension?: string
+      /** If true, this item must pass for the overall test to pass, regardless of the score(red-line). */
+      critical?: boolean
+      /** The strategy used to calculate the score for this item's children. */
+      strategy?: string
+      /** The threshold for fuzzy matching. Only applicable for leaf nodes. */
+      threshold?: number
+      /** Additional options for the strategy. */
+      [key: string]: any
+    }
+
+/**
+ * The result returned by a validation operator or function.
+ * - `boolean`: true -> pass (100%), false -> fail (0%).
+ * - `string`: fail (0%) with message.
+ * - `number`: pass with confidence score (0-1).
+ * - `object`: detailed result with score and optional message.
+ */
+export type ValidationResult =
+  | boolean
+  | string
+  | number
+  | {
+      /** The confidence score (0.0 - 1.0). */
+      score: number
+      /** Optional failure message. */
+      message?: string
+      /** Whether the validation is considered passed. Default depends on threshold. */
+      pass?: boolean
+      /** The dimension/tag this score belongs to. */
+      dimension?: string
+      /** Additional metadata. */
+      [key: string]: any
+    }
+
+/**
+ * Configuration for strict validation mode.
+ *
+ * - `true`: Enable strict mode for all types.
+ * - `false`: Disable strict mode (partial matching).
+ * - `'object' | 'diff' | 'array'`: Enable strict mode only for the specified type.
+ * - `string[]`: Array of types to enable strict mode for.
+ */
+export type AIStrictOption = boolean | string | string[]
+
+/**
+ * Configuration options for string diffing.
+ */
+export interface AIDiffOptions {
+  /**
+   * The diff strategy to use.
+   * Defaults to 'auto' when no whitelist is provided for better readability,
+   * or 'chars' when a whitelist is provided for precision.
+   */
+  type?: AIDiffType
+  /** A list of expected diff items (whitelist) to match against the actual changes. */
+  items?: AIDiffItem[]
+  /**
+   * Whether to allow unverified diff changes in non-strict mode.
+   * If true, changes not present in the `items` list will not cause a failure.
+   */
+  permissive?: boolean
+  /** Whether to ignore case differences. */
+  ignoreCase?: boolean
+  /** (lines) Whether to ignore leading and trailing whitespace. */
+  ignoreWhitespace?: boolean
+  /** (lines) Whether to ignore a missing newline character at the end of the last line. */
+  ignoreNewlineAtEof?: boolean
+  /** (lines) Whether to treat the newline character at the end of each line as its own token. */
+  newlineIsToken?: boolean
+  /** (lines) Whether to remove all trailing CR characters. */
+  stripTrailingCr?: boolean
+  /** (words) Optional Intl.Segmenter for word-level diffing. */
+  intlSegmenter?: any
+}
 
 export interface ArrayLoopOptions {
   first: boolean

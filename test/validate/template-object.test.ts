@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatTemplate, formatObject } from '../../src/validate/template.js'
+import { formatTemplate, formatObject } from '../../src/match-ex/template.js'
 
 describe('validate/template object support', () => {
   it('should return raw object when using pure placeholder in formatTemplate', async () => {
