@@ -2,6 +2,7 @@
 module.exports = {
   entryPoints: ['./src/index.ts'],
   externalSymbolLinkMappings: {
-    "events-ex": { "EventEmitter": "#" }
+    "events-ex": { "EventEmitter": "#" },
+    "@isdk/match-ex-schema": { "AjvSchemaType": "#" },
   },
 }

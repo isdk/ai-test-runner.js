@@ -19,6 +19,23 @@ A lightweight, fully decoupled core engine for testing AI scripts, agents, and p
 pnpm add @isdk/ai-test-runner
 ```
 
+## Architecture
+
+Since v1.x the matching engine lives in its own package, [`@isdk/match-ex`](https://github.com/isdk/match-ex.js):
+
+```
+@isdk/match-ex             the matching/validation engine (operators, scoring
+                           strategies, semantic diff, registries)
+├─ @isdk/match-ex-schema   Ajv-backed JSON Schema plugin (imports register it)
+└─ @isdk/match-ex-template {{placeholder}} interpolation plugin (imports register it)
+
+@isdk/ai-test-runner       fixtures, executor protocol, YAML support, reports
+                           — re-exports the engine and imports both plugins,
+                             so behavior is unchanged out of the box
+```
+
+For convenience, everything the engine exports (`validate`, `ValidationContext`, `MatchResult`, ...) is re-exported from `@isdk/ai-test-runner` — you only need this one package. If you use `@isdk/match-ex` **standalone**, import the two plugins yourself to enable JSON Schema validation and template interpolation.
+
 ## Quick Start
 
 Run your AI tests in three simple steps. We recommend using `expect.output` for result validation:
@@ -63,6 +80,8 @@ const result = await runner.run('my-script-id', fixtures);
 ### 1. Validation Engine
 
 The engine allows defining complex assertions via the `expect` object. Note that you can use both top-level `output` and the `expect` object simultaneously in a single fixture.
+
+> The engine is [`@isdk/match-ex`](https://github.com/isdk/match-ex.js) — see its README for the full standalone API (custom operators, `loadOperators`, strategies, strict mode).
 
 **Example: Simultaneous Validation**
 
@@ -579,7 +598,7 @@ No need to manually parse `messages`; the engine automatically extracts all tool
 
 ### 5. JSON Schema Validation
 
-The most rigorous way to validate structured output.
+The most rigorous way to validate structured output. Validation is Ajv-backed via the `@isdk/match-ex-schema` plugin (enabled automatically by `@isdk/ai-test-runner`); all [ajv-formats](https://github.com/ajv-validator/ajv-formats) and [ajv-keywords](https://github.com/ajv-validator/ajv-keywords) keywords are available.
 
 #### 5.1 Heuristic Recognition
 

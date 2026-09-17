@@ -19,6 +19,22 @@
 pnpm add @isdk/ai-test-runner
 ```
 
+## 架构
+
+自 v1.x 起，匹配引擎拆分为独立包 [`@isdk/match-ex`](https://github.com/isdk/match-ex.js)：
+
+```
+@isdk/match-ex             匹配/校验引擎（操作符、评分策略、语义化 diff、注册表）
+├─ @isdk/match-ex-schema   基于 Ajv 的 JSON Schema 插件（导入即注册）
+└─ @isdk/match-ex-template {{占位符}} 插值插件（导入即注册）
+
+@isdk/ai-test-runner       fixtures、执行器协议、YAML 支持、报告
+                           —— 转发引擎导出并导入两个插件，
+                              开箱行为与拆分前完全一致
+```
+
+为方便使用，引擎的全部导出（`validate`、`ValidationContext`、`MatchResult` 等）都从 `@isdk/ai-test-runner` 转发——你只需要这一个包。若**单独**使用 `@isdk/match-ex`，请自行导入上述两个插件以启用 JSON Schema 校验与模板插值。
+
 ## 快速上手
 
 只需三步，即可在项目中运行 AI 测试。我们推荐使用 `expect.output` 进行结果验证：
@@ -63,6 +79,8 @@ const result = await runner.run('my-script-id', fixtures);
 ### 1. 验证引擎 (Validation Engine)
 
 验证引擎是测试的核心，支持通过 `expect` 对象定义复杂的断言。注意，你可以在单个测试用例中同时使用顶层 `output` 和 `expect` 对象。
+
+> 该引擎即 [`@isdk/match-ex`](https://github.com/isdk/match-ex.js)——独立使用时的完整 API（自定义操作符、`loadOperators`、策略、严格模式）见其 README。
 
 **示例：同时进行多种验证**
 
@@ -549,7 +567,7 @@ tools: true  # 自动将 weather.ai.yaml 设为可用工具
 
 ### 5. JSON Schema 验证
 
-对于结构化输出，JSON Schema 是最严谨的校验方式。默认支持启发式识别（根据 `type` 属性）。
+对于结构化输出，JSON Schema 是最严谨的校验方式。校验由 `@isdk/match-ex-schema` 插件基于 Ajv 实现（`@isdk/ai-test-runner` 已自动启用）；所有 [ajv-formats](https://github.com/ajv-validator/ajv-formats) 与 [ajv-keywords](https://github.com/ajv-validator/ajv-keywords) 的关键字均可用。默认支持启发式识别（根据 `type` 属性）。
 
 推荐使用 `$schema` 操作符：
 
