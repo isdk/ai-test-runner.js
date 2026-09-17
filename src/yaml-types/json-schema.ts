@@ -1,5 +1,5 @@
 import { createYamlObjectTag } from '@isdk/ai-tool'
-import { AjvSchemaType } from '../match-ex/ajv-schema.js'
+import { AjvSchemaType } from '@isdk/match-ex'
 
 /**
  * YAML-flavoured JSON Schema type.

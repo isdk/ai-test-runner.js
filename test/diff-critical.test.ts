@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { AITestRunner } from '../../src/ai-test-runner.js'
-import { AIScriptExecutor } from '../../src/types.js'
+import { AITestRunner } from '../src/ai-test-runner.js'
+import { AIScriptExecutor } from '../src/types.js'
 
 const mockExecutor: AIScriptExecutor = {
   execute: async (context) => {

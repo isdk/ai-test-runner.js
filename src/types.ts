@@ -6,13 +6,14 @@ import type {
   DiffType,
   DiffOptions,
   ValidationResult,
-} from './match-ex/types.js'
+} from '@isdk/match-ex'
 
 /**
- * These types are owned by the matching engine (`./match-ex`), which names them
- * neutrally since it has nothing to do with AI. They are re-exported here under
- * their historical `AI*` names so existing `@isdk/ai-test-runner` consumers
- * keep compiling — e.g. `@isdk/cli-plugin-cmd-test` imports `AIValidationFailure`.
+ * These types are owned by the matching engine (`@isdk/match-ex`), which names
+ * them neutrally since it has nothing to do with AI. They are re-exported here
+ * under their historical `AI*` names so existing `@isdk/ai-test-runner`
+ * consumers keep compiling — e.g. `@isdk/cli-plugin-cmd-test` imports
+ * `AIValidationFailure`.
  *
  * @deprecated Prefer the neutral names; the aliases exist for compatibility and
  * will stay until the next major version.
@@ -24,7 +25,7 @@ export type {
   DiffItem as AIDiffItem,
   DiffType as AIDiffType,
   DiffOptions as AIDiffOptions,
-} from './match-ex/types.js'
+} from '@isdk/match-ex'
 
 /** Neutral aliases of the engine-owned types (see above). */
 export type {
@@ -35,7 +36,7 @@ export type {
   DiffType,
   DiffOptions,
   ValidationResult,
-} from './match-ex/types.js'
+} from '@isdk/match-ex'
 
 /**
  * The execution context passed to an `AIScriptExecutor`.
