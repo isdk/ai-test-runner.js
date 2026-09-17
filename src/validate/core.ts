@@ -1,4 +1,3 @@
-import { isRegExp, toRegExp } from '@isdk/ai-tool'
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
 import { AIValidationFailure } from '../types.js'
 import {
@@ -16,12 +15,14 @@ import {
   isMetadataKey,
   META_CONTAINER,
   META_SHORTHANDS,
+  isRegExp,
+  toRegExp,
 } from './utils.js'
 import { formatTemplate, formatObject } from './template.js'
 import { isJsonSchema, validateJsonSchema } from './schema.js'
 import { OPERATORS } from './operators.js'
 import { validateStringDiff } from './diff.js'
-import { YamlTypeJsonSchema } from '../yaml-types/index.js'
+import { JsonSchemaType } from './schema-type.js'
 import { getStrategy } from './strategies.js'
 
 
@@ -71,7 +72,7 @@ export async function validate(
     vType === 'object' &&
     expected !== null &&
     !(expected instanceof RegExp) &&
-    !(expected instanceof YamlTypeJsonSchema)
+    !JsonSchemaType.isInstance(expected)
   ) {
     const keys = Object.keys(expected)
     if (ctx.allowOperatorOverride) {
@@ -113,7 +114,7 @@ export async function validate(
   } else if (vType === 'function') {
     finalResult = await validateFunction(actual, expected, ctx)
   } else if (
-    expected instanceof YamlTypeJsonSchema ||
+    JsonSchemaType.isInstance(expected) ||
     (!ctx.disableHeuristicSchema && isJsonSchema(expected))
   ) {
     finalResult = await validateSchema(actual, expected, ctx)
@@ -328,7 +329,7 @@ async function validateSchema(
   expected: any,
   ctx: ValidationContext
 ): Promise<MatchResult> {
-  if (!(expected instanceof YamlTypeJsonSchema)) {
+  if (!JsonSchemaType.isInstance(expected)) {
     expected = await formatObject(cloneDeep(expected), { data: ctx.data, input: ctx.input })
   }
   return validateJsonSchema(actual, expected, ctx)

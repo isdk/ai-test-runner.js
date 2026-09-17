@@ -1,9 +1,65 @@
+import { isRegExp as _isRegExp, isRegExpStr } from 'util-ex'
 import {
   AIStrictOption,
   ValidationResult,
   AIValidationFailure,
 } from '../types.js'
 import { ValidationContext, MatchResult, MatchResultDetail, ArrayLoopOptions } from './types.js'
+
+export { toRegExp } from 'util-ex'
+
+/**
+ * Checks whether the value is a `RegExp` instance or a RegExp-like string
+ * (e.g. `'/abc/g'`).
+ *
+ * This is the exact semantics of `isRegExp` from `@isdk/ai-tool`, inlined here
+ * so the matching engine does not need to depend on an AI package:
+ * `isRegExpStr(value) || isRegExp(value)`.
+ */
+export function isRegExp(value: any): boolean {
+  return isRegExpStr(value) || _isRegExp(value)
+}
+
+function isPlainObject(value: any): value is object {
+  return !!value && value.constructor === Object
+}
+
+/**
+ * Retrieves an array of all key paths as strings for a nested object or array.
+ *
+ * @example
+ * ```ts
+ * getKeysPath({ a: { b: { c: 1 } }, d: [0, { e: 2 }] }) // ['a.b.c', 'd[0]', 'd[1].e']
+ * ```
+ */
+export function getKeysPath<TValue extends object>(value: TValue): string[] {
+  if (!value) return []
+  return _getKeys(value, [], { dot: '' })
+}
+
+function _getKeys(
+  obj: any,
+  paths: string[],
+  { dot = '.', visited = new Set<any>() }: { dot?: string; visited?: Set<any> } = {}
+): string[] {
+  if (visited.has(obj)) {
+    return [paths.join('')]
+  }
+
+  if (Array.isArray(obj)) {
+    visited.add(obj)
+    return obj.flatMap((item, i) => _getKeys(item, [...paths, `[${i}]`], { dot: '.', visited }))
+  }
+
+  if (isPlainObject(obj)) {
+    visited.add(obj)
+    return Object.entries(obj).flatMap(([k, v]) =>
+      _getKeys(v, [...paths, dot + k], { dot: '.', visited })
+    )
+  }
+
+  return [paths.join('')]
+}
 
 /**
  * Reserved metadata control keys.

@@ -1,6 +1,52 @@
-import { YamlTypeJsonSchema } from '../yaml-types/index.js'
 import { AIValidationFailure } from '../types.js'
 import { ValidationContext, MatchResult } from './types.js'
+import { JsonSchemaType } from './schema-type.js'
+
+/**
+ * Constructor shape of a concrete {@link JsonSchemaType} implementation.
+ */
+export type JsonSchemaTypeCtor = typeof JsonSchemaType & {
+  create(schema?: any): JsonSchemaType
+}
+
+let _schemaCtor: JsonSchemaTypeCtor | undefined
+
+/**
+ * Registers the concrete `JsonSchemaType` implementation to use
+ * (e.g. the Ajv-backed `AjvSchemaType`).
+ *
+ * When not set, the Ajv-backed implementation is loaded lazily on first use.
+ */
+export function setJsonSchemaType(ctor: JsonSchemaTypeCtor): void {
+  _schemaCtor = ctor
+}
+
+/** Returns the registered schema type implementation, if any. */
+export function getJsonSchemaType(): JsonSchemaTypeCtor | undefined {
+  return _schemaCtor
+}
+
+/**
+ * Lazily resolves the concrete schema implementation.
+ *
+ * The Ajv-backed implementation lives in its own module so that consumers which
+ * never validate against a schema do not have to load (or install) Ajv.
+ */
+export async function resolveJsonSchemaType(): Promise<JsonSchemaTypeCtor> {
+  if (!_schemaCtor) {
+    try {
+      const mod = await import('./ajv-schema.js')
+      _schemaCtor = mod.AjvSchemaType as unknown as JsonSchemaTypeCtor
+    } catch (e) {
+      throw new Error(
+        'JSON Schema validation requires an Ajv-backed schema type. ' +
+          'Install "ajv", "ajv-formats" and "ajv-keywords", or register an ' +
+          'implementation via setJsonSchemaType().'
+      )
+    }
+  }
+  return _schemaCtor
+}
 
 /** Standard JSON Schema primitive types. */
 const JSON_SCHEMA_TYPES = new Set([
@@ -22,7 +68,7 @@ const JSON_SCHEMA_TYPES = new Set([
  * @returns True if the value appears to be a JSON Schema.
  */
 export function isJsonSchema(expected: any): boolean {
-  if (expected instanceof YamlTypeJsonSchema) return true
+  if (JsonSchemaType.isInstance(expected)) return true
   if (typeof expected === 'object' && expected !== null && expected.type) {
     if (
       typeof expected.type === 'string' &&
@@ -50,14 +96,17 @@ export async function validateJsonSchema(
   expected: any,
   ctx: ValidationContext
 ): Promise<MatchResult> {
-  let schema: YamlTypeJsonSchema | undefined
+  let schema: JsonSchemaType | undefined
   const failures: AIValidationFailure[] = []
 
-  if (expected instanceof YamlTypeJsonSchema) {
+  if (JsonSchemaType.isInstance(expected)) {
     schema = expected
   } else {
+    // Resolving the implementation must stay outside the try/catch below:
+    // a missing Ajv install is a hard error, not an invalid schema.
+    const Ctor = await resolveJsonSchemaType()
     try {
-      schema = YamlTypeJsonSchema.create(expected)
+      schema = Ctor.create(expected)
     } catch (e) {
       // Not a valid JSON Schema
       console.error('validateJsonSchema error:', e)
@@ -65,9 +114,9 @@ export async function validateJsonSchema(
   }
 
   if (schema) {
-    const valid = YamlTypeJsonSchema.validate(schema, actual)
+    const valid = schema.validate(actual)
     if (!valid) {
-      const errors = YamlTypeJsonSchema.getErrors(schema)!
+      const errors = schema.getErrors()!
       failures.push({
         key: ctx.key,
         message: 'JSON Schema validation failed',

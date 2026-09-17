@@ -1,9 +1,58 @@
-import { pathToFileURL } from 'node:url'
-import { join, isAbsolute } from 'node:path'
 import { camelCase } from 'lodash-es'
 import { ValidationOperatorHandler, ValidationContext } from './types.js'
 import { processValidationResult } from './utils.js'
 import { ValidationResult } from '../types.js'
+
+/**
+ * Converts a filesystem path into a `file:` URL without relying on any node
+ * builtin, so this module stays isomorphic (node, browser and bundlers).
+ */
+function pathToUrl(path: string): string {
+  let p = path.replace(/\\/g, '/')
+  if (/^[a-zA-Z]:/.test(p)) p = '/' + p // Windows drive letter: C:/x -> /C:/x
+  else if (!p.startsWith('/')) p = '/' + p
+  return 'file://' + encodeURI(p)
+}
+
+/**
+ * Builds a base URL (always with a trailing slash) from a base directory.
+ * Accepts either an already-formed URL (`file:///a/b`, `https://x/y`) or a
+ * plain filesystem path.
+ */
+function toBaseUrl(baseDir: string): string {
+  const base = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(baseDir)
+    ? baseDir.replace(/\\/g, '/')
+    : pathToUrl(baseDir)
+  return base.endsWith('/') ? base : base + '/'
+}
+
+function isAbsolutePath(specifier: string): boolean {
+  return (
+    specifier.startsWith('/') ||
+    /^[a-zA-Z]:[\\/]/.test(specifier)
+  )
+}
+
+/**
+ * Resolves an operator module specifier to something that can be handed to
+ * `import()`.
+ *
+ * Uses the standard `URL` API only — no `node:path` / `node:url` — so the
+ * loader can be bundled for the browser.
+ */
+export function resolveModuleUrl(specifier: string, baseDir?: string): string {
+  // Already a full URL (file:, http:, data:, node:, …) — use as-is.
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(specifier)) return specifier
+
+  if (specifier.startsWith('./') || specifier.startsWith('../')) {
+    return baseDir ? new URL(specifier, toBaseUrl(baseDir)).href : specifier
+  }
+
+  if (isAbsolutePath(specifier)) return pathToUrl(specifier)
+
+  // Bare specifier (npm package) — let `import()` resolve it.
+  return specifier
+}
 
 export type CustomOperatorHandler = (
   actual: any,
@@ -97,19 +146,7 @@ export async function loadOperators(
 
       let [path, exportName] = url.split('#')
       let module: any
-      if (path.startsWith('./') || path.startsWith('../')) {
-        if (baseDir) {
-          path = join(baseDir, path)
-        }
-        const fileUrl = pathToFileURL(path).href
-        module = await import(fileUrl)
-      } else if (isAbsolute(path)) {
-        const fileUrl = pathToFileURL(path).href
-        module = await import(fileUrl)
-      } else {
-        // Assume npm package or absolute path without file://
-        module = await import(path)
-      }
+      module = await import(resolveModuleUrl(path, baseDir))
 
       const moduleName = name.startsWith('$') ? name.slice(1) : name
       const handler = exportName

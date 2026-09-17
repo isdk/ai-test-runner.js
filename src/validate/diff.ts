@@ -7,8 +7,8 @@ import {
   Change,
   DiffSentencesOptionsNonabortable,
 } from 'diff'
-import { isRegExp, toRegExp, getKeysPath } from '@isdk/ai-tool'
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
+import { isRegExp, toRegExp, getKeysPath } from './utils.js'
 import {
   AIDiffItem,
   AIValidationFailure,
