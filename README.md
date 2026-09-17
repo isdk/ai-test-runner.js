@@ -275,9 +275,9 @@ Enable scoring in a fixture or globally:
 - **`scoring`**: `true | false | 'auto'`. Enables scoring mode.
 - **`maxScore`**: (Default `100`) The maximum possible score for the test. This value is also used as the base for percentage-based weight distribution.
 - **`passScore`**: (Default equals `maxScore`) The minimum score required for the test to be considered "passed" (`passed: true`).
-- **`unassignedWeight`**: (Optional) Alias for `totalUnassignedWeight`. Default relative budget for items without an explicit `score`.
-- **`totalUnassignedWeight`**: (Optional, default `0.1`) Total budget for all unassigned items. The system ensures unassigned items share this budget to avoid score dilution.
-- **`autoConfidence`**: (Optional, default `true`) Automatically treats weights between 0 and 1 as confidence scores. Use `'force'` to skip heuristic and always treat as confidence.
+- **`unassignedWeight`**: (Optional, default `0.1`) Total budget reserved for validation items without an explicit `score` (the engine's internal name is `totalUnassignedWeight`). The system ensures unassigned items share this budget to avoid score dilution.
+
+> `autoConfidence` (treat weights between 0 and 1 as confidence scores, default `true`; `'force'` skips the heuristic) is an engine-level `ValidationContext` option — `ai-test-runner` does not currently expose it as a fixture/global option.
 
 #### 2.2 Hierarchical Relative Weighting & Strategies
 
@@ -332,8 +332,7 @@ $threshold: 0.75      # (Optional) Confidence threshold
 output:
   $and:
     - $expect: /Spring/
-      $meta: { score: 80, dimension: 'accuracy', critical: true }
-      $title: "Core keyword"
+      $meta: { score: 80, dimension: 'accuracy', critical: true, title: "Core keyword" }
     - $expect: /Flower/
       $score: 20
       $threshold: 0.5
@@ -524,43 +523,6 @@ Operators declare their path behavior in the detail tree via the `virtual` prope
 - **`false`**: **Physical mode**. Forces retention of the operator's physical level in the path (e.g., `output.$myOp`).
 - **`string`**: **Custom mode**. Supports path customization via templates (e.g., `$operator[$key]`).
 
-#### 3.6 Operator Input Type Declaration (`expects` property)
-
-To enhance type checking accuracy and avoid redundant basic type validations within operators, an operator can declare its expected `actual` (actual value) type by attaching an `expects` property to its function.
-
-If the `actual` type does not match the operator's declared expectation, the core validation engine will throw an error before the operator executes, providing a clear error message like `Operator $myOp requires an array, but got string`.
-
-The `expects` property can be a string or an array of strings:
-
-- **String Form**: `operatorFunction.expects = 'array'`
-  This indicates that the operator expects `actual` to be an array.
-- **String Array Form**: `operatorFunction.expects = ['array', 'object']`
-  This indicates that the operator expects `actual` to be either an array or an object. Currently, the core engine strictly enforces the `'array'` type. If the `expects` array includes `'array'` and `actual` is not an array, an error will be triggered.
-
-Note: Currently only `array` type is enforced for checking.
-
-**Example: Declaring an Operator Expects Array Input**
-
-```typescript
-// in myCustomOperator.ts
-export async function $myArrayOperator(actual, expected, ctx, validateMatch) {
-  // ... core logic of the operator, confident that actual is an array
-}
-$myArrayOperator.expects = 'array'; // Declare this operator expects an array as input
-```
-
-Alternatively, if the operator is custom and registered in the `operators` option:
-
-```yaml
-# Define custom operator in YAML
-operators:
-  $myArrayOperator: "js://./myCustomOperator.js#$myArrayOperator" # Assuming this file exports $myArrayOperator with expects property set
-```
-
-**Impact on Built-in Operators:**
-
-Built-in operators like `$contains`, `$all`, and `$sequence` now also explicitly declare their expectation for array input via the `expects = 'array'` property. When the `actual` value is not an array, the core validation engine will report an error prematurely.
-
 #### 3.6 Configuration Options
 
 - **`allowOperatorOverride`**: (Default `false`) Whether to allow custom operators to override built-in ones (e.g., `$contains`).
@@ -602,9 +564,9 @@ The most rigorous way to validate structured output. Validation is Ajv-backed vi
 
 #### 5.1 Heuristic Recognition
 
-By default, heuristic recognition is enabled. If an object has a `type` property with a value of `string`, `number`, `integer`, `boolean`, `object`, or `array`, it is automatically treated as a JSON Schema.
+By default, heuristic recognition is enabled. If a plain object has a `type` property with a value of `string`, `number`, `integer`, `boolean`, `object`, `array`, or `null` — and contains no `$contains` / `$all` / `$sequence` key — it is automatically treated as a JSON Schema.
 
-To use `type` as a standard business data field, set `disableHeuristicSchema: true`.
+To use `type` as a standard business data field, set `disableHeuristicSchema: true` (fixture-level or global).
 
 #### 5.2 Explicit Validation
 
@@ -639,7 +601,7 @@ By default (or via `diff: 'auto'` or `diff: true`), the engine uses heuristic de
 - **Long Text**: Switches to word-by-word diff (`words`).
 - **Short Strings**: Uses precise character-by-character diff (`chars`).
 
-#### 6.2 Supported Diff Types
+#### 6.3 Supported Diff Types
 
 You can explicitly set the `type` to force a specific algorithm:
 
@@ -662,7 +624,7 @@ expect:
         added: true
 ```
 
-#### 6.3 Permissive Mode (`diffPermissive`)
+#### 6.4 Permissive Mode (`diffPermissive`)
 
 Setting `diffPermissive: true` or using `diff: { permissive: true }` in expectations disables the strict whitelist. The engine will ignore all undeclared changes and only verify that `required: true` items changed as expected.
 
@@ -738,15 +700,15 @@ interface Message {
 }
 ```
 
-#### 1.3 How `expect.tools` Works
+#### 2.1 How `expect.tools` Works
 
 When you use `expect: { tools: [...] }`, the Runner performs the following:
 
 1. **Auto-Aggregation**: It iterates through the `messages` array to extract all entries containing a `tools` property.
 2. **Path Mapping**: It maps your tool assertions to the deep structure of the messages. For example, `tools: [ { name: 'calc' } ]` validates: *"Is there a message whose `tools` array contains an object with `name: 'calc'`?"*
-3. **Operator Conversion**: By default, it uses `$all` logic for collection matching.
+3. **Operator Conversion**: By default, it uses `$all` + `$contains` logic for collection matching (i.e. `$all: [{ tools: { $contains: {...} } }]`).
 
-### 2. AIScriptExecutor Implementation Example
+### 3. AIScriptExecutor Implementation Example
 
 The executor is the primary integration point between the library and your AI platform.
 
@@ -772,9 +734,9 @@ export class MyAIExecutor implements AIScriptExecutor {
 }
 ```
 
-### 3. Core Types
+### 4. Core Types
 
-#### 3.1 `AITestFixture`
+#### 4.1 `AITestFixture`
 
 The definition for a single test case.
 
@@ -804,7 +766,7 @@ export interface AITestFixture {
 }
 ```
 
-#### 3.2 `AITestLogItem`
+#### 4.2 `AITestLogItem`
 
 Detailed result for each executed fixture.
 
@@ -813,7 +775,7 @@ Detailed result for each executed fixture.
 | `title` | Fixture title |
 | `passed` | Whether all validations passed |
 | `score` | Final calculated score |
-| `scoreDetails` | **(New)** Detailed score breakdown (key, title, dimension, weight, score) |
+| `scoreDetails` | Detailed score breakdown (key, title, dimension, weight, score) |
 | `maxScore` | Maximum possible score |
 | `passScore` | Passing threshold |
 | `failedCritical` | List of mandatory (critical) validation failures |
@@ -824,33 +786,43 @@ Detailed result for each executed fixture.
 | `expectedSchema` | Resolved JSON Schema |
 | `failures` | List of validation failures |
 | `error` | Technical execution error |
+| `skipped` | Whether the fixture was skipped |
+| `i` | 0-based index of the fixture |
 | `duration` | Execution time (ms) |
-| `script` | **(New)** Actual script ID/source used |
-| `actualTrace` | **(New)** Full interaction history (messages) |
-| `expectedTrace` | **(New)** Resolved expectation for trace |
-| `tools` | **(New)** Final resolved tools list |
-| `vars` | **(New)** Final resolved template variables |
+| `not` | Whether the expectation was negated |
+| `script` | Actual script ID/source used |
+| `actualTrace` | Full interaction history (messages) |
+| `expectedTrace` | Resolved expectation for trace |
+| `tools` | Final resolved tools list |
+| `vars` | Final resolved template variables (controlled by `logVars`) |
+| `actualMeta` | `meta` returned by the executor |
 
-#### 3.3 `AITestRunnerOptions`
+#### 4.3 `AITestRunnerOptions`
 
 Global configuration for the runner.
 
 | Property | Description |
 | :--- | :--- |
 | `fixtureConfig` | Default values for all fixtures (`Partial<AITestFixture>`) |
-| `userConfig` | Runtime config passed to the executor |
+| `userConfig` | Runtime config passed to the executor (its `checkSchema`, `strict`, `disableHeuristicSchema`, `data` also take part in resolution) |
+| `skips` | Map of fixture indices to skip (`{ [index]: boolean }`) |
+| `scriptConfig` | Metadata about the script itself (e.g. output schema definitions) |
 | `strict` | Global strict mode setting |
-| `logVars` | **(New)** Control inclusion of `vars` in log: `true`, `false`, or `'error'` |
+| `disableHeuristicSchema` | Globally disable JSON Schema heuristic recognition |
+| `operators` | Global custom operators |
+| `allowOperatorOverride` | Allow custom operators to override built-in ones |
+| `baseDir` | Base directory for resolving relative operator paths |
+| `logVars` | Control inclusion of `vars` in log: `true`, `false`, or `'error'` (only on failure) |
 | `scoring` | Global scoring toggle |
 | `maxScore` | Global default max score |
 | `passScore` | Global default passing threshold |
 | `unassignedWeight` | Global default weight for unlabeled items |
 
-### 4. Event Lifecycle
+### 5. Event Lifecycle
 
 | Event | Triggered | Parameters |
 | :--- | :--- | :--- |
-| `test:start` | Before execution | `{ i, script, input }` |
+| `test:start` | Before execution | `{ i, script, input, title, fixture }` |
 | `test:pass` | All assertions passed | `AITestLogItem` |
 | `test:fail` | Assertion failed | `AITestLogItem` |
 | `test:error` | Execution crashed | `AITestLogItem` |

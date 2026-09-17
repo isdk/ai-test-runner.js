@@ -274,9 +274,9 @@ expect: {
 - **`scoring`**: `true | false | 'auto'`。开启评分模式。
 - **`maxScore`**: (默认 `100`) 本次测试的总分上限。该值也作为百分比权重分配的基准。
 - **`passScore`**: (默认等于 `maxScore`) 判定测试通过（`passed: true`）所需的最低分值。
-- **`unassignedWeight`**: (可选) `totalUnassignedWeight` 的别名。为没有显式设置 `score` 的验证项指定默认相对预算。
-- **`totalUnassignedWeight`**: (可选，默认 `0.1`) 为所有未定义项预留的总预算。系统确保未定义项平分这一预算，避免权重被稀释。
-- **`autoConfidence`**: (可选，默认 `true`) 自动将 0 到 1 之间的权重视为置信度。使用 `'force'` 可跳过启发式，强制视为置信度。
+- **`unassignedWeight`**: (可选，默认 `0.1`) 为没有显式设置 `score` 的验证项预留的总预算（引擎内部对应 `totalUnassignedWeight`）。系统确保未分配项平分这一预算，避免权重被稀释。
+
+> `autoConfidence`（自动将 0 到 1 之间的权重视为置信度，默认 `true`，`'force'` 跳过启发式）是引擎层 `ValidationContext` 的选项，`ai-test-runner` 目前未在 fixture / 全局配置中透传。
 
 #### 2.2 分层相对权重与策略
 
@@ -331,8 +331,7 @@ $threshold: 0.75      # (可选) 用于模糊匹配的置信度阈值
 output:
   $and:
     - $expect: /春天/
-      $meta: { score: 80, dimension: 'accuracy', critical: true }
-      $title: "核心关键词"
+      $meta: { score: 80, dimension: 'accuracy', critical: true, title: "核心关键词" }
     - $expect: /花/
       $score: 20
       $threshold: 0.5 # 如果“花”的匹配置信度低于 50%，则失败。
@@ -567,9 +566,17 @@ tools: true  # 自动将 weather.ai.yaml 设为可用工具
 
 ### 5. JSON Schema 验证
 
-对于结构化输出，JSON Schema 是最严谨的校验方式。校验由 `@isdk/match-ex-schema` 插件基于 Ajv 实现（`@isdk/ai-test-runner` 已自动启用）；所有 [ajv-formats](https://github.com/ajv-validator/ajv-formats) 与 [ajv-keywords](https://github.com/ajv-validator/ajv-keywords) 的关键字均可用。默认支持启发式识别（根据 `type` 属性）。
+对于结构化输出，JSON Schema 是最严谨的校验方式。校验由 `@isdk/match-ex-schema` 插件基于 Ajv 实现（`@isdk/ai-test-runner` 已自动启用）；所有 [ajv-formats](https://github.com/ajv-validator/ajv-formats) 与 [ajv-keywords](https://github.com/ajv-validator/ajv-keywords) 的关键字均可用。
 
-推荐使用 `$schema` 操作符：
+#### 5.1 启发式识别
+
+默认开启：若一个普通对象的 `type` 属性值为 `string`、`number`、`integer`、`boolean`、`object`、`array` 或 `null`，且不含 `$contains` / `$all` / `$sequence` 键，则自动按 JSON Schema 校验。
+
+若你需要把 `type` 当作普通业务字段，请在 fixture 或全局配置中设置 `disableHeuristicSchema: true`。
+
+#### 5.2 显式校验
+
+推荐使用 `$schema` 操作符，它始终按 JSON Schema 校验：
 
 ```yaml
 expect:
@@ -690,13 +697,50 @@ interface ToolCall {
 interface Message {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content?: string;           // 文本内容
+  /**
+   * 工具调用列表。
+   * - role 为 'assistant' 时，表示 AI 发起的调用请求
+   * - role 为 'tool' 时，表示工具执行后的返回结果
+   */
   tools?: ToolCall[];         // 工具调用列表
 }
 ```
 
-### 3. 核心类型说明
+#### 2.1 `expect.tools` 的工作原理
 
-#### 3.1 `AITestFixture`
+使用 `expect: { tools: [...] }` 时，Runner 会：
+
+1. **自动聚合**：遍历 `messages`，提取所有包含 `tools` 属性的消息。
+2. **路径映射**：将你的工具断言映射到 messages 深层结构。例如 `tools: [{ name: 'calc' }]` 校验的是「是否存在某条消息，其 `tools` 数组中包含 `name: 'calc'` 的项」。
+3. **算子转换**：默认使用 `$all` + `$contains` 组合进行集合匹配（即 `$all: [{ tools: { $contains: {...} } }]`）。
+
+### 3. AIScriptExecutor 实现示例
+
+```typescript
+import { AIScriptExecutor, AIExecutionContext, AIExecutionResult } from '@isdk/ai-test-runner';
+
+export class MyAIExecutor implements AIScriptExecutor {
+  async execute(context: AIExecutionContext): Promise<AIExecutionResult> {
+    const { script, args, options } = context;
+
+    // 示例：调用某个 AI 服务
+    const response = await someAIService.ask({
+      model: options.model || 'gpt-4',
+      prompt: script,   // 若为 ID 则需先加载内容
+      variables: args
+    });
+
+    return {
+      output: response.text,           // 用于 output 验证
+      messages: response.fullHistory,  // 用于工具调用验证
+    };
+  }
+}
+```
+
+### 4. 核心类型说明
+
+#### 4.1 `AITestFixture`
 
 单个测试用例的定义。
 
@@ -726,7 +770,7 @@ export interface AITestFixture {
 }
 ```
 
-#### 3.2 `AITestLogItem`
+#### 4.2 `AITestLogItem`
 
 每个 Fixture 执行后的详细日志项。
 
@@ -746,32 +790,43 @@ export interface AITestFixture {
 | `failedCritical` | 强制性（红线）校验失败详情列表 |
 | `failures` | 校验失败详情列表 |
 | `error` | 执行过程中的技术错误 |
+| `skipped` | 是否被跳过 |
+| `i` | 该 fixture 在输入数组中的下标 |
 | `duration` | 执行耗时 (ms) |
+| `not` | 是否开启了结果取反 |
 | `script` | 实际执行的脚本 ID 或源码 |
 | `actualTrace` | 完整的交互历史 (messages) |
 | `expectedTrace` | 解析后的 Trace 预期目标 |
 | `tools` | 最终解析出的工具列表 |
-| `vars` | 执行时最终解析出的模板变量集 |
+| `vars` | 执行时最终解析出的模板变量集（受 `logVars` 控制） |
+| `actualMeta` | 执行器返回的 `meta` 信息 |
 
-#### 3.3 `AITestRunnerOptions`
+#### 4.3 `AITestRunnerOptions`
 
 运行器的全局配置项。
 
 | 属性 | 说明 |
 | :--- | :--- |
 | `fixtureConfig` | 所有 Fixture 的默认值 (`Partial<AITestFixture>`) |
-| `userConfig` | 传递给执行器的运行时配置 |
+| `userConfig` | 传递给执行器的运行时配置（其中 `checkSchema`、`strict`、`disableHeuristicSchema`、`data` 也会参与解析） |
+| `skips` | 需要跳过的 fixture 下标映射 (`{ [index]: boolean }`) |
+| `scriptConfig` | 脚本自身的元信息（如 output schema 定义） |
 | `strict` | 全局严格模式设置 |
-| `logVars` | 控制 vars 是否包含在日志中: `true`, `false`, 或 `'error'` |
+| `disableHeuristicSchema` | 全局关闭 JSON Schema 启发式识别 |
+| `operators` | 全局自定义操作符 |
+| `allowOperatorOverride` | 允许自定义操作符覆盖内置操作符 |
+| `baseDir` | 解析操作符相对路径的基准目录 |
+| `logVars` | 控制 vars 是否包含在日志中: `true`, `false`, 或 `'error'`（仅失败时） |
 | `scoring` | 全局评分开关 |
 | `maxScore` | 全局默认最大分值 |
 | `passScore` | 全局默认及格分值 |
+| `unassignedWeight` | 全局未分配项的权重预算 |
 
-### 4. 事件生命周期
+### 5. 事件生命周期
 
 | 事件名 | 触发时机 | 参数 |
 | :--- | :--- | :--- |
-| `test:start` | 开始执行前 | `{ i, script, input }` |
+| `test:start` | 开始执行前 | `{ i, script, input, title, fixture }` |
 | `test:pass` | 断言全部通过 | `AITestLogItem` |
 | `test:fail` | 断言失败 | `AITestLogItem` |
 | `test:error` | 代码执行崩溃 | `AITestLogItem` |
