@@ -1,26 +1,39 @@
 import type {
-  AIValidationFailure,
-  AIScoreConfig,
-  AIStrictOption,
-  AIDiffItem,
-  AIDiffType,
-  AIDiffOptions,
+  MatchFailure,
+  ScoreConfig,
+  StrictOption,
+  DiffItem,
+  DiffType,
+  DiffOptions,
   ValidationResult,
 } from './match-ex/types.js'
 
 /**
- * These types are owned by the matching engine (`./match-ex`).
+ * These types are owned by the matching engine (`./match-ex`), which names them
+ * neutrally since it has nothing to do with AI. They are re-exported here under
+ * their historical `AI*` names so existing `@isdk/ai-test-runner` consumers
+ * keep compiling — e.g. `@isdk/cli-plugin-cmd-test` imports `AIValidationFailure`.
  *
- * They are re-exported here so `@isdk/ai-test-runner` consumers keep their
- * existing `AI*` names once the engine moves to its own package.
+ * @deprecated Prefer the neutral names; the aliases exist for compatibility and
+ * will stay until the next major version.
  */
 export type {
-  AIValidationFailure,
-  AIScoreConfig,
-  AIStrictOption,
-  AIDiffItem,
-  AIDiffType,
-  AIDiffOptions,
+  MatchFailure as AIValidationFailure,
+  ScoreConfig as AIScoreConfig,
+  StrictOption as AIStrictOption,
+  DiffItem as AIDiffItem,
+  DiffType as AIDiffType,
+  DiffOptions as AIDiffOptions,
+} from './match-ex/types.js'
+
+/** Neutral aliases of the engine-owned types (see above). */
+export type {
+  MatchFailure,
+  ScoreConfig,
+  StrictOption,
+  DiffItem,
+  DiffType,
+  DiffOptions,
   ValidationResult,
 } from './match-ex/types.js'
 
@@ -90,7 +103,7 @@ export interface AITestLogItem {
   /** The minimum score required for the test to pass. */
   passScore?: number
   /** A list of validation failures that were marked as 'critical' but failed. */
-  failedCritical?: AIValidationFailure[]
+  failedCritical?: MatchFailure[]
   /** The resolved input provided to the AI script. */
   input: any
   /** The actual output produced by the executor. */
@@ -105,7 +118,7 @@ export interface AITestLogItem {
   /** The JSON schema used for validation, if any. */
   expectedSchema?: any
   /** A list of specific validation failures if the test did not pass. */
-  failures?: AIValidationFailure[]
+  failures?: MatchFailure[]
   /** Any technical error that occurred during the execution process. */
   error?: any
   /** Whether the test was skipped. */
@@ -183,7 +196,7 @@ export interface AITestFixture {
    */
   expect?: any
   /** Strict validation mode configuration for this fixture. */
-  strict?: AIStrictOption
+  strict?: StrictOption
   /** Whether to perform JSON Schema validation. */
   checkSchema?: boolean
   /** Whether to disable heuristic JSON Schema recognition. */
@@ -254,7 +267,7 @@ export interface AITestRunnerOptions {
   /**
    * Global strict mode configuration. Individual fixtures can override this.
    */
-  strict?: AIStrictOption
+  strict?: StrictOption
   /**
    * Whether to disable heuristic JSON Schema recognition globally.
    */

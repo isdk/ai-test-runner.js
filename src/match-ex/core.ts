@@ -1,5 +1,5 @@
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
-import { AIValidationFailure } from './types.js'
+import { MatchFailure } from './types.js'
 import {
   MatchValueOptions,
   ValidationContext,
@@ -140,7 +140,7 @@ export async function validateMatch(
   actual: any,
   expected: any,
   options: MatchValueOptions | ValidationContext = {}
-): Promise<AIValidationFailure[]> {
+): Promise<MatchFailure[]> {
   const ctx =
     options instanceof ValidationContext
       ? options

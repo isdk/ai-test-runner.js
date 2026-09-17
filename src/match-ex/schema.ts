@@ -1,4 +1,4 @@
-import { AIValidationFailure } from './types.js'
+import { MatchFailure } from './types.js'
 import { ValidationContext, MatchResult } from './types.js'
 import { JsonSchemaType } from './schema-type.js'
 
@@ -97,7 +97,7 @@ export async function validateJsonSchema(
   ctx: ValidationContext
 ): Promise<MatchResult> {
   let schema: JsonSchemaType | undefined
-  const failures: AIValidationFailure[] = []
+  const failures: MatchFailure[] = []
 
   if (JsonSchemaType.isInstance(expected)) {
     schema = expected

@@ -1,8 +1,8 @@
 import { isRegExp as _isRegExp, isRegExpStr } from 'util-ex'
 import {
-  AIStrictOption,
+  StrictOption,
   ValidationResult,
-  AIValidationFailure,
+  MatchFailure,
 } from './types.js'
 import { ValidationContext, MatchResult, MatchResultDetail, ArrayLoopOptions } from './types.js'
 
@@ -154,7 +154,7 @@ export function getScoreConfig(item: any): {
  */
 export function isStrict(
   type: 'object' | 'diff' | 'array',
-  strict?: AIStrictOption | ValidationContext
+  strict?: StrictOption | ValidationContext
 ): boolean {
   if (strict instanceof ValidationContext) {
     strict = strict.strict
@@ -186,7 +186,7 @@ export function processValidationResult(
 ): MatchResult {
   let score = 0
   let pass = false
-  let failures: AIValidationFailure[] = []
+  let failures: MatchFailure[] = []
   let message: string | undefined
   let dimension: string | undefined
   let details: MatchResultDetail[] | undefined
@@ -274,7 +274,7 @@ export function processValidationResult(
 
   // 为所有失败项自动补全上下文信息
   const finalFailures = failures.map((f) => {
-    const newFailure: AIValidationFailure = {
+    const newFailure: MatchFailure = {
       ...f,
       key: f.key || options.key || ctx.key,
     }

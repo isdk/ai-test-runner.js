@@ -11,7 +11,7 @@ import { template } from 'lodash-es'
  * - `sentences`: Sentence-level diffing.
  * - `json`: JSON-level diffing (serializes objects to JSON first).
  */
-export type AIDiffType =
+export type DiffType =
   | 'auto'
   | 'chars'
   | 'words'
@@ -24,7 +24,7 @@ export type AIDiffType =
  * Represents a specific difference item in the validation process.
  * Extends the `Change` object from the `diff` library with additional validation metadata.
  */
-export interface AIDiffItem extends Change {
+export interface DiffItem extends Change {
   /**
    * The path in the object structure (e.g., "user.id" or "tags[0]").
    * Present when performing structured diffs (like JSON).
@@ -47,13 +47,13 @@ export interface AIDiffItem extends Change {
   /**
    * Scoring configuration for this specific diff item.
    */
-  score?: AIScoreConfig
+  score?: ScoreConfig
 }
 
 /**
  * Represents a failure encountered during the validation of a value.
  */
-export interface AIValidationFailure {
+export interface MatchFailure {
   /** The dot-separated path or array index where the failure occurred. */
   key?: string
   /** A human-readable message describing the failure. */
@@ -63,7 +63,7 @@ export interface AIValidationFailure {
   /** The actual value that was received. */
   actual?: any
   /** Detailed diff information if the failure occurred during a string comparison. */
-  diff?: AIDiffItem[]
+  diff?: DiffItem[]
   /** Indicates if this failure occurred in a critical validation path. */
   critical?: boolean
 }
@@ -72,7 +72,7 @@ export interface AIValidationFailure {
  * Configuration for scoring a validation item.
  * Can be a simple number (weight) or a detailed object.
  */
-export type AIScoreConfig =
+export type ScoreConfig =
   | number
   | {
       /** The relative weight or value of this item. Positive for rewards, negative for penalties. */
@@ -121,20 +121,20 @@ export type ValidationResult =
  * - `'object' | 'diff' | 'array'`: Enable strict mode only for the specified type.
  * - `string[]`: Array of types to enable strict mode for.
  */
-export type AIStrictOption = boolean | string | string[]
+export type StrictOption = boolean | string | string[]
 
 /**
  * Configuration options for string diffing.
  */
-export interface AIDiffOptions {
+export interface DiffOptions {
   /**
    * The diff strategy to use.
    * Defaults to 'auto' when no whitelist is provided for better readability,
    * or 'chars' when a whitelist is provided for precision.
    */
-  type?: AIDiffType
+  type?: DiffType
   /** A list of expected diff items (whitelist) to match against the actual changes. */
-  items?: AIDiffItem[]
+  items?: DiffItem[]
   /**
    * Whether to allow unverified diff changes in non-strict mode.
    * If true, changes not present in the `items` list will not cause a failure.
@@ -172,7 +172,7 @@ export interface MatchValueOptions {
   /** The test fixture input/configuration. */
   input?: any
   /** Strict validation mode configuration. */
-  strict?: AIStrictOption
+  strict?: StrictOption
   /** Whether to allow unverified diff changes in non-strict mode. */
   diffPermissive?: boolean
   /** Whether to disable heuristic JSON Schema recognition. Defaults to false. */
@@ -220,7 +220,7 @@ export class ValidationContext {
   /** The original test fixture input and configuration. */
   input: any
   /** Configuration for strict validation (e.g., forbidding extra keys). */
-  strict?: AIStrictOption
+  strict?: StrictOption
   /** Whether to allow unverified diff changes in non-strict mode. */
   diffPermissive?: boolean
   /** Whether to disable heuristic JSON Schema recognition. */
@@ -373,7 +373,7 @@ export class ValidationContext {
   /**
    * Calculates weights for a list of items using the current strategy and context.
    */
-  distribute(items: (AIScoreConfig | null)[]): number[] {
+  distribute(items: (ScoreConfig | null)[]): number[] {
     if (!this.strategy) {
       throw new Error('Scoring strategy not found in ValidationContext. Ensure it is initialized correctly.')
     }
@@ -407,7 +407,7 @@ export interface ScoringStrategy {
    * @returns An array of normalized weights (0.0 - 1.0) summing to 1.0 (for weighted) or more (for independent).
    */
   distribute(
-    items: (AIScoreConfig | null)[],
+    items: (ScoreConfig | null)[],
     options?: { totalUnassignedWeight?: number; maxScore?: number, autoConfidence?: boolean|'force' }
   ): number[]
 
@@ -442,7 +442,7 @@ export interface MatchResult {
   /** Whether the validation passed. */
   pass: boolean
   /** List of failures encountered during matching. */
-  failures: AIValidationFailure[]
+  failures: MatchFailure[]
   /** Detailed scoring breakdown for sub-items. */
   details?: MatchResultDetail[]
   /** Optional title of the validation item. */

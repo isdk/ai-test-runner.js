@@ -1,4 +1,4 @@
-import { AIValidationFailure, ValidationResult } from '../types.js'
+import { MatchFailure, ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { genArrayLoopOptions, getScoreConfig } from '../utils.js'
 
@@ -24,7 +24,7 @@ export async function validateSequence(
   const weights = ctx.distribute(explicitWeights)
 
   let totalScore = 0
-  const allFailures: AIValidationFailure[] = []
+  const allFailures: MatchFailure[] = []
   let actualIdx = 0
   let pass = true
 
@@ -33,7 +33,7 @@ export async function validateSequence(
     const subAllocated = weights[i] * ctx.allocatedScore
     let found = false
     let maxBranchScore = 0
-    let bestBranchFailures: AIValidationFailure[] = []
+    let bestBranchFailures: MatchFailure[] = []
 
     let tempIdx = actualIdx
     while (tempIdx < actual.length) {

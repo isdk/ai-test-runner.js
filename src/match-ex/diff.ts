@@ -10,10 +10,10 @@ import {
 import { get as getByPath, has as hasByPath, cloneDeep } from 'lodash-es'
 import { isRegExp, toRegExp, getKeysPath } from './utils.js'
 import {
-  AIDiffItem,
-  AIValidationFailure,
-  AIDiffOptions,
-  AIDiffType,
+  DiffItem,
+  MatchFailure,
+  DiffOptions,
+  DiffType,
 } from './types.js'
 import { ValidationContext, MatchResult } from './types.js'
 import { isStrict, calculateNormalizedWeights, getScoreConfig } from './utils.js'
@@ -22,7 +22,7 @@ import { formatTemplate } from './template.js'
 /**
  * Checks if a diff list contains any additions or removals.
  */
-export function hasDiffChanges(diff: AIDiffItem[]): boolean {
+export function hasDiffChanges(diff: DiffItem[]): boolean {
   return diff.some((d) => d.added || d.removed)
 }
 
@@ -48,15 +48,15 @@ function parseJsonSafe(str: string): any {
 function diffJsonStructured(
   expected: any,
   actual: any,
-  _options: AIDiffOptions = {}
-): AIDiffItem[] {
+  _options: DiffOptions = {}
+): DiffItem[] {
   const expectedPaths = getKeysPath(expected)
   const actualPaths = getKeysPath(actual)
 
   const allPaths = Array.from(
     new Set([...expectedPaths, ...actualPaths])
   ).sort()
-  const diffs: AIDiffItem[] = []
+  const diffs: DiffItem[] = []
 
   for (const path of allPaths) {
     const eVal = getByPath(expected, path)
@@ -112,7 +112,7 @@ function diffJsonStructured(
 /**
  * Heuristically detects the best diff strategy based on content.
  */
-function detectDiffType(expected: string, actual: string): AIDiffType {
+function detectDiffType(expected: string, actual: string): DiffType {
   if (isJsonLike(expected) && isJsonLike(actual)) {
     if (parseJsonSafe(expected) !== null && parseJsonSafe(actual) !== null) {
       return 'json'
@@ -139,16 +139,16 @@ function detectDiffType(expected: string, actual: string): AIDiffType {
 export function getDiff(
   expected: any,
   actual: any,
-  options: AIDiffOptions = {}
-): AIDiffItem[] {
+  options: DiffOptions = {}
+): DiffItem[] {
   const originalType = options.type || 'chars'
-  let type: AIDiffType = originalType
+  let type: DiffType = originalType
 
   if (type === 'auto') {
     type = detectDiffType(String(expected), String(actual))
   }
 
-  let result: AIDiffItem[]
+  let result: DiffItem[]
   switch (type) {
     case 'json': {
       const e =
@@ -198,7 +198,7 @@ export function getDiff(
  * Formats a list of AIDiffItems by applying prompt templates.
  */
 export async function formatDiffList(
-  diff: AIDiffItem[],
+  diff: DiffItem[],
   ctx: ValidationContext
 ) {
   const result = cloneDeep(diff)
@@ -219,8 +219,8 @@ export async function formatDiffList(
  * Checks if a specific actual diff change matches any expected diff definitions.
  */
 export function findDiffItem(
-  diff: AIDiffItem[],
-  item: AIDiffItem,
+  diff: DiffItem[],
+  item: DiffItem,
   _ctx: ValidationContext
 ) {
   let result: Change | undefined
@@ -291,14 +291,14 @@ export async function validateStringDiff(
   actual: string,
   expected: string,
   ctx: ValidationContext,
-  options?: AIDiffOptions
+  options?: DiffOptions
 ): Promise<MatchResult> {
   const { input } = ctx
-  const failures: AIValidationFailure[] = []
+  const failures: MatchFailure[] = []
   let score = 1.0
   let pass = true
 
-  let diffOptions: AIDiffOptions = options || {}
+  let diffOptions: DiffOptions = options || {}
   let expectedDiff = diffOptions.items || input?.diff
   let diffPermissive =
     diffOptions.permissive ??
@@ -312,7 +312,7 @@ export async function validateStringDiff(
   } else if (expectedDiff && !Array.isArray(expectedDiff)) {
     if (typeof expectedDiff === 'object') {
       if ('items' in (expectedDiff as any) || 'type' in (expectedDiff as any)) {
-        const nestedOptions = expectedDiff as AIDiffOptions
+        const nestedOptions = expectedDiff as DiffOptions
         diffOptions = { ...diffOptions, ...nestedOptions }
         diffPermissive = diffPermissive ?? diffOptions.permissive
         expectedDiff = diffOptions.items
@@ -321,14 +321,14 @@ export async function validateStringDiff(
       typeof expectedDiff === 'string' &&
       expectedDiff !== 'function'
     ) {
-      diffOptions.type = diffOptions.type || (expectedDiff as AIDiffType)
+      diffOptions.type = diffOptions.type || (expectedDiff as DiffType)
       expectedDiff = undefined
     }
   }
 
   if (!expectedDiff && !diffOptions.type) diffOptions.type = 'auto'
 
-  const diff: AIDiffItem[] = getDiff(expected, actual, diffOptions)
+  const diff: DiffItem[] = getDiff(expected, actual, diffOptions)
   const hasChanges = hasDiffChanges(diff)
 
   if (Array.isArray(expectedDiff)) {
@@ -338,7 +338,7 @@ export async function validateStringDiff(
 
     const successfulItems = diff.filter((d) => {
       let matchedIdx = -1
-      const matched = (formattedExpectedDiff as AIDiffItem[]).some(
+      const matched = (formattedExpectedDiff as DiffItem[]).some(
         (ed, idx) => {
           const m = findDiffItem([ed], d, ctx)
           if (m) {
@@ -355,7 +355,7 @@ export async function validateStringDiff(
     const strictDiff = isStrict('diff', ctx)
     const allExpectedMatched =
       matchedExpectedIndices.size === expectedDiff.length
-    const missingRequiredItems = (expectedDiff as AIDiffItem[]).filter(
+    const missingRequiredItems = (expectedDiff as DiffItem[]).filter(
       (ed, idx) => ed.required === true && !matchedExpectedIndices.has(idx)
     )
     const hasUnverified = diff.some(
@@ -364,7 +364,7 @@ export async function validateStringDiff(
 
     if (ctx.scoring) {
       const includeStrictness = !diffPermissive || strictDiff
-      const explicitWeights = (expectedDiff as AIDiffItem[]).map((item) => {
+      const explicitWeights = (expectedDiff as DiffItem[]).map((item) => {
         return getScoreConfig(item).weight
       })
 
@@ -390,7 +390,7 @@ export async function validateStringDiff(
 
     let failed = false
     const reasons: string[] = []
-    const getDiffDesc = (item: AIDiffItem) =>
+    const getDiffDesc = (item: DiffItem) =>
       item.value ||
       (item.path
         ? item.val !== undefined

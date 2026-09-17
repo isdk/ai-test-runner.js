@@ -1,8 +1,8 @@
-import { AIScoreConfig } from './types.js'
+import { ScoreConfig } from './types.js'
 import { ScoringStrategy, MatchResult, MatchResultDetail } from './types.js'
 import { calculateNormalizedWeights } from './utils.js'
 
-function extractWeights(items: (AIScoreConfig | null)[]): (number | null)[] {
+function extractWeights(items: (ScoreConfig | null)[]): (number | null)[] {
   return items.map((item) => {
     if (typeof item === 'number') return item
     if (item && typeof item === 'object') return item.value

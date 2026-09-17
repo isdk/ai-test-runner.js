@@ -1,7 +1,7 @@
 import { ValidationResult } from '../types.js'
 import { ValidationContext, ValidateMatchFn, MatchResult } from '../types.js'
 import { validateStringDiff } from '../diff.js'
-import { AIDiffOptions } from '../types.js'
+import { DiffOptions } from '../types.js'
 
 /**
  * Validates a string using diff analysis.
@@ -13,7 +13,7 @@ export async function validateDiff(
   _validateMatch: ValidateMatchFn
 ): Promise<ValidationResult> {
   let expectedValue: any
-  let diffOptions: AIDiffOptions | undefined
+  let diffOptions: DiffOptions | undefined
 
   if (
     typeof expected === 'object' &&
@@ -21,7 +21,7 @@ export async function validateDiff(
     !Array.isArray(expected)
   ) {
     expectedValue = expected.value ?? expected.expected
-    diffOptions = expected as AIDiffOptions
+    diffOptions = expected as DiffOptions
   } else {
     expectedValue = expected
   }
